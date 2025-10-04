@@ -1,0 +1,70 @@
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { FiZap, FiUsers, FiTrendingUp } from 'react-icons/fi';
+import './Home.css';
+
+const Home = () => {
+  const navigate = useNavigate();
+
+  return (
+    <div className="home-container">
+      <div className="hero-section">
+        <h1 className="hero-title">
+          Make Learning <br />
+          <span className="text-red">Fun</span> & <span className="text-yellow">Fast</span>
+        </h1>
+        <p className="hero-subtitle">
+          Create interactive quizzes in minutes. Engage your<br />
+          classroom with real-time competition and instant feedback.
+        </p>
+        <div className="hero-buttons">
+          <button className="btn btn-primary" onClick={() => navigate('/quiz/builder')}>
+            <span>▶</span> Create Quiz
+          </button>
+          <button className="btn btn-secondary" onClick={() => navigate('/join')}>
+            Join with PIN
+          </button>
+        </div>
+      </div>
+
+      <div className="features-section">
+        <div className="feature-card">
+          <div className="feature-icon" style={{backgroundColor: '#FFE5E5'}}>
+            <FiZap color="#E5164F" size={32} />
+          </div>
+          <h3>Quick Setup</h3>
+          <p>Build quizzes in minutes with our intuitive editor. Add questions, media, and custom time limits effortlessly.</p>
+        </div>
+
+        <div className="feature-card">
+          <div className="feature-icon" style={{backgroundColor: '#FFF9E5'}}>
+            <FiUsers color="#FFC107" size={32} />
+          </div>
+          <h3>Live Engagement</h3>
+          <p>Players join instantly with a PIN code. Watch real-time responses and keep everyone engaged with dynamic leaderboards.</p>
+        </div>
+
+        <div className="feature-card">
+          <div className="feature-icon" style={{backgroundColor: '#E5F9E5'}}>
+            <FiTrendingUp color="#26890D" size={32} />
+          </div>
+          <h3>Instant Results</h3>
+          <p>Get immediate insights with detailed analytics. Track accuracy, speed, and identify areas for improvement.</p>
+        </div>
+      </div>
+
+      <div className="stats-section">
+        <div className="stat-badge">
+          <div className="stat-dots">
+            <span className="dot" style={{backgroundColor: '#E5164F'}}></span>
+            <span className="dot" style={{backgroundColor: '#FFC107'}}></span>
+            <span className="dot" style={{backgroundColor: '#26890D'}}></span>
+          </div>
+          <p>Join thousands of educators worldwide</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Home;
