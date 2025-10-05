@@ -30,6 +30,12 @@ cd ..\gateway
 npm install
 ```
 
+#### Auth Service
+```powershell
+cd ..\services\auth-service
+npm install
+```
+
 #### Quiz Service
 ```powershell
 cd ..\services\quiz-service
@@ -45,6 +51,7 @@ npm install
 ### 4. Configure Environment Variables
 All `.env` files are already created. Update them if needed:
 - `gateway/.env`
+- `services/auth-service/.env` - **IMPORTANT: Configure email settings** (see EMAIL_SETUP.md)
 - `services/quiz-service/.env`
 - `services/game-service/.env`
 
@@ -70,13 +77,19 @@ cd C:\quiz-app\gateway
 npm run dev
 ```
 
-#### Terminal 3 - Quiz Service
+#### Terminal 3 - Auth Service
+```powershell
+cd C:\quiz-app\services\auth-service
+npm run dev
+```
+
+#### Terminal 4 - Quiz Service
 ```powershell
 cd C:\quiz-app\services\quiz-service
 npm run dev
 ```
 
-#### Terminal 4 - Game Service
+#### Terminal 5 - Game Service
 ```powershell
 cd C:\quiz-app\services\game-service
 npm run dev
@@ -84,7 +97,8 @@ npm run dev
 
 ### 7. Access the Application
 - **Frontend**: http://localhost:3000
-- **API Gateway**: http://localhost:3000 (same as frontend proxy)
+- **API Gateway**: http://localhost:3000/api
+- **Auth Service**: http://localhost:3001
 - **Quiz Service**: http://localhost:3002
 - **Game Service**: http://localhost:3003
 

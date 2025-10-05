@@ -18,7 +18,15 @@ const Home = () => {
           classroom with real-time competition and instant feedback.
         </p>
         <div className="hero-buttons">
-          <button className="btn btn-primary" onClick={() => navigate('/quiz/builder')}>
+          <button className="btn btn-primary" onClick={() => {
+            // Check if user is logged in
+            const token = localStorage.getItem('token');
+            if (token) {
+              navigate('/dashboard');
+            } else {
+              navigate('/login');
+            }
+          }}>
             <span>▶</span> Create Quiz
           </button>
           <button className="btn btn-secondary" onClick={() => navigate('/join')}>
