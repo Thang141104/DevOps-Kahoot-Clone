@@ -7,8 +7,15 @@ const app = express();
 
 // Middleware
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`📥 ${req.method} ${req.path} - Body size: ${req.headers['content-length'] || 0} bytes`);
+  next();
+});
+
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // MongoDB Connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/quiz-app';
@@ -17,10 +24,7 @@ mongoose.connect(MONGODB_URI)
   .then(() => console.log('✅ Auth Service: Connected to MongoDB'))
   .catch((err) => console.error('❌ Auth Service: MongoDB connection error:', err));
 
-// Routes
-app.use('/auth', require('./routes/auth.routes'));
-
-// Health check
+// Health check (must be before auth routes to avoid conflicts)
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'OK', 
@@ -28,6 +32,9 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString() 
   });
 });
+
+// Routes
+app.use('/', require('./routes/auth.routes'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {

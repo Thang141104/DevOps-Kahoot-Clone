@@ -83,7 +83,7 @@ function VerifyOTP() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3000/api/auth/auth/verify-otp', {
+      const response = await fetch('http://localhost:3000/api/auth/verify-otp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -126,7 +126,7 @@ function VerifyOTP() {
     setSuccess('');
 
     try {
-      const response = await fetch('http://localhost:3000/api/auth/auth/resend-otp', {
+      const response = await fetch('http://localhost:3000/api/auth/resend-otp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

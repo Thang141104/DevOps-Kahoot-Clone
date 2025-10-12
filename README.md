@@ -2,6 +2,9 @@
 
 A full-stack, real-time quiz application built with React, Node.js, and MongoDB using microservices architecture.
 
+## ⚠️ Recent Fixes
+**Auth Service Issues Resolved** - See [FIXES.md](FIXES.md) for details on login/registration bug fixes.
+
 ## 🎯 Features
 
 - **Interactive Quiz Creation**: Build quizzes with multiple question types

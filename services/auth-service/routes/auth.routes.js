@@ -4,11 +4,12 @@ const User = require('../models/User');
 const { generateToken } = require('../utils/jwt');
 const { sendOTPEmail, sendWelcomeEmail } = require('../utils/email');
 
-// @route   POST /auth/register
+// @route   POST /register
 // @desc    Register new user and send OTP
 // @access  Public
 router.post('/register', async (req, res) => {
   try {
+    console.log('📝 Registration request received:', { username: req.body.username, email: req.body.email });
     const { username, email, password } = req.body;
 
     // Validate input
@@ -54,10 +55,12 @@ router.post('/register', async (req, res) => {
 
     // Send OTP email
     try {
+      console.log(`📧 Sending OTP email to ${email}...`);
       await sendOTPEmail(email, otp, username);
+      console.log(`✅ OTP email sent successfully to ${email}`);
     } catch (emailError) {
       // If email fails, still return success but with warning
-      console.error('Email sending failed:', emailError);
+      console.error('❌ Email sending failed:', emailError);
       return res.status(201).json({
         success: true,
         message: 'User registered but email sending failed. Please contact support.',
@@ -66,6 +69,7 @@ router.post('/register', async (req, res) => {
       });
     }
 
+    console.log(`✅ User ${username} registered successfully with ID: ${user._id}`);
     res.status(201).json({
       success: true,
       message: 'Registration successful! Please check your email for OTP verification code.',

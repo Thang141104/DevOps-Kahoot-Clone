@@ -10,7 +10,8 @@ const app = express();
 // Middleware
 app.use(helmet());
 app.use(cors());
-app.use(express.json());
+// DO NOT parse body in gateway - let target services handle it
+// app.use(express.json());
 
 // Rate limiting
 const limiter = rateLimit({
