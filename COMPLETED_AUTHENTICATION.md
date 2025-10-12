@@ -1,5 +1,8 @@
 # 🎉 HOÀN THÀNH - Authentication System
 
+## ⚠️ Important Update
+**Auth routing fixes applied** - See [FIXES.md](FIXES.md) for details.
+
 ## ✅ Đã Triển Khai Thành Công
 
 ### 📦 Backend Services (3 Services)
@@ -235,20 +238,22 @@ npm run dev
 
 ### Auth Service (qua Gateway)
 
+⚠️ **Updated: Use single `/api/auth/` NOT double `/api/auth/auth/`**
+
 ```
-POST /api/auth/auth/register
+POST /api/auth/register
      → Register user + Send OTP
 
-POST /api/auth/auth/verify-otp
+POST /api/auth/verify-otp
      → Verify OTP + Get JWT token
 
-POST /api/auth/auth/resend-otp
+POST /api/auth/resend-otp
      → Resend OTP to email
 
-POST /api/auth/auth/login
+POST /api/auth/login
      → Login + Get JWT token
 
-GET  /api/auth/auth/me
+GET  /api/auth/me
      → Get current user (requires JWT)
 ```
 
@@ -257,7 +262,7 @@ GET  /api/auth/auth/me
 ### Test 1: Complete Registration ✅
 ```powershell
 # 1. Register
-POST http://localhost:3000/api/auth/auth/register
+POST http://localhost:3000/api/auth/register
 {
   "username": "testuser",
   "email": "test@example.com",
@@ -268,7 +273,7 @@ POST http://localhost:3000/api/auth/auth/register
 # (hoặc check console log nếu email chưa config)
 
 # 3. Verify OTP
-POST http://localhost:3000/api/auth/auth/verify-otp
+POST http://localhost:3000/api/auth/verify-otp
 {
   "userId": "...",
   "otp": "123456"
@@ -279,7 +284,7 @@ POST http://localhost:3000/api/auth/auth/verify-otp
 
 ### Test 2: Login Flow ✅
 ```powershell
-POST http://localhost:3000/api/auth/auth/login
+POST http://localhost:3000/api/auth/login
 {
   "emailOrUsername": "testuser",
   "password": "password123"

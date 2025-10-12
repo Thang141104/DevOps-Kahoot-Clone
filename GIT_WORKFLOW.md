@@ -1,57 +1,51 @@
 # Git Workflow - Push Fix to New Branch
 
-## Step 1: Check Current Status
+## Quick Commands (Copy & Run)
 
 ```powershell
-# See what files have been modified
+# 1. Check status (already done)
 git status
-```
 
-## Step 2: Create New Branch
-
-```powershell
-# Create and switch to new branch
-git checkout -b fix/auth-routing-issues
-
-# Verify you're on the new branch
-git branch
-```
-
-## Step 3: Stage Changes
-
-```powershell
-# Add all modified files
+# 2. Add all changes (already done)
 git add .
 
-# Or add specific files only:
-git add gateway/server.js
-git add services/auth-service/server.js
-git add services/auth-service/routes/auth.routes.js
-git add frontend/src/pages/Register.js
-git add frontend/src/pages/Login.js
-git add frontend/src/pages/VerifyOTP.js
-git add FIXES.md
-git add README.md
-git add test-api.js
-```
-
-## Step 4: Commit Changes
-
-```powershell
-# Commit with descriptive message
+# 3. Commit
 git commit -m "fix(auth): resolve login and registration errors
 
 - Remove body parsing from gateway to fix request aborted error
 - Update auth service routes from /auth prefix to root level
 - Fix frontend API endpoints from /api/auth/auth/* to /api/auth/*
-- Add request logging for debugging
-- Add FIXES.md documentation"
+- Update documentation (API_TESTING.md, AUTH_README.md, COMPLETED_AUTHENTICATION.md)
+- Add FIXES.md for issue tracking"
+
+# 4. Push to new branch
+git push -u origin fix/auth-routing-issues
 ```
 
-## Step 5: Push to Remote
+---
 
+## Step-by-Step (If needed)
+
+### Step 1: Check Current Status ✅ (Already Done)
 ```powershell
-# Push new branch to remote
+git status
+# Branch: fix/auth-routing-issues
+# Files staged: All changes ready to commit
+```
+
+### Step 2: Commit Changes
+```powershell
+git commit -m "fix(auth): resolve login and registration errors
+
+- Remove body parsing from gateway to fix request aborted error
+- Update auth service routes from /auth prefix to root level
+- Fix frontend API endpoints from /api/auth/auth/* to /api/auth/*
+- Update documentation (API_TESTING.md, AUTH_README.md, COMPLETED_AUTHENTICATION.md)
+- Add FIXES.md for issue tracking"
+```
+
+### Step 3: Push to Remote
+```powershell
 git push -u origin fix/auth-routing-issues
 ```
 

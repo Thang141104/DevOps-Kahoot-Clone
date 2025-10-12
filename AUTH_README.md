@@ -1,5 +1,8 @@
 # 🎯 Quiz Application - Authentication System
 
+## ⚠️ Recent Fixes
+See [FIXES.md](FIXES.md) for authentication routing fixes.
+
 ## ✅ Những gì đã được triển khai
 
 ### 🔐 Backend - Auth Service (Port 3001)
@@ -155,18 +158,20 @@ quiz-app/
 
 ### Auth Service (via Gateway)
 
+⚠️ **Use single `/api/auth/` NOT double `/api/auth/auth/`**
+
 | Method | Endpoint | Description | Auth Required |
 |--------|----------|-------------|---------------|
-| POST | `/api/auth/auth/register` | Register new user | No |
-| POST | `/api/auth/auth/verify-otp` | Verify email with OTP | No |
-| POST | `/api/auth/auth/resend-otp` | Resend OTP code | No |
-| POST | `/api/auth/auth/login` | Login user | No |
-| GET | `/api/auth/auth/me` | Get current user | Yes (JWT) |
+| POST | `/api/auth/register` | Register new user | No |
+| POST | `/api/auth/verify-otp` | Verify email with OTP | No |
+| POST | `/api/auth/resend-otp` | Resend OTP code | No |
+| POST | `/api/auth/login` | Login user | No |
+| GET | `/api/auth/me` | Get current user | Yes (JWT) |
 
 ### Example Request
 ```javascript
 // Register
-fetch('http://localhost:3000/api/auth/auth/register', {
+fetch('http://localhost:3000/api/auth/register', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -177,7 +182,7 @@ fetch('http://localhost:3000/api/auth/auth/register', {
 });
 
 // Login
-fetch('http://localhost:3000/api/auth/auth/login', {
+fetch('http://localhost:3000/api/auth/login', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({

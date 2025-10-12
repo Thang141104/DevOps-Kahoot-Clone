@@ -1,5 +1,8 @@
 # API Testing Guide
 
+## ⚠️ Important: Correct API Endpoints
+All auth endpoints use `/api/auth/*` (single auth), NOT `/api/auth/auth/*` (double auth).
+
 ## Test Auth Service với Postman/cURL
 
 ### 1. Health Check
@@ -9,7 +12,7 @@ GET http://localhost:3001/health
 
 ### 2. Register User
 ```bash
-POST http://localhost:3000/api/auth/auth/register
+POST http://localhost:3000/api/auth/register
 Content-Type: application/json
 
 {
@@ -28,7 +31,7 @@ Response:
 
 ### 3. Verify OTP
 ```bash
-POST http://localhost:3000/api/auth/auth/verify-otp
+POST http://localhost:3000/api/auth/verify-otp
 Content-Type: application/json
 
 {
@@ -52,7 +55,7 @@ Response:
 
 ### 4. Resend OTP
 ```bash
-POST http://localhost:3000/api/auth/auth/resend-otp
+POST http://localhost:3000/api/auth/resend-otp
 Content-Type: application/json
 
 {
@@ -68,7 +71,7 @@ Response:
 
 ### 5. Login
 ```bash
-POST http://localhost:3000/api/auth/auth/login
+POST http://localhost:3000/api/auth/login
 Content-Type: application/json
 
 {
@@ -92,7 +95,7 @@ Response:
 
 ### 6. Get Current User (Protected)
 ```bash
-GET http://localhost:3000/api/auth/auth/me
+GET http://localhost:3000/api/auth/me
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 Response:
