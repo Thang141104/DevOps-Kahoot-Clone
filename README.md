@@ -2,70 +2,85 @@
 
 A full-stack, real-time quiz application built with React, Node.js, and MongoDB using microservices architecture.
 
-## ⚠️ Recent Fixes
-**Auth Service Issues Resolved** - See [FIXES.md](FIXES.md) for details on login/registration bug fixes.
+## 🎉 Latest Updates
+- ✅ **Centralized API Configuration** - Easy mobile device access
+- ✅ **Game History Page** - View and manage past games
+- ✅ **Enhanced UI** - Podium display, confetti effects, smooth animations
+- ✅ **Game Status Management** - Auto-progression and manual end game
+- ✅ **Code Cleanup** - Removed unused components
+
+See [CHANGELOG.md](CHANGELOG.md) for detailed changes.
 
 ## 🎯 Features
 
-- **Interactive Quiz Creation**: Build quizzes with multiple question types
-- **Real-time Gameplay**: Live quiz sessions with Socket.io
+- **Interactive Quiz Creation**: Build quizzes with multiple question types (Single Choice, Multiple Choice, True/False)
+- **Real-time Gameplay**: Live quiz sessions with Socket.io and auto-progression
 - **Player Management**: Join games with PIN codes
-- **Live Leaderboards**: Real-time score tracking
-- **Detailed Analytics**: Comprehensive result analysis
-- **Responsive Design**: Works on desktop and mobile
+- **Live Leaderboards**: Real-time score tracking with podium display
+- **Game History**: View and manage past game sessions
+- **Detailed Analytics**: Comprehensive result analysis with confetti animations
+- **Mobile Support**: Centralized API config for easy mobile device access
+- **Responsive Design**: Works seamlessly on desktop and mobile devices
 
 ## 🏗️ Architecture
 
 ### Microservices
 - **API Gateway** (Port 3000) - Request routing and rate limiting
+- **Auth Service** (Port 3001) - User authentication with JWT and OTP verification
 - **Quiz Service** (Port 3002) - Quiz CRUD operations
-- **Game Service** (Port 3003) - Real-time game management
-- **Auth Service** (Port 3001) - Authentication (to be implemented)
-- **User Service** (Port 3004) - User management (to be implemented)
-- **Analytics Service** (Port 3005) - Statistics (to be implemented)
+- **Game Service** (Port 3003) - Real-time game management with Socket.io
+- **User Service** (Port 3004) - User management (planned)
+- **Analytics Service** (Port 3005) - Statistics (planned)
 
 ### Tech Stack
-- **Frontend**: React 18, React Router, Socket.io Client
-- **Backend**: Node.js, Express, Socket.io
-- **Database**: MongoDB
+- **Frontend**: React 18, React Router v6, Socket.io Client
+- **Backend**: Node.js, Express, Socket.io, Axios
+- **Database**: MongoDB with Mongoose
 - **Real-time**: WebSocket (Socket.io)
+- **Authentication**: JWT, Nodemailer (OTP)
 
 ## 📁 Project Structure
 
 ```
 quiz-app/
-├── frontend/                 # React application
+├── frontend/                 # React application (Port 3005)
 │   ├── public/
 │   └── src/
-│       ├── pages/           # Page components
-│       │   ├── Home.js
-│       │   ├── Dashboard.js
-│       │   ├── QuizBuilder.js
-│       │   ├── Join.js
-│       │   ├── LobbyHost.js
-│       │   ├── LobbyPlayer.js
-│       │   ├── LiveControl.js
-│       │   ├── Answering.js
-│       │   ├── Feedback.js
-│       │   ├── Leaderboard.js
-│       │   ├── EndGame.js
-│       │   └── Result.js
-│       ├── App.js
-│       └── index.js
-├── gateway/                  # API Gateway
+│       ├── config/          # API configuration
+│       │   └── api.js       # Centralized API URLs
+│       └── pages/           # Page components
+│           ├── Home.js
+│           ├── Login.js
+│           ├── Register.js
+│           ├── VerifyOTP.js
+│           ├── Dashboard.js
+│           ├── QuizBuilder.js
+│           ├── GameHistory.js
+│           ├── Join.js
+│           ├── LobbyHost.js
+│           ├── LobbyPlayer.js
+│           ├── LiveControl.js
+│           ├── Answering.js
+│           ├── Feedback.js
+│           └── EndGameNew.js
+├── gateway/                  # API Gateway (Port 3000)
 │   └── server.js
 ├── services/
-│   ├── quiz-service/        # Quiz management
+│   ├── auth-service/        # Authentication (Port 3001)
+│   │   ├── models/
+│   │   ├── routes/
+│   │   ├── utils/
+│   │   └── server.js
+│   ├── quiz-service/        # Quiz management (Port 3002)
 │   │   ├── models/
 │   │   ├── routes/
 │   │   └── server.js
-│   ├── game-service/        # Real-time game logic
-│   │   ├── models/
-│   │   ├── routes/
-│   │   └── server.js
-│   ├── auth-service/        # Authentication (TODO)
-│   ├── user-service/        # User management (TODO)
-│   └── analytics-service/   # Analytics (TODO)
+│   └── game-service/        # Real-time game logic (Port 3003)
+│       ├── models/
+│       ├── routes/
+│       └── server.js
+├── CHANGELOG.md             # Comprehensive change log
+├── CONFIG_README.md         # Environment configuration guide
 └── README.md
 ```
 
@@ -104,14 +119,14 @@ quiz-app/
    npm install
    ```
 
-3. **Start Services** (Open 4 terminals)
+3. **Start Services** (Open 5 terminals)
    ```powershell
-   # Terminal 1 - Frontend
-   cd frontend
-   npm start
-
-   # Terminal 2 - Gateway
+   # Terminal 1 - Gateway
    cd gateway
+   npm run dev
+
+   # Terminal 2 - Auth Service
+   cd services\auth-service
    npm run dev
 
    # Terminal 3 - Quiz Service
@@ -121,10 +136,26 @@ quiz-app/
    # Terminal 4 - Game Service
    cd services\game-service
    npm run dev
+
+   # Terminal 5 - Frontend
+   cd frontend
+   npm start
    ```
 
-4. **Access Application**
-   - Frontend: http://localhost:3000
+4. **Configure Environment** (Optional - for mobile access)
+   
+   Create `frontend/.env`:
+   ```properties
+   PORT=3005
+   REACT_APP_API_URL=http://localhost:3000
+   REACT_APP_SOCKET_URL=http://localhost:3003
+   ```
+   
+   For mobile access, replace `localhost` with your computer's IP address.
+   See [CONFIG_README.md](frontend/CONFIG_README.md) for details.
+
+5. **Access Application**
+   - Frontend: http://localhost:3005
    - API Gateway: http://localhost:3000/api
 
 ## 📖 Usage
@@ -190,37 +221,55 @@ quiz-app/
 
 ```
 HOST FLOW:
-Login → Dashboard → Create Quiz → Save → Dashboard
+Register → Verify OTP → Login → Dashboard
   ↓
-Click "Start" Button → Game Session Created → Get PIN
+Create Quiz → Save → Dashboard → Click "Start"
+  ↓
+Game Session Created (Auto-generate PIN)
   ↓
 Lobby Host Page (Share PIN with players)
   ↓
 Players Join → Review Players → Click "Start Game"
   ↓
-Live Control → Control Questions → View Results
+Live Control → Auto-progression through questions
   ↓
-End Game → Analytics
+End Game (Auto or Manual) → Status: 'finished'
+  ↓
+View Results → Game History
 
 PLAYER FLOW:
-Home Page → Join with PIN → Enter PIN
+Home Page → Join with PIN → Enter PIN + Nickname
   ↓
-Lobby Player Page (Wait for host)
+Lobby Player Page (Wait for host to start)
   ↓
 Game Started → Answer Questions → See Feedback
   ↓
-View Leaderboard → End Game → See Results
+View Leaderboard → End Game → See Personal Results
+  ↓
+Play Again option
 
 SHARING METHODS:
 - Display PIN on screen/projector
-- Send PIN via chat/message
-- Share QR code for scanning
+- Send PIN via chat/message  
+- QR code for scanning (future)
 - Verbal announcement
+
+GAME FEATURES:
+- Auto-progression: Timer-based question advancement
+- Manual end: Host can stop game anytime
+- Real-time sync: Socket.io for instant updates
+- Score calculation: Base points + time bonus
 ```
 
 ## 🔌 API Endpoints
 
-### Quiz Service
+### Auth Service (Port 3001)
+- `POST /register` - Register new user
+- `POST /login` - User login
+- `POST /verify-otp` - Verify OTP code
+- `POST /resend-otp` - Resend OTP
+
+### Quiz Service (Port 3002)
 - `GET /quizzes` - Get all quizzes
 - `GET /quizzes/:id` - Get quiz by ID
 - `POST /quizzes` - Create quiz
@@ -228,49 +277,98 @@ SHARING METHODS:
 - `DELETE /quizzes/:id` - Delete quiz
 - `PATCH /quizzes/:id/star` - Toggle star
 
-### Game Service
+### Game Service (Port 3003)
+- `GET /games` - Get all game sessions (with filters)
 - `GET /games/pin/:pin` - Get game by PIN
-- `GET /games/:id` - Get game session
-- `POST /games` - Create game session
+- `GET /games/:id` - Get game by ID
+- `POST /games` - Create game session (auto-generate PIN)
+- `DELETE /games/:id` - Delete game session
 
-### Socket.io Events
-- `create-game` - Host creates game
-- `join-game` - Player joins
+### Socket.io Events (Port 3003)
+**Host Events:**
+- `host-join` - Host joins game room
 - `start-game` - Host starts game
-- `submit-answer` - Player submits answer
-- `show-leaderboard` - Display rankings
-- `end-game` - End game session
+- `game-ended` - Host manually ends game
+
+**Player Events:**
+- `join-game` - Player joins with PIN
+- `player-answer` - Player submits answer
+
+**Broadcast Events:**
+- `player-joined` - New player joined
+- `game-started` - Game has started
+- `question-started` - New question begins
+- `answer-revealed` - Show correct answer
+- `game-finished` - Game completed
 
 ## 🎨 UI Pages
 
 1. **Home** - Landing page with features
-2. **Dashboard** - Quiz management and stats
-3. **Quiz Builder** - Create/edit quizzes
-4. **Join** - Enter game PIN
-5. **Lobby (Host)** - Wait for players
-6. **Lobby (Player)** - Join confirmation
-7. **Live Control** - Host manages game
-8. **Answering** - Player answers questions
-9. **Feedback** - Answer feedback
-10. **Leaderboard** - Live rankings
-11. **End Game** - Player results
-12. **Result** - Detailed analytics
+2. **Login** - User authentication
+3. **Register** - New user signup
+4. **Verify OTP** - Email verification
+5. **Dashboard** - Quiz management and game history
+6. **Quiz Builder** - Create/edit quizzes (supports 4-7 options for Multiple Choice)
+7. **Game History** - View and manage past games with filters
+8. **Join** - Enter game PIN
+9. **Lobby Host** - Wait for players and display PIN
+10. **Lobby Player** - Join confirmation
+11. **Live Control** - Host manages game with auto-progression
+12. **Answering** - Player answers questions (enhanced UI)
+13. **Feedback** - Answer feedback with animations
+14. **End Game** - Results with podium display and confetti
 
 ## 📝 TODO
 
-- [ ] Implement Auth Service with JWT
-- [ ] Add User Service for profiles
-- [ ] Create Analytics Service
-- [ ] Add image/video upload for questions
-- [ ] Implement Redis for caching
-- [ ] Add Docker support
-- [ ] Write unit tests
-- [ ] Set up CI/CD
+### In Progress
+- [ ] LiveControl UI improvements (animated charts, real-time stats)
+- [ ] Background music and sound effects
+
+### Planned Features
+- [ ] User Service for detailed profiles
+- [ ] Analytics Service for advanced statistics
+- [ ] Image/video upload for questions
+- [ ] Quiz sharing with QR codes
+- [ ] Export game results to CSV/PDF
+- [ ] Quiz templates and categories
+- [ ] Achievements and badges
+
+### Technical Improvements
+- [ ] Redis for caching and session management
+- [ ] Docker and Kubernetes deployment
+- [ ] Comprehensive unit and integration tests
+- [ ] CI/CD pipeline (GitHub Actions)
+- [ ] Performance optimization
+- [ ] Security audit and enhancements
+
+## 📚 Documentation
+
+- **[CHANGELOG.md](CHANGELOG.md)** - Detailed change history
+- **[CONFIG_README.md](frontend/CONFIG_README.md)** - Environment configuration guide
+- **[INSTALLATION.md](INSTALLATION.md)** - Detailed setup instructions
+- **[API_TESTING.md](API_TESTING.md)** - API testing guide
+- **[USER_GUIDE.md](USER_GUIDE.md)** - User manual
 
 ## 📄 License
 
 This project is open source and available under the MIT License.
 
+## 🤝 Contributing
+
+Contributions are welcome! Please read our contributing guidelines before submitting pull requests.
+
+## 🐛 Bug Reports
+
+Found a bug? Please open an issue with:
+- Description of the bug
+- Steps to reproduce
+- Expected vs actual behavior
+- Screenshots (if applicable)
+
 ---
 
-⭐ See INSTALLATION.md for detailed setup instructions!
+⭐ **Star this repo** if you find it helpful!
+
+📖 See **[INSTALLATION.md](INSTALLATION.md)** for detailed setup instructions!
+
+🎉 See **[CHANGELOG.md](CHANGELOG.md)** for recent updates and improvements!
