@@ -55,7 +55,7 @@ const quizSchema = new mongoose.Schema({
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: true // Back to required - now using real user ID
   },
   stats: {
     totalPlays: { type: Number, default: 0 },

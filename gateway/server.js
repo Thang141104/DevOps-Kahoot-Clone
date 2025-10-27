@@ -82,7 +82,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;  // Keep at 3000 for gateway
 app.listen(PORT, () => {
   console.log(`🚀 API Gateway running on port ${PORT}`);
   console.log(`📍 Environment: ${process.env.NODE_ENV}`);

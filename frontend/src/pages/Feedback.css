@@ -48,7 +48,44 @@
   border-radius: 20px;
   padding: 32px;
   margin-bottom: 32px;
+  animation: fadeInUp 0.5s 0.3s both;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+
+.correct-answer-card {
+  background: rgba(255,255,255,0.15);
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
   animation: fadeInUp 0.5s 0.4s both;
+}
+
+.correct-answer-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.8);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.correct-answer-value {
+  font-size: 28px;
+  font-weight: 800;
+  color: white;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.answer-letter {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 4px 12px;
+  border-radius: 8px;
+  margin-right: 8px;
+  font-size: 24px;
+  font-weight: 900;
 }
 
 .points-label {

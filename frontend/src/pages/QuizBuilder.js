@@ -1,12 +1,16 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { FiArrowLeft, FiSave, FiPlus, FiTrash2, FiImage } from 'react-icons/fi';
+import API_URLS from '../config/api';
 import './QuizBuilder.css';
 
 const QuizBuilder = () => {
   const navigate = useNavigate();
+  const { id } = useParams(); // Get quiz ID from URL for edit mode
+  const [isEditMode, setIsEditMode] = useState(false);
+  
   const [quiz, setQuiz] = useState({
-    title: 'General Knowledge — NeLe Demo',
+    title: 'Untitled Quiz',
     description: '',
     visibility: 'Public',
     language: 'English'
@@ -47,6 +51,187 @@ const QuizBuilder = () => {
 
   const [selectedQuestion, setSelectedQuestion] = useState(0);
 
+  // Load quiz data if in edit mode
+  useEffect(() => {
+    if (id) {
+      setIsEditMode(true);
+      loadQuizData(id);
+    }
+  }, [id]);
+
+  const loadQuizData = async (quizId) => {
+    try {
+      const response = await fetch(API_URLS.QUIZ_BY_ID(quizId));
+      const data = await response.json();
+      
+      if (response.ok) {
+        setQuiz({
+          title: data.title,
+          description: data.description || '',
+          visibility: data.visibility || 'Public',
+          language: data.language || 'English'
+        });
+        
+        // Map questions to match the format
+        const mappedQuestions = data.questions.map((q, idx) => ({
+          id: idx + 1,
+          type: q.type,
+          title: q.title,
+          timeLimit: q.timeLimit,
+          points: q.points,
+          options: q.options,
+          correctAnswer: q.correctAnswer,
+          media: q.media
+        }));
+        
+        setQuestions(mappedQuestions);
+        console.log('✅ Quiz loaded for editing:', data.title);
+      } else {
+        alert('Failed to load quiz');
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      console.error('Error loading quiz:', error);
+      alert('Error loading quiz');
+      navigate('/dashboard');
+    }
+  };
+
+  const handleSaveQuiz = async () => {
+    try {
+      // Get logged-in user
+      const user = JSON.parse(localStorage.getItem('user'));
+      if (!user || !user.id) {
+        alert('Please login to save quiz');
+        navigate('/login');
+        return;
+      }
+
+      // Validate quiz data
+      if (!quiz.title || quiz.title.trim() === '') {
+        alert('Please enter a quiz title');
+        return;
+      }
+
+      if (questions.length === 0) {
+        alert('Please add at least one question');
+        return;
+      }
+
+      // Validate each question
+      for (let i = 0; i < questions.length; i++) {
+        const q = questions[i];
+        
+        // Check title
+        if (!q.title || q.title.trim() === '') {
+          alert(`Question ${i + 1}: Please enter a question title`);
+          return;
+        }
+        
+        // Check options count based on type
+        let requiredOptions, maxOptions;
+        if (q.type === 'True/False') {
+          requiredOptions = 2;
+          maxOptions = 2;
+        } else if (q.type === 'Single Choice') {
+          requiredOptions = 2;
+          maxOptions = 4;
+        } else if (q.type === 'Multiple Choice') {
+          requiredOptions = 2;
+          maxOptions = 7;
+        } else {
+          requiredOptions = 2;
+          maxOptions = 6;
+        }
+        
+        if (q.options.length < requiredOptions) {
+          alert(`Question ${i + 1}: ${q.type} requires at least ${requiredOptions} options`);
+          return;
+        }
+        
+        if (q.options.length > maxOptions) {
+          alert(`Question ${i + 1}: ${q.type} can have maximum ${maxOptions} options`);
+          return;
+        }
+        
+        // Check all options have text
+        const emptyOptions = q.options.filter(opt => !opt || opt.trim() === '');
+        if (emptyOptions.length > 0) {
+          alert(`Question ${i + 1}: All options must have text`);
+          return;
+        }
+        
+        // Check correctAnswer is valid
+        if (q.type === 'Multiple Choice') {
+          if (!Array.isArray(q.correctAnswer) || q.correctAnswer.length === 0) {
+            alert(`Question ${i + 1}: Please select at least one correct answer`);
+            return;
+          }
+          // Check all indexes are valid
+          const invalidIndexes = q.correctAnswer.filter(idx => idx >= q.options.length);
+          if (invalidIndexes.length > 0) {
+            alert(`Question ${i + 1}: Invalid correct answer indexes`);
+            return;
+          }
+        } else {
+          if (q.correctAnswer === undefined || q.correctAnswer === null) {
+            alert(`Question ${i + 1}: Please select a correct answer`);
+            return;
+          }
+          if (q.correctAnswer >= q.options.length) {
+            alert(`Question ${i + 1}: Invalid correct answer index`);
+            return;
+          }
+        }
+      }
+
+      // Prepare quiz data
+      const quizData = {
+        title: quiz.title,
+        description: quiz.description || '',
+        createdBy: user.id, // Use real user ID
+        questions: questions.map(q => ({
+          type: q.type, // Keep original: 'Single Choice', 'True/False', etc.
+          title: q.title,
+          timeLimit: q.timeLimit,
+          points: q.points,
+          options: q.options,
+          correctAnswer: q.correctAnswer
+        }))
+      };
+
+      console.log('Saving quiz:', quizData);
+
+      // Send to backend - use PUT for edit, POST for create
+      const url = isEditMode 
+        ? API_URLS.QUIZ_BY_ID(id)
+        : API_URLS.QUIZZES;
+      
+      const method = isEditMode ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method: method,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(quizData)
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert(isEditMode ? 'Quiz updated successfully!' : 'Quiz saved successfully!');
+        navigate('/dashboard');
+      } else {
+        console.error('Server error:', data);
+        alert(`Failed to save quiz: ${data.error || data.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error saving quiz:', error);
+      alert('Network error. Please check if Quiz Service is running on port 3002');
+    }
+  };
+
   const addQuestion = () => {
     const newQuestion = {
       id: questions.length + 1,
@@ -64,8 +249,77 @@ const QuizBuilder = () => {
 
   const updateQuestion = (field, value) => {
     const updated = [...questions];
+    const currentQuestion = updated[selectedQuestion];
+    
+    // Special handling for type change
+    if (field === 'type') {
+      const oldType = currentQuestion.type;
+      const newType = value;
+      
+      // Adjust options and correctAnswer when changing type
+      if (newType === 'True/False') {
+        // True/False needs exactly 2 options
+        if (currentQuestion.options.length > 2) {
+          if (confirm('True/False questions can only have 2 options. Extra options will be removed. Continue?')) {
+            currentQuestion.options = currentQuestion.options.slice(0, 2);
+            // Reset correctAnswer if it's out of range
+            if (currentQuestion.correctAnswer > 1) {
+              currentQuestion.correctAnswer = 0;
+            }
+          } else {
+            return; // Cancel type change
+          }
+        } else if (currentQuestion.options.length < 2) {
+          // Add missing options
+          while (currentQuestion.options.length < 2) {
+            currentQuestion.options.push('');
+          }
+        }
+      } else if (newType === 'Single Choice') {
+        // Single Choice max 4 options
+        if (currentQuestion.options.length > 4) {
+          if (confirm('Single Choice questions can only have 4 options. Extra options will be removed. Continue?')) {
+            currentQuestion.options = currentQuestion.options.slice(0, 4);
+            // Reset correctAnswer if it's out of range
+            if (Array.isArray(currentQuestion.correctAnswer)) {
+              currentQuestion.correctAnswer = currentQuestion.correctAnswer.filter(idx => idx < 4);
+            } else if (currentQuestion.correctAnswer > 3) {
+              currentQuestion.correctAnswer = 0;
+            }
+          } else {
+            return; // Cancel type change
+          }
+        }
+        
+        // Convert correctAnswer from array to single value
+        if (Array.isArray(currentQuestion.correctAnswer)) {
+          currentQuestion.correctAnswer = currentQuestion.correctAnswer[0] || 0;
+        }
+      } else if (newType === 'Multiple Choice') {
+        // Multiple Choice max 7 options
+        if (currentQuestion.options.length > 7) {
+          if (confirm('Multiple Choice questions can have up to 7 options. Extra options will be removed. Continue?')) {
+            currentQuestion.options = currentQuestion.options.slice(0, 7);
+            // Reset correctAnswer if it's out of range
+            if (Array.isArray(currentQuestion.correctAnswer)) {
+              currentQuestion.correctAnswer = currentQuestion.correctAnswer.filter(idx => idx < 7);
+            } else if (currentQuestion.correctAnswer > 6) {
+              currentQuestion.correctAnswer = 0;
+            }
+          } else {
+            return; // Cancel type change
+          }
+        }
+        
+        // Convert correctAnswer from single value to array
+        if (!Array.isArray(currentQuestion.correctAnswer)) {
+          currentQuestion.correctAnswer = [currentQuestion.correctAnswer];
+        }
+      }
+    }
+    
     updated[selectedQuestion] = {
-      ...updated[selectedQuestion],
+      ...currentQuestion,
       [field]: value
     };
     setQuestions(updated);
@@ -86,6 +340,26 @@ const QuizBuilder = () => {
   };
 
   const addOption = () => {
+    const currentQuestion = questions[selectedQuestion];
+    const currentOptionsCount = currentQuestion.options.length;
+    
+    // Validation based on question type
+    let maxOptions;
+    if (currentQuestion.type === 'True/False') {
+      maxOptions = 2;
+    } else if (currentQuestion.type === 'Single Choice') {
+      maxOptions = 4;
+    } else if (currentQuestion.type === 'Multiple Choice') {
+      maxOptions = 7; // Allow up to 7 options for Multiple Choice
+    } else {
+      maxOptions = 6; // Default max
+    }
+    
+    if (currentOptionsCount >= maxOptions) {
+      alert(`Maximum ${maxOptions} options allowed for ${currentQuestion.type} questions`);
+      return;
+    }
+    
     const updated = [...questions];
     updated[selectedQuestion].options.push('');
     setQuestions(updated);
@@ -100,11 +374,11 @@ const QuizBuilder = () => {
           <FiArrowLeft /> Back
         </button>
         <div className="header-title">
-          <h2>{quiz.title}</h2>
+          <h2>{isEditMode ? 'Edit Quiz' : 'Create New Quiz'}</h2>
           <span className="question-count">{questions.length} questions</span>
         </div>
-        <button className="btn-save">
-          <FiSave /> Save Quiz
+        <button className="btn-save" onClick={handleSaveQuiz}>
+          <FiSave /> {isEditMode ? 'Update Quiz' : 'Save Quiz'}
         </button>
       </header>
 
@@ -282,25 +556,57 @@ const QuizBuilder = () => {
                         onChange={(e) => updateOption(index, e.target.value)}
                         placeholder={`Option ${index + 1}`}
                       />
-                      {currentQ.options.length > 2 && (
-                        <button 
-                          className="btn-delete-option"
-                          onClick={() => {
-                            const updated = [...questions];
-                            updated[selectedQuestion].options = updated[selectedQuestion].options.filter((_, i) => i !== index);
-                            setQuestions(updated);
-                          }}
-                        >
-                          <FiTrash2 />
-                        </button>
-                      )}
+                      {(() => {
+                        const minOptions = currentQ.type === 'True/False' ? 2 : 2;
+                        const canDelete = currentQ.options.length > minOptions;
+                        
+                        return canDelete && (
+                          <button 
+                            className="btn-delete-option"
+                            onClick={() => {
+                              const updated = [...questions];
+                              const newOptions = updated[selectedQuestion].options.filter((_, i) => i !== index);
+                              
+                              // Update correctAnswer if needed
+                              const currentCorrectAnswer = updated[selectedQuestion].correctAnswer;
+                              if (Array.isArray(currentCorrectAnswer)) {
+                                // Multiple Choice: remove deleted index and adjust others
+                                updated[selectedQuestion].correctAnswer = currentCorrectAnswer
+                                  .filter(idx => idx !== index)
+                                  .map(idx => idx > index ? idx - 1 : idx);
+                              } else if (currentCorrectAnswer === index) {
+                                // Single/True-False: reset if deleted correct answer
+                                updated[selectedQuestion].correctAnswer = 0;
+                              } else if (currentCorrectAnswer > index) {
+                                // Adjust index if after deleted option
+                                updated[selectedQuestion].correctAnswer = currentCorrectAnswer - 1;
+                              }
+                              
+                              updated[selectedQuestion].options = newOptions;
+                              setQuestions(updated);
+                            }}
+                          >
+                            <FiTrash2 />
+                          </button>
+                        );
+                      })()}
                     </div>
                   ))}
-                  {currentQ.options.length < 6 && (
-                    <button className="btn-add-option" onClick={addOption}>
-                      <FiPlus /> Add Option
-                    </button>
-                  )}
+                  {(() => {
+                    const maxOptions = currentQ.type === 'True/False' ? 2 : 
+                                     (currentQ.type === 'Single Choice' || currentQ.type === 'Multiple Choice') ? 4 : 6;
+                    const canAddMore = currentQ.options.length < maxOptions;
+                    
+                    return canAddMore ? (
+                      <button className="btn-add-option" onClick={addOption}>
+                        <FiPlus /> Add Option
+                      </button>
+                    ) : (
+                      <div style={{ padding: '12px', textAlign: 'center', color: '#A0AEC0', fontSize: '14px' }}>
+                        Maximum {maxOptions} options for {currentQ.type}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
 

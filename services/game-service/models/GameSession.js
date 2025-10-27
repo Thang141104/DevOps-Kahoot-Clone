@@ -17,23 +17,26 @@ const gameSessionSchema = new mongoose.Schema({
     required: true
   },
   players: [{
+    id: { type: mongoose.Schema.Types.Mixed, required: true }, // Can be number or string
     nickname: String,
     avatar: String,
-    score: Number,
+    score: { type: Number, default: 0 },
     answers: [{
       questionId: Number,
       answer: mongoose.Schema.Types.Mixed,
       isCorrect: Boolean,
       points: Number,
       timeSpent: Number
-    }]
+    }],
+    joinedAt: Date
   }],
   status: {
     type: String,
-    enum: ['waiting', 'active', 'ended'],
+    enum: ['waiting', 'active', 'finished', 'ended'],
     default: 'waiting'
   },
   startedAt: Date,
+  finishedAt: Date,
   endedAt: Date
 }, {
   timestamps: true

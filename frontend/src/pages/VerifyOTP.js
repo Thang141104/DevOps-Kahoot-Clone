@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import API_URLS from '../config/api';
 import './VerifyOTP.css';
 
 function VerifyOTP() {
@@ -83,7 +84,7 @@ function VerifyOTP() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3000/api/auth/verify-otp', {
+      const response = await fetch(API_URLS.VERIFY_OTP, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -126,7 +127,7 @@ function VerifyOTP() {
     setSuccess('');
 
     try {
-      const response = await fetch('http://localhost:3000/api/auth/resend-otp', {
+      const response = await fetch(API_URLS.RESEND_OTP, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

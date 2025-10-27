@@ -6,15 +6,14 @@ import Register from './pages/Register';
 import VerifyOTP from './pages/VerifyOTP';
 import Dashboard from './pages/Dashboard';
 import QuizBuilder from './pages/QuizBuilder';
+import GameHistory from './pages/GameHistory';
 import Join from './pages/Join';
 import LobbyHost from './pages/LobbyHost';
 import LobbyPlayer from './pages/LobbyPlayer';
 import LiveControl from './pages/LiveControl';
 import Answering from './pages/Answering';
 import Feedback from './pages/Feedback';
-import Leaderboard from './pages/Leaderboard';
-import EndGame from './pages/EndGame';
-import Result from './pages/Result';
+import EndGameNew from './pages/EndGameNew';
 import './App.css';
 
 function App() {
@@ -28,15 +27,14 @@ function App() {
           <Route path="/verify-otp" element={<VerifyOTP />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/quiz/builder/:id?" element={<QuizBuilder />} />
+          <Route path="/game/history" element={<GameHistory />} />
           <Route path="/join" element={<Join />} />
           <Route path="/lobby/host/:pin" element={<LobbyHost />} />
           <Route path="/lobby/player/:pin" element={<LobbyPlayer />} />
           <Route path="/live/control/:pin" element={<LiveControl />} />
           <Route path="/live/answer/:pin" element={<Answering />} />
           <Route path="/live/feedback/:pin" element={<Feedback />} />
-          <Route path="/live/leaderboard/:pin" element={<Leaderboard />} />
-          <Route path="/game/end/:pin" element={<EndGame />} />
-          <Route path="/result/:sessionId" element={<Result />} />
+          <Route path="/game/end/:pin" element={<EndGameNew />} />
         </Routes>
       </div>
     </Router>

@@ -26,6 +26,111 @@ mongoose.connect(process.env.MONGODB_URI, {
 .then(() => console.log('✅ MongoDB connected'))
 .catch(err => console.error('❌ MongoDB connection error:', err));
 
+// Auto-progression helper function
+const autoProgressQuestion = async (io, pin, questionIndex, timeLimit) => {
+  setTimeout(async () => {
+    console.log(`⏰ Time's up for question ${questionIndex} in game ${pin}`);
+    
+    const GameSession = require('./models/GameSession');
+    const axios = require('axios');
+    
+    try {
+      const game = await GameSession.findOne({ pin });
+      if (!game) return;
+
+      const quizResponse = await axios.get(`http://localhost:3000/api/quiz/quizzes/${game.quizId}`);
+      const quiz = quizResponse.data;
+      const currentQuestion = quiz.questions[questionIndex];
+      
+      // Handle different question types
+      let correctAnswer;
+      let correctIndexes;
+      let correctAnswerText; // Full text of correct answer(s)
+      
+      if (currentQuestion.type === 'True/False') {
+        // For True/False: use A/B (0=A=False, 1=B=True)
+        correctAnswer = currentQuestion.correctAnswer === 1 ? 'B' : 'A';
+        correctIndexes = currentQuestion.correctAnswer;
+        correctAnswerText = currentQuestion.options[currentQuestion.correctAnswer];
+      } else if (currentQuestion.type === 'Multiple Choice') {
+        // For Multiple Choice: correctAnswer is array like [0, 2] for A and C
+        if (Array.isArray(currentQuestion.correctAnswer)) {
+          const letters = currentQuestion.correctAnswer.map(idx => ['A', 'B', 'C', 'D'][idx]);
+          correctAnswer = letters.join(', '); // "A, C"
+          correctIndexes = currentQuestion.correctAnswer;
+          // Get text for all correct answers
+          correctAnswerText = currentQuestion.correctAnswer.map(idx => currentQuestion.options[idx]).join(', ');
+        } else {
+          // Fallback if single answer
+          correctAnswer = ['A', 'B', 'C', 'D'][currentQuestion.correctAnswer];
+          correctIndexes = [currentQuestion.correctAnswer];
+          correctAnswerText = currentQuestion.options[currentQuestion.correctAnswer];
+        }
+      } else {
+        // For Single Choice: correctAnswer is index 0-3 (A-D)
+        correctAnswer = ['A', 'B', 'C', 'D'][currentQuestion.correctAnswer];
+        correctIndexes = [currentQuestion.correctAnswer];
+        correctAnswerText = currentQuestion.options[currentQuestion.correctAnswer];
+      }
+
+      // Reveal answer to all players
+      io.to(pin).emit('answer-revealed', { 
+        correctAnswer,
+        correctAnswerText, // Add full text
+        correctIndexes, // Send array of correct indexes
+        questionType: currentQuestion.type
+      });
+
+      console.log(`✅ Revealed answer: ${correctAnswer} for question ${questionIndex} (Type: ${currentQuestion.type})`);
+
+      // After 7 seconds, move to next question or end game (increased from 4s to give time for navigation)
+      setTimeout(async () => {
+        const nextIndex = questionIndex + 1;
+        
+        if (nextIndex < quiz.questions.length) {
+          const nextQuestion = quiz.questions[nextIndex];
+          console.log(`➡️ Auto moving to question ${nextIndex}`);
+          
+          io.to(pin).emit('question-started', {
+            question: nextQuestion,
+            questionIndex: nextIndex,
+            timeLimit: nextQuestion.timeLimit || 20
+          });
+
+          // Recursively continue auto-progression
+          autoProgressQuestion(io, pin, nextIndex, nextQuestion.timeLimit || 20);
+          
+        } else {
+          // Game over, show final leaderboard
+          console.log(`🏁 Game ${pin} finished!`);
+          
+          // Update game status to finished in database
+          game.status = 'finished';
+          game.finishedAt = new Date();
+          await game.save();
+          console.log(`✅ Game status updated to 'finished' in database`);
+          
+          const leaderboard = game.players
+            .map(p => ({
+              id: p.id,
+              nickname: p.nickname,
+              avatar: p.avatar,
+              score: p.score || 0
+            }))
+            .sort((a, b) => b.score - a.score);
+
+          io.to(pin).emit('game-finished', { leaderboard });
+          
+          console.log(`📊 Final leaderboard:`, leaderboard);
+        }
+      }, 7000); // Increased to 7 seconds for smooth navigation
+
+    } catch (error) {
+      console.error('Error in auto-progression:', error);
+    }
+  }, (timeLimit || 20) * 1000);
+};
+
 // Game state storage (in-memory, can be moved to Redis for production)
 const games = new Map();
 
@@ -33,209 +138,321 @@ const games = new Map();
 io.on('connection', (socket) => {
   console.log('🔌 Client connected:', socket.id);
 
-  // Host creates a game
-  socket.on('create-game', (data) => {
-    const pin = generatePin();
-    const game = {
-      pin,
-      quizId: data.quizId,
-      host: socket.id,
-      players: [],
-      currentQuestion: 0,
-      status: 'waiting', // waiting, active, ended
-      responses: []
-    };
-    
-    games.set(pin, game);
+  // Host joins game room
+  socket.on('host-join', (data) => {
+    const { pin } = data;
     socket.join(pin);
-    socket.emit('game-created', { pin, game });
-    console.log(`🎮 Game created with PIN: ${pin}`);
+    console.log(`� Host joined room: ${pin}`);
   });
 
   // Player joins game
-  socket.on('join-game', (data) => {
-    const { pin, nickname, avatar } = data;
-    const game = games.get(pin);
-
-    if (!game) {
-      return socket.emit('error', { message: 'Game not found' });
-    }
-
-    if (game.status !== 'waiting') {
-      return socket.emit('error', { message: 'Game already started' });
-    }
-
-    const player = {
-      id: socket.id,
-      nickname,
-      avatar,
-      score: 0,
-      answers: []
-    };
-
-    game.players.push(player);
-    socket.join(pin);
+  socket.on('join-game', async (data) => {
+    const { pin, player } = data;
     
-    // Notify all clients in the game
-    io.to(pin).emit('player-joined', { player, players: game.players });
-    socket.emit('joined-game', { game, player });
-    
-    console.log(`👤 ${nickname} joined game ${pin}`);
+    try {
+      // Find game session in database
+      const GameSession = require('./models/GameSession');
+      const game = await GameSession.findOne({ pin });
+
+      if (!game) {
+        return socket.emit('error', { message: 'Game not found' });
+      }
+
+      if (game.status !== 'waiting') {
+        return socket.emit('error', { message: 'Game already started' });
+      }
+
+      // Add player to game session
+      const newPlayer = {
+        id: player.id || socket.id,
+        nickname: player.nickname,
+        color: player.color || player.avatar,
+        avatar: player.color || player.avatar,
+        score: 0,
+        joinedAt: new Date()
+      };
+
+      game.players.push(newPlayer);
+      await game.save();
+
+      // Join socket room
+      socket.join(pin);
+      
+      // Notify host and all players that new player joined
+      io.to(pin).emit('player-joined', newPlayer);
+      
+      // Send confirmation to player
+      socket.emit('joined-game', { game, player: newPlayer });
+      
+      console.log(`👤 ${player.nickname} joined game ${pin}`);
+    } catch (error) {
+      console.error('Error joining game:', error);
+      socket.emit('error', { message: 'Failed to join game' });
+    }
   });
 
   // Host starts game
-  socket.on('start-game', (data) => {
+  socket.on('start-game', async (data) => {
     const { pin } = data;
-    const game = games.get(pin);
-
-    if (!game || game.host !== socket.id) {
-      return socket.emit('error', { message: 'Unauthorized' });
-    }
-
-    game.status = 'active';
-    io.to(pin).emit('game-started', { game });
     
-    // Start first question
-    setTimeout(() => {
-      io.to(pin).emit('next-question', {
-        questionNumber: 1,
-        question: data.questions[0]
-      });
-    }, 3000);
+    try {
+      const GameSession = require('./models/GameSession');
+      const game = await GameSession.findOne({ pin });
 
-    console.log(`▶️ Game ${pin} started`);
+      if (!game) {
+        return socket.emit('error', { message: 'Game not found' });
+      }
+
+      game.status = 'active';
+      game.startedAt = new Date();
+      await game.save();
+
+      io.to(pin).emit('game-started', { game });
+      console.log(`🎮 Game ${pin} started`);
+    } catch (error) {
+      console.error('Error starting game:', error);
+      socket.emit('error', { message: 'Failed to start game' });
+    }
+  });
+
+  // Host starts first question
+  socket.on('start-first-question', async (data) => {
+    const { pin, questionIndex, question, timeLimit } = data;
+    
+    const room = io.sockets.adapter.rooms.get(pin);
+    const clientsInRoom = room ? room.size : 0;
+    
+    console.log(`📝 Starting question ${questionIndex} for game ${pin}`);
+    console.log(`👥 Clients in room "${pin}": ${clientsInRoom}`);
+    
+    // Broadcast to all players in the room
+    io.to(pin).emit('question-started', {
+      questionIndex,
+      question,
+      timeLimit
+    });
+
+    // Start automatic progression
+    autoProgressQuestion(io, pin, questionIndex, timeLimit || 20);
   });
 
   // Player submits answer
-  socket.on('submit-answer', (data) => {
-    const { pin, questionId, answer, timeSpent } = data;
-    const game = games.get(pin);
+  socket.on('player-answer', async (data) => {
+    const { pin, playerId, answer, timeUsed, questionIndex } = data;
+    
+    console.log(`📥 Received player-answer:`, { pin, playerId, answer, timeUsed, questionIndex });
+    
+    try {
+      const GameSession = require('./models/GameSession');
+      const game = await GameSession.findOne({ pin });
 
-    if (!game) {
-      return socket.emit('error', { message: 'Game not found' });
+      if (!game) {
+        return socket.emit('error', { message: 'Game not found' });
+      }
+
+      // Find player in game to verify they exist
+      const playerInGame = game.players.find(p => p.id == playerId); // Use == for loose equality
+      if (!playerInGame) {
+        console.error(`❌ Player ${playerId} not found in game ${pin}`);
+        console.log(`Available players:`, game.players.map(p => ({ id: p.id, nickname: p.nickname })));
+        return socket.emit('error', { message: 'Player not found in game' });
+      }
+
+      console.log(`✅ Player found: ${playerInGame.nickname} (ID: ${playerInGame.id})`);
+
+      // Fetch quiz from quiz-service API
+      const axios = require('axios');
+      const quizResponse = await axios.get(`http://localhost:3000/api/quiz/quizzes/${game.quizId}`);
+      const quiz = quizResponse.data;
+      const question = quiz.questions[questionIndex];
+      
+      if (!question) {
+        return socket.emit('error', { message: 'Question not found' });
+      }
+
+      // Check if answer is correct
+      let isCorrect = false;
+      
+      if (question.type === 'True/False') {
+        // True/False uses A/B: 0=A=False, 1=B=True
+        const correctLetter = question.correctAnswer === 1 ? 'B' : 'A';
+        isCorrect = answer === correctLetter;
+        console.log(`🔍 Answer check (True/False): Player sent "${answer}", Correct is "${correctLetter}" (index ${question.correctAnswer}), Result: ${isCorrect}`);
+      } else if (question.type === 'Multiple Choice') {
+        // For Multiple Choice: answer must be array and match ALL correct answers
+        const correctIndexes = Array.isArray(question.correctAnswer) 
+          ? question.correctAnswer 
+          : [question.correctAnswer];
+        const correctLetters = correctIndexes.map(idx => ['A', 'B', 'C', 'D'][idx]).sort();
+        
+        const playerAnswers = Array.isArray(answer) ? answer : [answer];
+        const sortedPlayerAnswers = [...playerAnswers].sort();
+        
+        // Must match exactly: same length and same elements
+        isCorrect = correctLetters.length === sortedPlayerAnswers.length &&
+                    correctLetters.every((letter, idx) => letter === sortedPlayerAnswers[idx]);
+        
+        console.log(`🔍 Answer check: Player sent [${playerAnswers.join(',')}], Correct is [${correctLetters.join(',')}], Result: ${isCorrect}`);
+      } else {
+        // Single Choice
+        const correctLetter = ['A', 'B', 'C', 'D'][question.correctAnswer];
+        isCorrect = answer === correctLetter;
+        console.log(`🔍 Answer check: Player sent "${answer}", Correct is "${correctLetter}", Result: ${isCorrect}`);
+      }
+      
+      // Calculate points (Kahoot-style: base points + time bonus)
+      let points = 0;
+      if (isCorrect) {
+        const basePoints = question.points || 1000;
+        const timeLimit = question.timeLimit || 20;
+        const timeBonus = Math.max(0, Math.floor(basePoints * 0.5 * (1 - timeUsed / timeLimit)));
+        points = basePoints + timeBonus;
+        
+        console.log(`💰 Points calculation: base=${basePoints}, timeUsed=${timeUsed}s/${timeLimit}s, timeBonus=${timeBonus}, total=${points}`);
+      }
+
+      // Update player score in database
+      const updateResult = await GameSession.updateOne(
+        { pin, 'players.id': playerId },
+        { 
+          $inc: { 'players.$.score': points },
+          $push: { 
+            'players.$.answers': {
+              questionId: questionIndex,
+              answer,
+              isCorrect,
+              points,
+              timeSpent: timeUsed
+            }
+          }
+        }
+      );
+
+      console.log(`📊 Database update result:`, updateResult);
+
+      // Verify the update by fetching the game again
+      const updatedGame = await GameSession.findOne({ pin });
+      const updatedPlayer = updatedGame.players.find(p => p.id == playerId); // Use == for loose equality
+      console.log(`✅ Updated player score in DB: ${updatedPlayer?.score || 0} (was expecting: ${(playerInGame.score || 0) + points})`);
+
+      if (updateResult.matchedCount === 0) {
+        console.error(`❌ Failed to update player score! No player matched with id: ${playerId}`);
+      }
+
+      // Send result back to the player who answered
+      socket.emit('answer-result', {
+        isCorrect,
+        points,
+        correctAnswer: ['A', 'B', 'C', 'D'][question.correctAnswer],
+        selectedAnswer: answer  // Echo back the answer player selected
+      });
+
+      // Notify ONLY host about answer (not broadcast to all)
+      // Host should be listening with different event or we emit to specific socket
+      // For now, broadcast but host will handle deduplication
+      socket.broadcast.to(pin).emit('player-answer', {
+        playerId,
+        answer,
+        timeUsed,
+        isCorrect,
+        points
+      });
+
+      console.log(`✅ Player ${playerId} answered: ${answer}, correct: ${isCorrect}, points: ${points}`);
+    } catch (error) {
+      console.error('Error processing answer:', error);
+      socket.emit('error', { message: 'Failed to process answer' });
     }
-
-    const player = game.players.find(p => p.id === socket.id);
-    if (!player) {
-      return socket.emit('error', { message: 'Player not found' });
-    }
-
-    // Calculate points based on correctness and speed
-    const isCorrect = checkAnswer(answer, data.correctAnswer);
-    const points = isCorrect ? calculatePoints(data.maxPoints, timeSpent, data.timeLimit) : 0;
-
-    player.score += points;
-    player.answers.push({
-      questionId,
-      answer,
-      isCorrect,
-      points,
-      timeSpent
-    });
-
-    game.responses.push({
-      playerId: socket.id,
-      answer,
-      isCorrect,
-      points
-    });
-
-    // Notify host about response
-    io.to(game.host).emit('answer-received', {
-      playerId: socket.id,
-      nickname: player.nickname,
-      answered: game.responses.length,
-      total: game.players.length
-    });
-
-    // Send feedback to player
-    socket.emit('answer-feedback', {
-      isCorrect,
-      points,
-      correctAnswer: data.correctAnswer
-    });
-
-    console.log(`✅ ${player.nickname} answered question ${questionId}`);
   });
 
   // Show leaderboard
-  socket.on('show-leaderboard', (data) => {
+  socket.on('show-leaderboard', async (data) => {
     const { pin } = data;
-    const game = games.get(pin);
+    
+    try {
+      const GameSession = require('./models/GameSession');
+      const game = await GameSession.findOne({ pin });
 
-    if (!game) return;
+      if (!game) return;
 
-    const leaderboard = game.players
-      .map(p => ({
-        nickname: p.nickname,
-        avatar: p.avatar,
-        score: p.score
-      }))
-      .sort((a, b) => b.score - a.score);
+      const leaderboard = game.players
+        .map(p => ({
+          nickname: p.nickname,
+          avatar: p.avatar,
+          score: p.score || 0
+        }))
+        .sort((a, b) => b.score - a.score);
 
-    io.to(pin).emit('leaderboard-update', { leaderboard });
-  });
-
-  // End game
-  socket.on('end-game', (data) => {
-    const { pin } = data;
-    const game = games.get(pin);
-
-    if (!game || game.host !== socket.id) {
-      return socket.emit('error', { message: 'Unauthorized' });
+      io.to(pin).emit('leaderboard-update', { leaderboard });
+    } catch (error) {
+      console.error('Error showing leaderboard:', error);
     }
-
-    game.status = 'ended';
-    
-    const finalResults = {
-      players: game.players.map(p => ({
-        nickname: p.nickname,
-        avatar: p.avatar,
-        score: p.score,
-        answers: p.answers
-      })).sort((a, b) => b.score - a.score)
-    };
-
-    io.to(pin).emit('game-ended', { results: finalResults });
-    
-    console.log(`🏁 Game ${pin} ended`);
   });
 
   socket.on('disconnect', () => {
     console.log('🔌 Client disconnected:', socket.id);
+  });
+
+   // HOST events
+  socket.on('host-join-control', ({ pin }) => {
+    socket.join(pin);
+    console.log(`🎮 Host joined control room: ${pin}`);
+  });
+
+  socket.on('show-answer', ({ pin, correctAnswer }) => {
+    // Deprecated: Auto-progression handles this now
+    console.log('⚠️ show-answer event received but ignored - using auto-progression');
+  });
+
+  socket.on('next-question', ({ pin, questionIndex, question }) => {
+    // Deprecated: Auto-progression handles this now
+    console.log('⚠️ next-question event received but ignored - using auto-progression');
+  });
+
+  socket.on('game-ended', async ({ pin, leaderboard }) => {
+    console.log(`🏁 Host manually ended game: ${pin}`);
     
-    // Remove player from games
-    games.forEach((game, pin) => {
-      const playerIndex = game.players.findIndex(p => p.id === socket.id);
-      if (playerIndex !== -1) {
-        const player = game.players[playerIndex];
-        game.players.splice(playerIndex, 1);
-        io.to(pin).emit('player-left', { 
-          playerId: socket.id, 
-          nickname: player.nickname,
-          players: game.players 
-        });
+    try {
+      const GameSession = require('./models/GameSession');
+      const game = await GameSession.findOne({ pin });
+      
+      if (game) {
+        // Update game status to finished
+        game.status = 'finished';
+        game.finishedAt = new Date();
+        await game.save();
+        console.log(`✅ Game ${pin} status updated to 'finished' in database`);
+        
+        // Broadcast game-finished to all players
+        io.to(pin).emit('game-finished', { leaderboard });
+        console.log(`📊 Final leaderboard broadcasted:`, leaderboard);
+      } else {
+        console.error(`❌ Game ${pin} not found when trying to end manually`);
       }
+    } catch (error) {
+      console.error('Error ending game manually:', error);
+    }
+  });
+
+  // PLAYER events
+  socket.on('player-ready-for-question', ({ pin, playerId }) => {
+    socket.join(pin);
+    console.log(`👤 Player ${playerId} ready in room: ${pin}`);
+  });
+
+  socket.on('player-answer', ({ pin, playerId, answer, timeUsed }) => {
+    io.to(pin).emit('player-answer', {
+      playerId,
+      answer,
+      timeUsed
     });
   });
+  
 });
 
 // Helper functions
 function generatePin() {
   return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
-function checkAnswer(playerAnswer, correctAnswer) {
-  if (Array.isArray(correctAnswer)) {
-    return JSON.stringify(playerAnswer.sort()) === JSON.stringify(correctAnswer.sort());
-  }
-  return playerAnswer === correctAnswer;
-}
-
-function calculatePoints(maxPoints, timeSpent, timeLimit) {
-  // Award more points for faster answers
-  const timeBonus = 1 - (timeSpent / timeLimit) * 0.5;
-  return Math.round(maxPoints * timeBonus);
 }
 
 // REST API routes
@@ -247,7 +464,6 @@ app.get('/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     service: 'game-service',
-    activeGames: games.size,
     timestamp: new Date().toISOString() 
   });
 });

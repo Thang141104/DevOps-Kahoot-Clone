@@ -1,9 +1,61 @@
-import React from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import io from 'socket.io-client';
+import { SOCKET_CONFIG } from '../config/api';
 import './LobbyPlayer.css';
 
 const LobbyPlayer = () => {
   const { pin } = useParams();
+  const navigate = useNavigate();
+  const [socket, setSocket] = useState(null);
+  const [playerName, setPlayerName] = useState('');
+  const [playerColor, setPlayerColor] = useState('');
+
+  useEffect(() => {
+    // Get player data from localStorage (set when joining)
+    const storedPlayer = JSON.parse(localStorage.getItem('currentPlayer') || '{}');
+    setPlayerName(storedPlayer.nickname || 'Player');
+    setPlayerColor(storedPlayer.color || '#E5164F');
+
+    // Reuse existing socket or create new one
+    let newSocket = window.gameSocket;
+    
+    if (!newSocket || !newSocket.connected) {
+      console.log('🔌 Creating new socket connection...');
+      newSocket = io(SOCKET_CONFIG.URL);
+      window.gameSocket = newSocket;
+      
+      // Re-join room if needed (for refresh case)
+      newSocket.on('connect', () => {
+        console.log('🔌 Reconnecting to room:', pin);
+        newSocket.emit('join-game', {
+          pin,
+          player: storedPlayer
+        });
+      });
+    } else {
+      console.log('🔌 Reusing existing socket connection');
+    }
+    
+    setSocket(newSocket);
+
+    // Listen for game start
+    newSocket.on('game-started', ({ game }) => {
+      console.log('🎮 Game started! Navigating to answering page...');
+      navigate(`/live/answer/${pin}`);
+    });
+
+    // Handle errors
+    newSocket.on('error', (error) => {
+      console.error('Socket error:', error);
+      alert(error.message || 'An error occurred');
+    });
+
+    return () => {
+      // Don't close socket - keep it alive for Answering page
+      console.log('🔌 LobbyPlayer unmounting, keeping socket alive');
+    };
+  }, [pin, navigate]);
 
   return (
     <div className="lobby-player-container">
@@ -16,22 +68,14 @@ const LobbyPlayer = () => {
         <p className="status-subtitle">Waiting for the game to start...</p>
 
         <div className="pin-display-card">
-          <div className="avatar-circle" style={{ backgroundColor: '#E5164F' }}>
-            ?
+          <div className="avatar-circle" style={{ backgroundColor: playerColor }}>
+            {playerName.charAt(0).toUpperCase()}
           </div>
           <p className="pin-label">PIN</p>
           <h2 className="pin-number">{pin}</h2>
 
           <div className="players-joined">
-            <div className="avatar-group">
-              <span className="mini-avatar" style={{ backgroundColor: '#E5164F' }}>?</span>
-              <span className="mini-avatar" style={{ backgroundColor: '#FFC107' }}>?</span>
-              <span className="mini-avatar" style={{ backgroundColor: '#26890D' }}>?</span>
-              <span className="mini-avatar" style={{ backgroundColor: '#1368CE' }}>?</span>
-              <span className="mini-avatar" style={{ backgroundColor: '#9B51E0' }}>?</span>
-              <span className="mini-avatar" style={{ backgroundColor: '#F97316' }}>?</span>
-            </div>
-            <p>6 players joined</p>
+            <p className="player-name">{playerName}</p>
           </div>
         </div>
 

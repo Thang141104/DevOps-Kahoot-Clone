@@ -129,16 +129,52 @@ quiz-app/
 
 ## 📖 Usage
 
-### Creating a Quiz
-1. Navigate to Dashboard
-2. Click "New Quiz"
-3. Add questions with options
-4. Set time limits and points
-5. Save quiz
+### Creating and Sharing a Quiz (Complete Flow)
 
-### Hosting a Game
+#### 1. Create Quiz
+1. Login to your account
+2. Navigate to Dashboard
+3. Click "New Quiz" button
+4. Add quiz title and description
+5. Add questions with:
+   - Question text
+   - Multiple choice options
+   - Correct answer
+   - Time limit and points
+6. Click "Save Quiz"
+7. Quiz appears in your Dashboard
+
+#### 2. Start Game & Share PIN
+1. In Dashboard, find your saved quiz
+2. Click **"Start"** button on the quiz card
+3. System creates game session and generates unique PIN
+4. You're taken to Lobby Host page showing:
+   - **Game PIN** (6-digit code)
+   - QR code for easy joining
+   - List of players joining
+5. **Share the PIN** with players via:
+   - Screen share
+   - Chat message
+   - Projector display
+   - QR code scan
+
+#### 3. Players Join
+1. Players open the app
+2. Click "Join with PIN"
+3. Enter the 6-digit PIN
+4. Choose nickname and avatar
+5. Wait in lobby until host starts
+
+#### 4. Host Controls Game
+1. Wait for all players to join
+2. Review player list
+3. Click "Start Game" when ready
+4. Control question flow
+5. View live results
+
+### Hosting a Game (Quick Version)
 1. Select a quiz from Dashboard
-2. Click "Start Game"
+2. Click "Start" to get PIN
 3. Share PIN with players
 4. Wait for players to join
 5. Start game when ready
@@ -153,9 +189,33 @@ quiz-app/
 ## 🎮 Game Flow
 
 ```
-Host: Create Quiz → Start Game → Share PIN → Control Questions → View Results
-                                      ↓
-Player:                        Join with PIN → Answer Questions → See Results
+HOST FLOW:
+Login → Dashboard → Create Quiz → Save → Dashboard
+  ↓
+Click "Start" Button → Game Session Created → Get PIN
+  ↓
+Lobby Host Page (Share PIN with players)
+  ↓
+Players Join → Review Players → Click "Start Game"
+  ↓
+Live Control → Control Questions → View Results
+  ↓
+End Game → Analytics
+
+PLAYER FLOW:
+Home Page → Join with PIN → Enter PIN
+  ↓
+Lobby Player Page (Wait for host)
+  ↓
+Game Started → Answer Questions → See Feedback
+  ↓
+View Leaderboard → End Game → See Results
+
+SHARING METHODS:
+- Display PIN on screen/projector
+- Send PIN via chat/message
+- Share QR code for scanning
+- Verbal announcement
 ```
 
 ## 🔌 API Endpoints

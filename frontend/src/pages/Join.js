@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiZap } from 'react-icons/fi';
+import io from 'socket.io-client';
+import API_URLS, { SOCKET_CONFIG } from '../config/api';
 import './Join.css';
 
 const Join = () => {
@@ -14,9 +16,55 @@ const Join = () => {
     '#9B51E0', '#F97316', '#EC4899', '#06B6D4'
   ];
 
-  const handleJoin = () => {
+  const handleJoin = async () => {
     if (pin && nickname) {
-      navigate(`/lobby/player/${pin}`);
+      try {
+        // Verify game exists
+        const response = await fetch(API_URLS.GAME_BY_PIN(pin));
+        
+        if (!response.ok) {
+          alert('Game not found! Please check the PIN.');
+          return;
+        }
+
+        // Connect to Socket.io and join game
+        const socket = io(SOCKET_CONFIG.URL);
+        
+        const playerData = {
+          id: Date.now(), // Temporary ID
+          nickname: nickname,
+          color: avatarColors[selectedAvatar],
+          avatar: avatarColors[selectedAvatar]
+        };
+
+        // Wait for join confirmation
+        socket.on('joined-game', ({ game, player }) => {
+          console.log('✅ Successfully joined game:', game.pin);
+          // Store player data in localStorage for LobbyPlayer page
+          localStorage.setItem('currentPlayer', JSON.stringify(player));
+          localStorage.setItem('currentGamePin', pin);
+          
+          // Keep socket alive by storing reference
+          window.gameSocket = socket;
+          
+          // Navigate to player lobby
+          navigate(`/lobby/player/${pin}`);
+        });
+
+        socket.on('error', (error) => {
+          alert(error.message || 'Failed to join game');
+          socket.close();
+        });
+
+        socket.emit('join-game', {
+          pin: pin,
+          player: playerData
+        });
+
+      } catch (error) {
+        console.error('Error joining game:', error);
+        alert('Failed to join game. Please try again.');
+      }
     }
   };
 

@@ -1,13 +1,61 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiZap, FiUsers, FiTrendingUp } from 'react-icons/fi';
+import { FiZap, FiUsers, FiTrendingUp, FiLogOut } from 'react-icons/fi';
 import './Home.css';
 
 const Home = () => {
   const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    // Check if user is logged in
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+    alert('Logged out successfully!');
+  };
 
   return (
     <div className="home-container">
+      {/* User info bar if logged in */}
+      {user && (
+        <div style={{
+          position: 'absolute',
+          top: '20px',
+          right: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '15px',
+          background: 'white',
+          padding: '10px 20px',
+          borderRadius: '50px',
+          boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+        }}>
+          <span style={{fontWeight: '500'}}>👋 {user.username}</span>
+          <button 
+            onClick={handleLogout}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              color: '#E5164F',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px'
+            }}
+          >
+            <FiLogOut /> Logout
+          </button>
+        </div>
+      )}
+
       <div className="hero-section">
         <h1 className="hero-title">
           Make Learning <br />
