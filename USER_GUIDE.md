@@ -3,7 +3,7 @@
 ## 📝 Đăng Ký Tài Khoản (Register)
 
 ### Bước 1: Truy cập trang đăng ký
-1. Mở ứng dụng tại http://localhost:3000
+1. Mở ứng dụng tại http://localhost:3006
 2. Click vào nút **"Create Quiz"**
 3. Bạn sẽ được chuyển đến trang **Login**
 4. Click vào **"Sign Up"** để đăng ký

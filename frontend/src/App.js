@@ -14,6 +14,8 @@ import LiveControl from './pages/LiveControl';
 import Answering from './pages/Answering';
 import Feedback from './pages/Feedback';
 import EndGameNew from './pages/EndGameNew';
+import Profile from './pages/Profile';
+import AnalyticsDashboard from './pages/AnalyticsDashboard';
 import './App.css';
 
 function App() {
@@ -35,6 +37,8 @@ function App() {
           <Route path="/live/answer/:pin" element={<Answering />} />
           <Route path="/live/feedback/:pin" element={<Feedback />} />
           <Route path="/game/end/:pin" element={<EndGameNew />} />
+          <Route path="/profile/:userId?" element={<Profile />} />
+          <Route path="/analytics" element={<AnalyticsDashboard />} />
         </Routes>
       </div>
     </Router>

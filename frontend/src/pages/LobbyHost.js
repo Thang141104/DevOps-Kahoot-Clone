@@ -81,6 +81,25 @@ const LobbyHost = () => {
 
   return (
     <div className="lobby-container">
+      <div style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 10 }}>
+        <button 
+          onClick={() => navigate('/dashboard')} 
+          style={{
+            background: 'white',
+            border: '2px solid #E2E8F0',
+            padding: '10px 20px',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            fontSize: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          ← Back to Dashboard
+        </button>
+      </div>
       <div className="lobby-content">
         <h1 className="quiz-title">{quizTitle}</h1>
         <p className="lobby-subtitle">Players are joining...</p>

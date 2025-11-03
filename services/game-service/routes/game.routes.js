@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const GameSession = require('../models/GameSession');
+const { trackEventAndUpdateStats } = require('../utils/eventTracker');
 
 // Get all game sessions (with optional filters)
 router.get('/', async (req, res) => {
@@ -109,6 +110,9 @@ router.post('/', async (req, res) => {
     
     await session.save();
     console.log('✅ Game session created:', session._id);
+    
+    // Note: Don't track game_created here - only track when host actually starts the game
+    // This prevents counting games that were created but never started
     
     res.status(201).json({
       pin: session.pin,

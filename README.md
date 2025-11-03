@@ -29,8 +29,9 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed changes.
 - **Auth Service** (Port 3001) - User authentication with JWT and OTP verification
 - **Quiz Service** (Port 3002) - Quiz CRUD operations
 - **Game Service** (Port 3003) - Real-time game management with Socket.io
-- **User Service** (Port 3004) - User management (planned)
-- **Analytics Service** (Port 3005) - Statistics (planned)
+- **User Service** (Port 3004) - User profiles, stats, achievements, leaderboard
+- **Analytics Service** (Port 3005) - Event tracking, statistics, trends dashboard
+- **Frontend** (Port 3006) - React application
 
 ### Tech Stack
 - **Frontend**: React 18, React Router v6, Socket.io Client
@@ -43,7 +44,7 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed changes.
 
 ```
 quiz-app/
-├── frontend/                 # React application (Port 3005)
+├── frontend/                 # React application (Port 3006)
 │   ├── public/
 │   └── src/
 │       ├── config/          # API configuration
@@ -117,9 +118,17 @@ quiz-app/
    # Game Service
    cd ..\services\game-service
    npm install
+
+   # User Service
+   cd ..\services\user-service
+   npm install
+
+   # Analytics Service
+   cd ..\services\analytics-service
+   npm install
    ```
 
-3. **Start Services** (Open 5 terminals)
+3. **Start Services** (Open 7 terminals)
    ```powershell
    # Terminal 1 - Gateway
    cd gateway
@@ -137,7 +146,15 @@ quiz-app/
    cd services\game-service
    npm run dev
 
-   # Terminal 5 - Frontend
+   # Terminal 5 - User Service
+   cd services\user-service
+   npm run dev
+
+   # Terminal 6 - Analytics Service
+   cd services\analytics-service
+   npm run dev
+
+   # Terminal 7 - Frontend
    cd frontend
    npm start
    ```
@@ -146,7 +163,7 @@ quiz-app/
    
    Create `frontend/.env`:
    ```properties
-   PORT=3005
+   PORT=3006
    REACT_APP_API_URL=http://localhost:3000
    REACT_APP_SOCKET_URL=http://localhost:3003
    ```
@@ -155,8 +172,9 @@ quiz-app/
    See [CONFIG_README.md](frontend/CONFIG_README.md) for details.
 
 5. **Access Application**
-   - Frontend: http://localhost:3005
-   - API Gateway: http://localhost:3000/api
+   - Frontend: http://localhost:3006
+   - API Gateway: http://localhost:3000
+   - Analytics Dashboard: http://localhost:3006/analytics
 
 ## 📖 Usage
 

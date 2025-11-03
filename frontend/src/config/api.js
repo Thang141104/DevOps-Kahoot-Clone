@@ -23,6 +23,18 @@ export const API_URLS = {
   GAME_BY_PIN: (pin) => `${API_BASE_URL}/api/game/games/pin/${pin}`,
   GAME_BY_ID: (id) => `${API_BASE_URL}/api/game/games/${id}`,
   GAME_DELETE: (id) => `${API_BASE_URL}/api/game/games/${id}`,
+  
+  // User Service
+  USER_PROFILE: (userId) => `${API_BASE_URL}/api/user/users/${userId}/profile`,
+  USER_PROFILE_UPDATE: (userId) => `${API_BASE_URL}/api/user/users/${userId}/profile`,
+  USER_STATS: (userId) => `${API_BASE_URL}/api/user/users/${userId}/stats`,
+  USER_STATS_SYNC: (userId) => `${API_BASE_URL}/api/user/users/${userId}/stats/sync`,
+  USER_ACHIEVEMENTS: (userId) => `${API_BASE_URL}/api/user/users/${userId}/achievements`,
+  USER_ACTIVITY: (userId) => `${API_BASE_URL}/api/user/users/${userId}/activity`,
+  USER_AVATAR: (userId) => `${API_BASE_URL}/api/user/users/${userId}/avatar`,
+  USER_PREFERENCES: (userId) => `${API_BASE_URL}/api/user/users/${userId}/preferences`,
+  USER_SEARCH: (query) => `${API_BASE_URL}/api/user/users/search?q=${query}`,
+  USER_LEADERBOARD: `${API_BASE_URL}/api/user/users/leaderboard`,
 };
 
 export const SOCKET_CONFIG = {

@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -8,6 +9,9 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Serve uploaded files
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // MongoDB connection
 mongoose.connect(process.env.MONGODB_URI, {
@@ -19,7 +23,9 @@ mongoose.connect(process.env.MONGODB_URI, {
 
 // Routes
 const quizRoutes = require('./routes/quiz.routes');
+const uploadRoutes = require('./routes/upload.routes');
 app.use('/quizzes', quizRoutes);
+app.use('/upload', uploadRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

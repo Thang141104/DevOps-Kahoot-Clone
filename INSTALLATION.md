@@ -48,12 +48,26 @@ cd ..\services\game-service
 npm install
 ```
 
+#### User Service
+```powershell
+cd ..\services\user-service
+npm install
+```
+
+#### Analytics Service
+```powershell
+cd ..\services\analytics-service
+npm install
+```
+
 ### 4. Configure Environment Variables
 All `.env` files are already created. Update them if needed:
 - `gateway/.env`
 - `services/auth-service/.env` - **IMPORTANT: Configure email settings** (see EMAIL_SETUP.md)
 - `services/quiz-service/.env`
 - `services/game-service/.env`
+- `services/user-service/.env` - **IMPORTANT: JWT_SECRET must match auth-service**
+- `services/analytics-service/.env`
 
 ### 5. Start MongoDB
 ```powershell
@@ -67,37 +81,43 @@ Open multiple PowerShell terminals:
 
 #### Terminal 1 - Frontend
 ```powershell
-cd C:\quiz-app\frontend
-npm start
+cd .\frontend\;npm start
 ```
 
 #### Terminal 2 - API Gateway
 ```powershell
-cd C:\quiz-app\gateway
-npm run dev
+cd .\gateway\;npm run dev
 ```
 
 #### Terminal 3 - Auth Service
 ```powershell
-cd C:\quiz-app\services\auth-service
-npm run dev
+cd .\services\auth-service;npm run dev
 ```
 
 #### Terminal 4 - Quiz Service
 ```powershell
-cd C:\quiz-app\services\quiz-service
-npm run dev
+cd .\services\quiz-service;npm run dev
 ```
 
 #### Terminal 5 - Game Service
 ```powershell
-cd C:\quiz-app\services\game-service
-npm run dev
+cd .\services\game-service;npm run dev
+```
+
+#### Terminal 6 - User Service
+```powershell
+cd .\services\user-service;npm run dev
+```
+
+#### Terminal 7 - Analytics Service
+```powershell
+cd .\services\analytics-service;npm run dev
 ```
 
 ### 7. Access the Application
-- **Frontend**: http://localhost:3000
-- **API Gateway**: http://localhost:3000/api
+- **Frontend**: http://localhost:3006
+- **API Gateway**: http://localhost:3000
+- **Analytics Dashboard**: http://localhost:3006/analytics
 - **Auth Service**: http://localhost:3001
 - **Quiz Service**: http://localhost:3002
 - **Game Service**: http://localhost:3003

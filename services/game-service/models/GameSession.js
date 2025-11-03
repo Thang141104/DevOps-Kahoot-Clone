@@ -18,6 +18,8 @@ const gameSessionSchema = new mongoose.Schema({
   },
   players: [{
     id: { type: mongoose.Schema.Types.Mixed, required: true }, // Can be number or string
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Real user ID if authenticated
+    isAuthenticated: { type: Boolean, default: false }, // Flag for authenticated users
     nickname: String,
     avatar: String,
     score: { type: Number, default: 0 },

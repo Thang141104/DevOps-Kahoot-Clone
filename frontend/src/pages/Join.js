@@ -30,11 +30,16 @@ const Join = () => {
         // Connect to Socket.io and join game
         const socket = io(SOCKET_CONFIG.URL);
         
+        // Check if user is logged in
+        const user = JSON.parse(localStorage.getItem('user') || 'null');
+        
         const playerData = {
-          id: Date.now(), // Temporary ID
+          id: user?.id || Date.now(), // Use real userId if logged in, else temporary ID
           nickname: nickname,
           color: avatarColors[selectedAvatar],
-          avatar: avatarColors[selectedAvatar]
+          avatar: avatarColors[selectedAvatar],
+          isAuthenticated: !!user, // Flag to indicate authenticated user
+          userId: user?.id || null // Store userId separately for analytics
         };
 
         // Wait for join confirmation
@@ -70,6 +75,27 @@ const Join = () => {
 
   return (
     <div className="join-container">
+      <div style={{ position: 'absolute', top: '20px', right: '20px', zIndex: 10 }}>
+        <button 
+          onClick={() => navigate('/dashboard')} 
+          style={{
+            background: '#6366f1',
+            color: 'white',
+            border: 'none',
+            padding: '10px 20px',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            fontSize: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)'
+          }}
+        >
+          📚 My Dashboard
+        </button>
+      </div>
       <div className="join-card">
         <div className="join-icon">
           <FiZap size={32} />

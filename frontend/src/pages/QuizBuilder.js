@@ -61,7 +61,16 @@ const QuizBuilder = () => {
 
   const loadQuizData = async (quizId) => {
     try {
-      const response = await fetch(API_URLS.QUIZ_BY_ID(quizId));
+      const token = localStorage.getItem('token');
+      const headers = {};
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const response = await fetch(API_URLS.QUIZ_BY_ID(quizId), {
+        headers: headers
+      });
       const data = await response.json();
       
       if (response.ok) {
@@ -209,11 +218,19 @@ const QuizBuilder = () => {
       
       const method = isEditMode ? 'PUT' : 'POST';
       
+      // Get token from localStorage
+      const token = localStorage.getItem('token');
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
       const response = await fetch(url, {
         method: method,
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: headers,
         body: JSON.stringify(quizData)
       });
 
@@ -370,9 +387,14 @@ const QuizBuilder = () => {
   return (
     <div className="quiz-builder-container">
       <header className="builder-header">
-        <button className="btn-back" onClick={() => navigate('/dashboard')}>
-          <FiArrowLeft /> Back
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button className="btn-back" onClick={() => navigate('/')}>
+            🏠 Home
+          </button>
+          <button className="btn-back" onClick={() => navigate('/dashboard')}>
+            <FiArrowLeft /> Back to Dashboard
+          </button>
+        </div>
         <div className="header-title">
           <h2>{isEditMode ? 'Edit Quiz' : 'Create New Quiz'}</h2>
           <span className="question-count">{questions.length} questions</span>
@@ -513,15 +535,6 @@ const QuizBuilder = () => {
                     max="5000"
                     step="100"
                   />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label>Media</label>
-                <div className="media-upload">
-                  <FiImage size={32} />
-                  <p>Click to upload image or video</p>
-                  <span>PNG, JPG, MP4, up to 10MB</span>
                 </div>
               </div>
 

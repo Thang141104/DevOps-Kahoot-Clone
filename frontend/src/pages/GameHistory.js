@@ -147,9 +147,14 @@ const GameHistory = () => {
   return (
     <div className="game-history-container">
       <header className="history-header">
-        <button className="btn-back" onClick={() => navigate('/dashboard')}>
-          <FiArrowLeft /> Back to Dashboard
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button className="btn-back" onClick={() => navigate('/')}>
+            🏠 Home
+          </button>
+          <button className="btn-back" onClick={() => navigate('/dashboard')}>
+            <FiArrowLeft /> Back to Dashboard
+          </button>
+        </div>
         <h1>Game History</h1>
       </header>
 

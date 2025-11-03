@@ -42,6 +42,10 @@ const quizSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  coverImage: {
+    type: String,
+    default: null
+  },
   visibility: {
     type: String,
     enum: ['Public', 'Private'],

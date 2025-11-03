@@ -59,6 +59,25 @@ const LobbyPlayer = () => {
 
   return (
     <div className="lobby-player-container">
+      <div style={{ position: 'absolute', top: '20px', left: '20px', zIndex: 10 }}>
+        <button 
+          onClick={() => navigate('/')} 
+          style={{
+            background: 'white',
+            border: '2px solid #E2E8F0',
+            padding: '10px 20px',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            fontSize: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          🏠 Home
+        </button>
+      </div>
       <div className="lobby-player-content">
         <div className="connected-icon">
           <span>⚡</span>

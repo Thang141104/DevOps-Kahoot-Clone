@@ -15,9 +15,10 @@ const Dashboard = () => {
   });
   const [loading, setLoading] = useState(true);
 
-  // Fetch quizzes on mount
+  // Fetch quizzes and user stats on mount
   useEffect(() => {
     fetchQuizzes();
+    fetchUserStats();
   }, [filter]);
 
   const fetchQuizzes = async () => {
@@ -34,22 +35,26 @@ const Dashboard = () => {
         ? `${API_URLS.QUIZZES}?userId=${user.id}&filter=starred`
         : `${API_URLS.QUIZZES}?userId=${user.id}`;
 
-      const response = await fetch(url);
+      const token = localStorage.getItem('token');
+      const headers = {};
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(url, { headers });
       const data = await response.json();
 
       if (response.ok) {
         setQuizzes(data);
         
-        // Calculate stats
-        const totalPlays = data.reduce((sum, q) => sum + (q.stats?.totalPlays || 0), 0);
-        const avgAcc = data.reduce((sum, q) => sum + (q.stats?.avgAccuracy || 0), 0) / (data.length || 1);
+        // Calculate starred quizzes count
         const starred = data.filter(q => q.starred).length;
         
-        setStats({
-          totalPlays,
-          avgAccuracy: Math.round(avgAcc),
+        setStats(prev => ({
+          ...prev,
           starredQuizzes: starred
-        });
+        }));
       } else {
         console.error('Failed to fetch quizzes:', data);
       }
@@ -60,10 +65,39 @@ const Dashboard = () => {
     }
   };
 
+  const fetchUserStats = async () => {
+    try {
+      const user = JSON.parse(localStorage.getItem('user'));
+      if (!user || !user.id) return;
+
+      const response = await fetch(API_URLS.USER_PROFILE(user.id));
+      const data = await response.json();
+
+      if (response.ok) {
+        // Use actual user stats from profile
+        setStats(prev => ({
+          ...prev,
+          totalPlays: data.stats?.gamesPlayed || 0,
+          avgAccuracy: Math.round(data.stats?.avgAccuracy || 0)
+        }));
+      }
+    } catch (error) {
+      console.error('Error fetching user stats:', error);
+    }
+  };
+
   const toggleStar = async (id) => {
     try {
+      const token = localStorage.getItem('token');
+      const headers = {};
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
       const response = await fetch(API_URLS.QUIZ_STAR(id), {
-        method: 'PATCH'
+        method: 'PATCH',
+        headers: headers
       });
 
       if (response.ok) {
@@ -84,8 +118,16 @@ const Dashboard = () => {
     }
 
     try {
+      const token = localStorage.getItem('token');
+      const headers = {};
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
       const response = await fetch(API_URLS.QUIZ_DELETE(id), {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: headers
       });
 
       if (response.ok) {
@@ -115,11 +157,18 @@ const Dashboard = () => {
       console.log('🎮 Creating game for quiz:', quizId, 'host:', user.id);
 
       // Create game session
+      const token = localStorage.getItem('token');
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
       const response = await fetch(API_URLS.GAMES, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: headers,
         body: JSON.stringify({
           quizId: quizId,
           hostId: user.id
@@ -148,13 +197,22 @@ const Dashboard = () => {
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
-        <div className="logo">
+        <div className="logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
           <span className="logo-icon">N</span>
           <span className="logo-text">NeLe</span>
         </div>
         <div className="header-actions">
+          <button className="btn-home" onClick={() => navigate('/')}>
+            🏠 Home
+          </button>
           <button className="btn-game-history" onClick={() => navigate('/game/history')}>
             <FiPlay /> Game History
+          </button>
+          <button className="btn-analytics" onClick={() => navigate('/analytics')}>
+            <FiTrendingUp /> Analytics
+          </button>
+          <button className="btn-profile" onClick={() => navigate('/profile')}>
+            <FiUsers /> Profile
           </button>
           <button className="btn-new-quiz" onClick={() => navigate('/quiz/builder')}>
             <FiPlus /> New Quiz
@@ -169,7 +227,7 @@ const Dashboard = () => {
         </div>
 
         <div className="stats-grid">
-          <div className="stat-card">
+          <div className="dashboard-stat-card">
             <div className="stat-icon" style={{backgroundColor: '#FFE5E5'}}>
               <FiTrendingUp color="#E5164F" size={24} />
             </div>
@@ -179,7 +237,7 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="stat-card">
+          <div className="dashboard-stat-card">
             <div className="stat-icon" style={{backgroundColor: '#E5F9E5'}}>
               <FiTarget color="#26890D" size={24} />
             </div>
@@ -189,7 +247,7 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="stat-card">
+          <div className="dashboard-stat-card">
             <div className="stat-icon" style={{backgroundColor: '#FFF9E5'}}>
               <FiStar color="#FFC107" size={24} />
             </div>
@@ -254,19 +312,39 @@ const Dashboard = () => {
                     </button>
                   </div>
                   <h3 className="quiz-title">{quiz.title}</h3>
-                  <div className="quiz-stats">
-                    <div className="quiz-stat-item">
-                      <span className="stat-label">Plays</span>
-                      <span className="stat-value">{quiz.stats?.totalPlays || 0}</span>
-                    </div>
-                    <div className="quiz-stat-item">
-                      <span className="stat-label">Avg Accuracy</span>
-                      <span className="stat-value">{quiz.stats?.avgAccuracy || 0}%</span>
-                    </div>
+                  
+                  {/* Quiz Description */}
+                  {quiz.description && (
+                    <p className="quiz-description">{quiz.description}</p>
+                  )}
+                  
+                  {/* Quiz Info */}
+                  <div className="quiz-info-tags">
+                    {quiz.category && (
+                      <span className="info-tag category-tag">
+                        📚 {quiz.category}
+                      </span>
+                    )}
+                    {quiz.difficulty && (
+                      <span className={`info-tag difficulty-tag ${quiz.difficulty?.toLowerCase()}`}>
+                        {quiz.difficulty === 'easy' && '🟢'}
+                        {quiz.difficulty === 'medium' && '🟡'}
+                        {quiz.difficulty === 'hard' && '🔴'}
+                        {' '}{quiz.difficulty}
+                      </span>
+                    )}
+                    <span className="info-tag time-tag">
+                      ⏱️ {(() => {
+                        const totalTime = quiz.questions?.reduce((sum, q) => 
+                          sum + (q.timeLimit || 20), 0) || 0;
+                        return Math.ceil(totalTime / 60);
+                      })()} min
+                    </span>
                   </div>
+                  
                   <div className="quiz-footer">
                     <span className="last-played">
-                      Created {new Date(quiz.createdAt).toLocaleDateString()}
+                      {new Date(quiz.createdAt).toLocaleDateString()}
                     </span>
                     <div className="quiz-actions">
                       <button 

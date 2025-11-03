@@ -8,7 +8,7 @@ The frontend uses environment variables to configure API and Socket.io connectio
 
 **`.env` file** (located in `frontend/.env`):
 ```properties
-PORT=3005
+PORT=3006
 REACT_APP_API_URL=http://localhost:3000
 REACT_APP_SOCKET_URL=http://localhost:3003
 ```
@@ -16,7 +16,7 @@ REACT_APP_SOCKET_URL=http://localhost:3003
 ### Local Development (Same Computer)
 
 Default configuration works out of the box:
-- Frontend: `http://localhost:3005`
+- Frontend: `http://localhost:3006`
 - API Gateway: `http://localhost:3000`
 - Game Socket: `http://localhost:3003`
 
@@ -30,7 +30,7 @@ To allow mobile devices to connect to your game:
 
 2. **Update `.env` file:**
    ```properties
-   PORT=3005
+   PORT=3006
    REACT_APP_API_URL=http://192.168.1.100:3000
    REACT_APP_SOCKET_URL=http://192.168.1.100:3003
    ```
@@ -44,7 +44,7 @@ To allow mobile devices to connect to your game:
 
 4. **Access from mobile:**
    - Open browser on phone
-   - Navigate to: `http://192.168.1.100:3005`
+   - Navigate to: `http://192.168.1.100:3006`
    - Join game as normal!
 
 ### Important Notes
@@ -52,7 +52,7 @@ To allow mobile devices to connect to your game:
 - ✅ **All hardcoded URLs removed** - Everything uses environment variables
 - ✅ **Centralized configuration** - All API URLs managed in `src/config/api.js`
 - ✅ **Socket.io configuration** - Includes reconnection logic for better stability
-- 🔒 **Firewall** - Make sure Windows Firewall allows connections on ports 3000, 3003, 3005
+- 🔒 **Firewall** - Make sure Windows Firewall allows connections on ports 3000, 3003, 3006
 - 📱 **Same Network** - Mobile device and computer must be on the same WiFi network
 
 ### Architecture

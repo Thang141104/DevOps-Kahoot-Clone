@@ -1,8 +1,12 @@
 const express = require('express');
 const router = express.Router();
+const axios = require('axios');
 const User = require('../models/User');
 const { generateToken } = require('../utils/jwt');
 const { sendOTPEmail, sendWelcomeEmail } = require('../utils/email');
+
+// User Service URL
+const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://localhost:3004';
 
 // @route   POST /register
 // @desc    Register new user and send OTP
@@ -137,6 +141,45 @@ router.post('/verify-otp', async (req, res) => {
       console.error('Welcome email failed:', emailError);
     }
 
+    // Create user profile in User Service
+    try {
+      console.log(`👤 Creating profile for user ${user._id}...`);
+      const profileResponse = await axios.post(
+        `${USER_SERVICE_URL}/users/${user._id}/profile`,
+        {
+          username: user.username,
+          email: user.email,
+          displayName: user.username,
+          bio: ''
+        }
+      );
+      console.log(`✅ Profile created successfully for user ${user._id}`);
+    } catch (profileError) {
+      console.error('❌ Profile creation failed:', profileError.message);
+      console.error('Full error:', profileError.response?.data || profileError);
+      // Don't fail the registration if profile creation fails
+    }
+
+    // Track user registration analytics
+    try {
+      const ANALYTICS_SERVICE_URL = process.env.ANALYTICS_SERVICE_URL || 'http://localhost:3005';
+      await axios.post(`${ANALYTICS_SERVICE_URL}/events`, {
+        eventType: 'user_registered',
+        userId: user._id.toString(),
+        relatedEntityType: 'user',
+        relatedEntityId: user._id.toString(),
+        metadata: {
+          username: user.username,
+          email: user.email,
+          registrationDate: new Date().toISOString()
+        }
+      });
+      console.log(`📊 Analytics: Tracked user_registered for ${user._id}`);
+    } catch (analyticsError) {
+      console.error('❌ Failed to track analytics:', analyticsError.message);
+      // Don't fail registration if analytics fails
+    }
+
     // Generate token
     const token = generateToken(user._id, user.username, user.email, user.role);
 
@@ -264,6 +307,25 @@ router.post('/login', async (req, res) => {
 
     // Generate token
     const token = generateToken(user._id, user.username, user.email, user.role);
+
+    // Track user login analytics
+    try {
+      const ANALYTICS_SERVICE_URL = process.env.ANALYTICS_SERVICE_URL || 'http://localhost:3005';
+      await axios.post(`${ANALYTICS_SERVICE_URL}/events`, {
+        eventType: 'user_login',
+        userId: user._id.toString(),
+        relatedEntityType: 'user',
+        relatedEntityId: user._id.toString(),
+        metadata: {
+          username: user.username,
+          loginTime: new Date().toISOString()
+        }
+      });
+      console.log(`📊 Analytics: Tracked user_login for ${user._id}`);
+    } catch (analyticsError) {
+      console.error('❌ Failed to track analytics:', analyticsError.message);
+      // Don't fail login if analytics fails
+    }
 
     res.json({
       success: true,

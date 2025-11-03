@@ -4,6 +4,7 @@ const socketIo = require('socket.io');
 const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
+const { trackEventAndUpdateStats } = require('./utils/eventTracker');
 
 const app = express();
 const server = http.createServer(app);
@@ -38,7 +39,9 @@ const autoProgressQuestion = async (io, pin, questionIndex, timeLimit) => {
       const game = await GameSession.findOne({ pin });
       if (!game) return;
 
-      const quizResponse = await axios.get(`http://localhost:3000/api/quiz/quizzes/${game.quizId}`);
+      // Call Quiz Service directly to avoid Gateway rate limiting
+      const QUIZ_SERVICE_URL = process.env.QUIZ_SERVICE_URL || 'http://localhost:3002';
+      const quizResponse = await axios.get(`${QUIZ_SERVICE_URL}/quizzes/${game.quizId}`);
       const quiz = quizResponse.data;
       const currentQuestion = quiz.questions[questionIndex];
       
@@ -122,6 +125,58 @@ const autoProgressQuestion = async (io, pin, questionIndex, timeLimit) => {
           io.to(pin).emit('game-finished', { leaderboard });
           
           console.log(`📊 Final leaderboard:`, leaderboard);
+          
+          // Track analytics for authenticated players AND host
+          
+          // Track game_ended for host (with stats update)
+          await trackEventAndUpdateStats({
+            eventType: 'game_ended',
+            userId: game.hostId.toString(),
+            relatedEntityType: 'game',
+            relatedEntityId: game._id.toString(),
+            metadata: {
+              pin: pin,
+              quizId: game.quizId.toString(),
+              totalPlayers: game.players.length,
+              duration: game.finishedAt ? Math.floor((game.finishedAt - game.startedAt) / 1000) : 0,
+              winner: leaderboard.length > 0 ? leaderboard[0].nickname : null
+            }
+          });
+          
+          for (const player of game.players) {
+            if (player.isAuthenticated && player.userId) {
+              // Calculate player stats
+              const totalQuestions = quiz.questions.length;
+              const correctAnswers = player.answers.filter(a => a.isCorrect).length;
+              const accuracy = totalQuestions > 0 ? (correctAnswers / totalQuestions * 100) : 0;
+              const rank = leaderboard.findIndex(p => p.id === player.id) + 1;
+              
+              // Track game_completed event (with stats update)
+              await trackEventAndUpdateStats({
+                eventType: 'game_completed',
+                userId: player.userId.toString(),
+                relatedEntityType: 'game',
+                relatedEntityId: game._id.toString(),
+                metadata: {
+                  pin: pin,
+                  quizId: game.quizId.toString(),
+                  score: player.score || 0,
+                  rank: rank,
+                  totalPlayers: game.players.length,
+                  accuracy: accuracy.toFixed(2),
+                  correctAnswers: correctAnswers,
+                  totalQuestions: totalQuestions,
+                  isHost: player.userId.toString() === game.hostId.toString(),
+                  won: rank === 1
+                }
+              });
+              
+              // If player won (rank 1), track wins stat specifically
+              if (rank === 1 && game.players.length > 1) {
+                console.log(`🏆 Player ${player.userId} won the game! (Tracked in game_completed metadata)`);
+              }
+            }
+          }
         }
       }, 7000); // Increased to 7 seconds for smooth navigation
 
@@ -165,6 +220,8 @@ io.on('connection', (socket) => {
       // Add player to game session
       const newPlayer = {
         id: player.id || socket.id,
+        userId: player.userId || null, // Real user ID if authenticated
+        isAuthenticated: player.isAuthenticated || false, // Flag for authenticated users
         nickname: player.nickname,
         color: player.color || player.avatar,
         avatar: player.color || player.avatar,
@@ -178,13 +235,28 @@ io.on('connection', (socket) => {
       // Join socket room
       socket.join(pin);
       
+      // Track analytics for authenticated users (with stats update)
+      if (newPlayer.isAuthenticated && newPlayer.userId) {
+        await trackEventAndUpdateStats({
+          eventType: 'game_joined',
+          userId: newPlayer.userId,
+          relatedEntityType: 'game',
+          relatedEntityId: game._id.toString(),
+          metadata: {
+            pin: pin,
+            nickname: player.nickname,
+            quizId: game.quizId.toString()
+          }
+        });
+      }
+      
       // Notify host and all players that new player joined
       io.to(pin).emit('player-joined', newPlayer);
       
       // Send confirmation to player
       socket.emit('joined-game', { game, player: newPlayer });
       
-      console.log(`👤 ${player.nickname} joined game ${pin}`);
+      console.log(`👤 ${player.nickname} joined game ${pin}${newPlayer.isAuthenticated ? ' (authenticated)' : ' (guest)'}`);
     } catch (error) {
       console.error('Error joining game:', error);
       socket.emit('error', { message: 'Failed to join game' });
@@ -207,8 +279,22 @@ io.on('connection', (socket) => {
       game.startedAt = new Date();
       await game.save();
 
+      // Track analytics when host actually starts the game (not just creates PIN)
+      // This ensures only started games count toward gamesHosted stat
+      await trackEventAndUpdateStats({
+        eventType: 'game_created',
+        userId: game.hostId.toString(),
+        relatedEntityType: 'game',
+        relatedEntityId: game._id.toString(),
+        metadata: {
+          pin: pin,
+          quizId: game.quizId.toString(),
+          playerCount: game.players.length
+        }
+      });
+
       io.to(pin).emit('game-started', { game });
-      console.log(`🎮 Game ${pin} started`);
+      console.log(`🎮 Game ${pin} started by host ${game.hostId}`);
     } catch (error) {
       console.error('Error starting game:', error);
       socket.emit('error', { message: 'Failed to start game' });
@@ -260,9 +346,10 @@ io.on('connection', (socket) => {
 
       console.log(`✅ Player found: ${playerInGame.nickname} (ID: ${playerInGame.id})`);
 
-      // Fetch quiz from quiz-service API
+      // Fetch quiz from quiz-service API (direct call to avoid Gateway rate limiting)
       const axios = require('axios');
-      const quizResponse = await axios.get(`http://localhost:3000/api/quiz/quizzes/${game.quizId}`);
+      const QUIZ_SERVICE_URL = process.env.QUIZ_SERVICE_URL || 'http://localhost:3002';
+      const quizResponse = await axios.get(`${QUIZ_SERVICE_URL}/quizzes/${game.quizId}`);
       const quiz = quizResponse.data;
       const question = quiz.questions[questionIndex];
       
