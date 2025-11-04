@@ -18,7 +18,12 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed changes.
 - **Player Management**: Join games with PIN codes
 - **Live Leaderboards**: Real-time score tracking with podium display
 - **Game History**: View and manage past game sessions
-- **Detailed Analytics**: Comprehensive result analysis with confetti animations
+- **User Profiles**: Customizable profiles with avatars, levels, and experience points
+- **Achievements System**: 22+ achievements to unlock across different categories
+- **Advanced Analytics**: Comprehensive analytics dashboard with trends, engagement metrics, and performance reports
+- **Event Tracking**: Track user activities, quiz plays, and game sessions
+- **User Statistics**: Detailed stats tracking for games played, quizzes created, and achievements
+- **Leaderboard System**: Global leaderboard based on experience, level, or points
 - **Mobile Support**: Centralized API config for easy mobile device access
 - **Responsive Design**: Works seamlessly on desktop and mobile devices
 
@@ -46,6 +51,7 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed changes.
 quiz-app/
 ├── frontend/                 # React application (Port 3006)
 │   ├── public/
+│   │   └── index.html
 │   └── src/
 │       ├── config/          # API configuration
 │       │   └── api.js       # Centralized API URLs
@@ -57,6 +63,8 @@ quiz-app/
 │           ├── Dashboard.js
 │           ├── QuizBuilder.js
 │           ├── GameHistory.js
+│           ├── Profile.js
+│           ├── AnalyticsDashboard.js
 │           ├── Join.js
 │           ├── LobbyHost.js
 │           ├── LobbyPlayer.js
@@ -65,23 +73,74 @@ quiz-app/
 │           ├── Feedback.js
 │           └── EndGameNew.js
 ├── gateway/                  # API Gateway (Port 3000)
-│   └── server.js
+│   └── server.js            # Request routing, rate limiting, proxy configuration
 ├── services/
 │   ├── auth-service/        # Authentication (Port 3001)
 │   │   ├── models/
+│   │   │   └── User.js
 │   │   ├── routes/
+│   │   │   └── auth.routes.js
 │   │   ├── utils/
+│   │   │   ├── email.js
+│   │   │   └── jwt.js
 │   │   └── server.js
 │   ├── quiz-service/        # Quiz management (Port 3002)
 │   │   ├── models/
+│   │   │   └── Quiz.js
 │   │   ├── routes/
+│   │   │   ├── quiz.routes.js
+│   │   │   └── upload.routes.js
+│   │   ├── middleware/
+│   │   │   └── auth.middleware.js
+│   │   ├── uploads/
 │   │   └── server.js
-│   └── game-service/        # Real-time game logic (Port 3003)
+│   ├── game-service/        # Real-time game logic (Port 3003)
+│   │   ├── models/
+│   │   │   └── GameSession.js
+│   │   ├── routes/
+│   │   │   └── game.routes.js
+│   │   ├── utils/
+│   │   │   └── eventTracker.js
+│   │   └── server.js
+│   ├── user-service/        # User profiles & achievements (Port 3004)
+│   │   ├── models/
+│   │   │   ├── UserProfile.js
+│   │   │   └── Achievement.js
+│   │   ├── routes/
+│   │   │   ├── profile.routes.js
+│   │   │   ├── stats.routes.js
+│   │   │   ├── achievements.routes.js
+│   │   │   ├── preferences.routes.js
+│   │   │   └── stats-webhook.routes.js
+│   │   ├── middleware/
+│   │   │   ├── auth.middleware.js
+│   │   │   ├── upload.middleware.js
+│   │   │   └── validation.middleware.js
+│   │   ├── utils/
+│   │   │   ├── achievements.js
+│   │   │   ├── imageUpload.js
+│   │   │   └── statsCalculator.js
+│   │   ├── config/
+│   │   │   └── achievements.json
+│   │   └── server.js
+│   └── analytics-service/   # Event tracking & statistics (Port 3005)
 │       ├── models/
+│       │   ├── AnalyticsEvent.js
+│       │   └── DailyStats.js
 │       ├── routes/
+│       │   ├── events.routes.js
+│       │   └── stats.routes.js
+│       ├── utils/
+│       │   ├── eventTracker.js
+│       │   └── statsAggregator.js
 │       └── server.js
 ├── CHANGELOG.md             # Comprehensive change log
 ├── CONFIG_README.md         # Environment configuration guide
+├── INSTALLATION.md          # Detailed setup instructions
+├── API_TESTING.md           # API testing guide
+├── USER_GUIDE.md            # User manual
+├── AUTH_README.md           # Authentication documentation
+├── EMAIL_SETUP.md           # Email configuration guide
 └── README.md
 ```
 
@@ -109,6 +168,10 @@ quiz-app/
 
    # Gateway
    cd ..\gateway
+   npm install
+
+   # Auth Service
+   cd ..\services\auth-service
    npm install
 
    # Quiz Service
@@ -286,6 +349,7 @@ GAME FEATURES:
 - `POST /login` - User login
 - `POST /verify-otp` - Verify OTP code
 - `POST /resend-otp` - Resend OTP
+- `GET /health` - Service health check
 
 ### Quiz Service (Port 3002)
 - `GET /quizzes` - Get all quizzes
@@ -294,6 +358,7 @@ GAME FEATURES:
 - `PUT /quizzes/:id` - Update quiz
 - `DELETE /quizzes/:id` - Delete quiz
 - `PATCH /quizzes/:id/star` - Toggle star
+- `GET /health` - Service health check
 
 ### Game Service (Port 3003)
 - `GET /games` - Get all game sessions (with filters)
@@ -301,6 +366,55 @@ GAME FEATURES:
 - `GET /games/:id` - Get game by ID
 - `POST /games` - Create game session (auto-generate PIN)
 - `DELETE /games/:id` - Delete game session
+- `GET /health` - Service health check
+
+### User Service (Port 3004)
+**Profile Management:**
+- `GET /users/:userId/profile` - Get user profile (auto-creates if not exists)
+- `POST /users/:userId/profile` - Create user profile
+- `PUT /users/:userId/profile` - Update user profile
+- `POST /users/:userId/avatar` - Upload avatar
+- `DELETE /users/:userId/avatar` - Delete avatar
+- `GET /users/search` - Search users by username/displayName
+- `GET /users/leaderboard` - Get global leaderboard
+
+**Statistics:**
+- `GET /users/:userId/stats` - Get user statistics
+- `GET /users/:userId/activity` - Get user activity history
+- `POST /webhook/stats` - Update user stats (internal webhook)
+
+**Achievements:**
+- `GET /users/:userId/achievements` - Get all achievements with progress
+- `GET /users/:userId/achievements/unlocked` - Get unlocked achievements only
+- `POST /users/:userId/achievements/:achievementId` - Manually unlock achievement
+- `POST /users/:userId/achievements/check` - Check for new achievements
+- `GET /users/achievements/catalog` - Get all available achievements
+
+**Preferences:**
+- `GET /users/:userId/preferences` - Get user preferences
+- `PUT /users/:userId/preferences` - Update user preferences
+
+### Analytics Service (Port 3005)
+**Event Tracking:**
+- `POST /events` - Track a new event
+- `GET /events` - Get all events with filters
+- `GET /events/summary` - Get event summary
+- `GET /events/type/:eventType` - Get events by type
+- `GET /events/user/:userId` - Get events by user
+- `GET /events/range` - Get events by date range
+- `GET /events/count/:eventType` - Get event count by type
+- `GET /events/aggregated` - Get aggregated events
+- `GET /events/popular/quizzes` - Get popular quizzes
+- `GET /events/users/active` - Get active users count
+
+**Statistics & Reports:**
+- `GET /stats/global` - Get global statistics
+- `GET /stats/dashboard` - Get dashboard summary
+- `GET /stats/user/:userId` - Get detailed user analytics
+- `GET /stats/user/:userId/engagement` - Get user engagement metrics
+- `GET /stats/trends` - Get platform trends
+- `GET /stats/daily` - Get daily statistics
+- `GET /stats/performance` - Get performance report
 
 ### Socket.io Events (Port 3003)
 **Host Events:**
@@ -328,28 +442,31 @@ GAME FEATURES:
 5. **Dashboard** - Quiz management and game history
 6. **Quiz Builder** - Create/edit quizzes (supports 4-7 options for Multiple Choice)
 7. **Game History** - View and manage past games with filters
-8. **Join** - Enter game PIN
-9. **Lobby Host** - Wait for players and display PIN
-10. **Lobby Player** - Join confirmation
-11. **Live Control** - Host manages game with auto-progression
-12. **Answering** - Player answers questions (enhanced UI)
-13. **Feedback** - Answer feedback with animations
-14. **End Game** - Results with podium display and confetti
+8. **Profile** - User profile with avatar, stats, and achievements
+9. **Analytics Dashboard** - Comprehensive analytics with trends, charts, and insights
+10. **Join** - Enter game PIN
+11. **Lobby Host** - Wait for players and display PIN
+12. **Lobby Player** - Join confirmation
+13. **Live Control** - Host manages game with auto-progression
+14. **Answering** - Player answers questions (enhanced UI)
+15. **Feedback** - Answer feedback with animations
+16. **End Game** - Results with podium display and confetti
 
 ## 📝 TODO
 
 ### In Progress
 - [ ] LiveControl UI improvements (animated charts, real-time stats)
 - [ ] Background music and sound effects
+- [ ] Enhanced analytics visualizations
 
 ### Planned Features
-- [ ] User Service for detailed profiles
-- [ ] Analytics Service for advanced statistics
 - [ ] Image/video upload for questions
 - [ ] Quiz sharing with QR codes
 - [ ] Export game results to CSV/PDF
 - [ ] Quiz templates and categories
-- [ ] Achievements and badges
+- [ ] Social features (follow users, share achievements)
+- [ ] Tournament mode
+- [ ] Team-based gameplay
 
 ### Technical Improvements
 - [ ] Redis for caching and session management
@@ -358,6 +475,8 @@ GAME FEATURES:
 - [ ] CI/CD pipeline (GitHub Actions)
 - [ ] Performance optimization
 - [ ] Security audit and enhancements
+- [ ] API documentation (Swagger/OpenAPI)
+- [ ] Automated backups
 
 ## 📚 Documentation
 
