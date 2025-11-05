@@ -146,10 +146,36 @@ quiz-app/
 
 ## 🚀 Getting Started
 
+### Deployment Options
+
+Choose your preferred deployment method:
+
+1. **🐳 Docker Compose** (Recommended for local development)
+   - See [DOCKER_GUIDE.md](DOCKER_GUIDE.md)
+   - Quick: `docker-compose up -d --build`
+
+2. **☁️ AWS with Terraform** (Production deployment)
+   - See [terraform/README.md](terraform/README.md)
+   - Quick: `cd terraform && ./deploy.ps1`
+
+3. **💻 Manual Installation** (Development)
+   - Follow instructions below
+
 ### Prerequisites
+
+#### For Manual Installation:
 - Node.js v16+
-- MongoDB v5+
+- MongoDB v5+ (or MongoDB Atlas)
 - npm or yarn
+
+#### For Docker:
+- Docker Desktop
+- MongoDB Atlas (free tier)
+
+#### For Terraform/AWS:
+- Terraform installed
+- AWS account with IAM credentials
+- MongoDB Atlas (free tier)
 
 ### Installation
 
@@ -478,8 +504,48 @@ GAME FEATURES:
 - [ ] API documentation (Swagger/OpenAPI)
 - [ ] Automated backups
 
-## 📚 Documentation
+## � Docker & Cloud Deployment
 
+### Docker Compose (Local)
+```powershell
+# Copy environment file
+cp .env.example .env
+
+# Edit .env with your MongoDB URI and other configs
+# Then build and start all services
+docker-compose up -d --build
+
+# Check status
+docker-compose ps
+
+# View logs
+docker-compose logs -f
+```
+
+### AWS Deployment with Terraform
+```powershell
+# Navigate to terraform directory
+cd terraform
+
+# Copy and configure variables
+cp terraform.tfvars.example terraform.tfvars
+# Edit terraform.tfvars with your AWS credentials and MongoDB URI
+
+# Deploy infrastructure
+./deploy.ps1
+
+# Or manually:
+terraform init
+terraform plan
+terraform apply
+```
+
+**See [terraform/README.md](terraform/README.md) for detailed AWS deployment guide.**
+
+## �📚 Documentation
+
+- **[DOCKER_GUIDE.md](DOCKER_GUIDE.md)** - Docker Compose deployment guide
+- **[terraform/README.md](terraform/README.md)** - AWS Terraform deployment guide
 - **[CHANGELOG.md](CHANGELOG.md)** - Detailed change history
 - **[CONFIG_README.md](frontend/CONFIG_README.md)** - Environment configuration guide
 - **[INSTALLATION.md](INSTALLATION.md)** - Detailed setup instructions
