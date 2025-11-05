@@ -49,11 +49,11 @@ echo "=== Creating environment files ==="
 cat > /home/ubuntu/app/gateway/.env << 'EOF'
 PORT=3000
 NODE_ENV=production
-AUTH_SERVICE_URL=http://localhost:3001
-QUIZ_SERVICE_URL=http://localhost:3002
-GAME_SERVICE_URL=http://localhost:3003
-USER_SERVICE_URL=http://localhost:3004
-ANALYTICS_SERVICE_URL=http://localhost:3005
+AUTH_SERVICE_URL=http://auth-service:3001
+QUIZ_SERVICE_URL=http://quiz-service:3002
+GAME_SERVICE_URL=http://game-service:3003
+USER_SERVICE_URL=http://user-service:3004
+ANALYTICS_SERVICE_URL=http://analytics-service:3005
 EOF
 
 # Auth Service .env
@@ -83,7 +83,7 @@ cat > /home/ubuntu/app/services/game-service/.env << 'EOF'
 PORT=3003
 NODE_ENV=production
 MONGODB_URI=${mongodb_uri}
-ANALYTICS_SERVICE_URL=http://localhost:3005
+ANALYTICS_SERVICE_URL=http://analytics-service:3005
 EOF
 
 # User Service .env
@@ -102,10 +102,10 @@ MONGODB_URI=${mongodb_uri}
 EOF
 
 # Frontend .env
-cat > /home/ubuntu/app/frontend/.env << 'EOF'
+cat > /home/ubuntu/app/frontend/.env << EOF
 PORT=3006
-REACT_APP_API_URL=http://localhost:3000
-REACT_APP_SOCKET_URL=http://localhost:3003
+REACT_APP_API_URL=http://$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4):3000
+REACT_APP_SOCKET_URL=http://$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4):3003
 EOF
 
 # Create Docker Compose file

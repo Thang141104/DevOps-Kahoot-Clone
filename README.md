@@ -1,16 +1,5 @@
 # Quiz Application - Kahoot Clone
 
-A full-stack, real-time quiz application built with React, Node.js, and MongoDB using microservices architecture.
-
-## 🎉 Latest Updates
-- ✅ **Centralized API Configuration** - Easy mobile device access
-- ✅ **Game History Page** - View and manage past games
-- ✅ **Enhanced UI** - Podium display, confetti effects, smooth animations
-- ✅ **Game Status Management** - Auto-progression and manual end game
-- ✅ **Code Cleanup** - Removed unused components
-
-See [CHANGELOG.md](CHANGELOG.md) for detailed changes.
-
 ## 🎯 Features
 
 - **Interactive Quiz Creation**: Build quizzes with multiple question types (Single Choice, Multiple Choice, True/False)
@@ -144,21 +133,21 @@ quiz-app/
 └── README.md
 ```
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Deployment Options
 
 Choose your preferred deployment method:
 
-1. **🐳 Docker Compose** (Recommended for local development)
+1. **Docker Compose** (Recommended for local development)
    - See [DOCKER_GUIDE.md](DOCKER_GUIDE.md)
    - Quick: `docker-compose up -d --build`
 
-2. **☁️ AWS with Terraform** (Production deployment)
+2. **AWS with Terraform** (Production deployment)
    - See [terraform/README.md](terraform/README.md)
    - Quick: `cd terraform && ./deploy.ps1`
 
-3. **💻 Manual Installation** (Development)
+3. **Manual Installation** (Development)
    - Follow instructions below
 
 ### Prerequisites
@@ -265,7 +254,7 @@ Choose your preferred deployment method:
    - API Gateway: http://localhost:3000
    - Analytics Dashboard: http://localhost:3006/analytics
 
-## 📖 Usage
+## Usage
 
 ### Creating and Sharing a Quiz (Complete Flow)
 
@@ -324,7 +313,7 @@ Choose your preferred deployment method:
 4. Wait in lobby
 5. Answer questions when game starts
 
-## 🎮 Game Flow
+## Game Flow
 
 ```
 HOST FLOW:
@@ -368,7 +357,7 @@ GAME FEATURES:
 - Score calculation: Base points + time bonus
 ```
 
-## 🔌 API Endpoints
+## API Endpoints
 
 ### Auth Service (Port 3001)
 - `POST /register` - Register new user
@@ -459,7 +448,7 @@ GAME FEATURES:
 - `answer-revealed` - Show correct answer
 - `game-finished` - Game completed
 
-## 🎨 UI Pages
+## UI Pages
 
 1. **Home** - Landing page with features
 2. **Login** - User authentication
@@ -478,33 +467,8 @@ GAME FEATURES:
 15. **Feedback** - Answer feedback with animations
 16. **End Game** - Results with podium display and confetti
 
-## 📝 TODO
 
-### In Progress
-- [ ] LiveControl UI improvements (animated charts, real-time stats)
-- [ ] Background music and sound effects
-- [ ] Enhanced analytics visualizations
-
-### Planned Features
-- [ ] Image/video upload for questions
-- [ ] Quiz sharing with QR codes
-- [ ] Export game results to CSV/PDF
-- [ ] Quiz templates and categories
-- [ ] Social features (follow users, share achievements)
-- [ ] Tournament mode
-- [ ] Team-based gameplay
-
-### Technical Improvements
-- [ ] Redis for caching and session management
-- [ ] Docker and Kubernetes deployment
-- [ ] Comprehensive unit and integration tests
-- [ ] CI/CD pipeline (GitHub Actions)
-- [ ] Performance optimization
-- [ ] Security audit and enhancements
-- [ ] API documentation (Swagger/OpenAPI)
-- [ ] Automated backups
-
-## � Docker & Cloud Deployment
+## Docker & Cloud Deployment
 
 ### Docker Compose (Local)
 ```powershell
@@ -542,7 +506,7 @@ terraform apply
 
 **See [terraform/README.md](terraform/README.md) for detailed AWS deployment guide.**
 
-## �📚 Documentation
+## Documentation
 
 - **[DOCKER_GUIDE.md](DOCKER_GUIDE.md)** - Docker Compose deployment guide
 - **[terraform/README.md](terraform/README.md)** - AWS Terraform deployment guide
@@ -552,26 +516,11 @@ terraform apply
 - **[API_TESTING.md](API_TESTING.md)** - API testing guide
 - **[USER_GUIDE.md](USER_GUIDE.md)** - User manual
 
-## 📄 License
+## License
 
 This project is open source and available under the MIT License.
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please read our contributing guidelines before submitting pull requests.
 
-## 🐛 Bug Reports
-
-Found a bug? Please open an issue with:
-- Description of the bug
-- Steps to reproduce
-- Expected vs actual behavior
-- Screenshots (if applicable)
-
----
-
-⭐ **Star this repo** if you find it helpful!
-
-📖 See **[INSTALLATION.md](INSTALLATION.md)** for detailed setup instructions!
-
-🎉 See **[CHANGELOG.md](CHANGELOG.md)** for recent updates and improvements!
