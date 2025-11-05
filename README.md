@@ -1,6 +1,6 @@
 # Quiz Application - Kahoot Clone
 
-## 🎯 Features
+## Features
 
 - **Interactive Quiz Creation**: Build quizzes with multiple question types (Single Choice, Multiple Choice, True/False)
 - **Real-time Gameplay**: Live quiz sessions with Socket.io and auto-progression
@@ -16,7 +16,7 @@
 - **Mobile Support**: Centralized API config for easy mobile device access
 - **Responsive Design**: Works seamlessly on desktop and mobile devices
 
-## 🏗️ Architecture
+## Architecture
 
 ### Microservices
 - **API Gateway** (Port 3000) - Request routing and rate limiting
