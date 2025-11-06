@@ -10,7 +10,7 @@ resource "aws_security_group" "app_server" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # WARNING: Open to world. Restrict to your IP in production!
+    cidr_blocks = ["0.0.0.0/0"] 
   }
 
   # HTTP access

@@ -1,6 +1,6 @@
 # API Testing Guide
 
-## ⚠️ Important: Correct API Endpoints
+##  Important: Correct API Endpoints
 All auth endpoints use `/api/auth/*` (single auth), NOT `/api/auth/auth/*` (double auth).
 
 ## Test Auth Service với Postman/cURL

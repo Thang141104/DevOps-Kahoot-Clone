@@ -42,13 +42,13 @@ variable "public_subnet_cidr" {
 variable "instance_type" {
   description = "EC2 instance type"
   type        = string
-  default     = "t3.small" # Use t3.micro for free tier
+  default     = "t3.small" 
 }
 
 variable "key_name" {
   description = "SSH Key pair name (must exist in AWS)"
   type        = string
-  default     = "" # Leave empty if you don't have a key pair
+  default     = "" 
 }
 
 # Application Configuration
