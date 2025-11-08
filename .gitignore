@@ -14,6 +14,11 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+.tfvars
+.tfstate
+.tfstate.backup
+.pem
+.tfstate.example
 
 # IDEs
 .vscode/
