@@ -21,6 +21,12 @@ yarn-error.log*
 .pem
 .tfstate.example
 
+# Sensitive Terraform files
+terraform/terraform.tfvars
+terraform/*.pem
+terraform/QUICKSTART.md
+terraform/README.md
+
 # IDEs
 .vscode/
 .idea/
