@@ -13,6 +13,8 @@ override.tf.json
 *_override.tf.json
 .terraformrc
 terraform.rc
+.pem
+
 
 # OS files
 .DS_Store
