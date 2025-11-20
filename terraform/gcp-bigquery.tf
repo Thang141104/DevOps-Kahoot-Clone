@@ -61,11 +61,12 @@ resource "google_bigquery_dataset" "analytics" {
 
 # Table: User Events
 resource "google_bigquery_table" "user_events" {
-  count       = var.enable_bigquery ? 1 : 0
-  dataset_id  = google_bigquery_dataset.analytics[0].dataset_id
-  project     = var.gcp_project_id
-  table_id    = "user_events"
-  description = "User activity events"
+  count               = var.enable_bigquery ? 1 : 0
+  dataset_id          = google_bigquery_dataset.analytics[0].dataset_id
+  project             = var.gcp_project_id
+  table_id            = "user_events"
+  description         = "User activity events"
+  deletion_protection = false
 
   time_partitioning {
     type  = "DAY"
@@ -133,11 +134,12 @@ resource "google_bigquery_table" "user_events" {
 
 # Table: Game Sessions
 resource "google_bigquery_table" "game_sessions" {
-  count       = var.enable_bigquery ? 1 : 0
-  dataset_id  = google_bigquery_dataset.analytics[0].dataset_id
-  project     = var.gcp_project_id
-  table_id    = "game_sessions"
-  description = "Game session data"
+  count               = var.enable_bigquery ? 1 : 0
+  dataset_id          = google_bigquery_dataset.analytics[0].dataset_id
+  project             = var.gcp_project_id
+  table_id            = "game_sessions"
+  description         = "Game session data"
+  deletion_protection = false
 
   time_partitioning {
     type  = "DAY"
@@ -217,11 +219,12 @@ resource "google_bigquery_table" "game_sessions" {
 
 # Table: Quiz Statistics
 resource "google_bigquery_table" "quiz_stats" {
-  count       = var.enable_bigquery ? 1 : 0
-  dataset_id  = google_bigquery_dataset.analytics[0].dataset_id
-  project     = var.gcp_project_id
-  table_id    = "quiz_statistics"
-  description = "Quiz usage statistics"
+  count               = var.enable_bigquery ? 1 : 0
+  dataset_id          = google_bigquery_dataset.analytics[0].dataset_id
+  project             = var.gcp_project_id
+  table_id            = "quiz_statistics"
+  description         = "Quiz usage statistics"
+  deletion_protection = false
 
   time_partitioning {
     type  = "DAY"
@@ -283,11 +286,12 @@ resource "google_bigquery_table" "quiz_stats" {
 
 # Table: Application Logs (from Cloud Logging)
 resource "google_bigquery_table" "app_logs" {
-  count       = var.enable_bigquery ? 1 : 0
-  dataset_id  = google_bigquery_dataset.analytics[0].dataset_id
-  project     = var.gcp_project_id
-  table_id    = "application_logs"
-  description = "Application logs from Cloud Logging"
+  count               = var.enable_bigquery ? 1 : 0
+  dataset_id          = google_bigquery_dataset.analytics[0].dataset_id
+  project             = var.gcp_project_id
+  table_id            = "application_logs"
+  description         = "Application logs from Cloud Logging"
+  deletion_protection = false
 
   time_partitioning {
     type  = "DAY"
