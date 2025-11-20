@@ -1,0 +1,450 @@
+# ============================================
+# Cloud Build Configuration (replaces Jenkinsfile)
+# CI/CD Pipeline for Kahoot Clone Application
+# ============================================
+
+steps:
+  # ============================================
+  # Step 1: Install Dependencies (Parallel)
+  # ============================================
+  - name: 'node:18-alpine'
+    id: 'install-gateway-deps'
+    entrypoint: 'npm'
+    args: ['ci']
+    dir: 'gateway'
+    waitFor: ['-']
+
+  - name: 'node:18-alpine'
+    id: 'install-auth-deps'
+    entrypoint: 'npm'
+    args: ['ci']
+    dir: 'services/auth-service'
+    waitFor: ['-']
+
+  - name: 'node:18-alpine'
+    id: 'install-quiz-deps'
+    entrypoint: 'npm'
+    args: ['ci']
+    dir: 'services/quiz-service'
+    waitFor: ['-']
+
+  - name: 'node:18-alpine'
+    id: 'install-game-deps'
+    entrypoint: 'npm'
+    args: ['ci']
+    dir: 'services/game-service'
+    waitFor: ['-']
+
+  - name: 'node:18-alpine'
+    id: 'install-user-deps'
+    entrypoint: 'npm'
+    args: ['ci']
+    dir: 'services/user-service'
+    waitFor: ['-']
+
+  - name: 'node:18-alpine'
+    id: 'install-analytics-deps'
+    entrypoint: 'npm'
+    args: ['ci']
+    dir: 'services/analytics-service'
+    waitFor: ['-']
+
+  - name: 'node:18-alpine'
+    id: 'install-frontend-deps'
+    entrypoint: 'npm'
+    args: ['ci']
+    dir: 'frontend'
+    waitFor: ['-']
+
+  # ============================================
+  # Step 2: Lint and Code Quality Checks
+  # ============================================
+  - name: 'node:18-alpine'
+    id: 'lint-all-services'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        echo "Running lint checks on all services..."
+        # Add your lint commands here if you have eslint configured
+    waitFor: 
+      - 'install-gateway-deps'
+      - 'install-auth-deps'
+      - 'install-quiz-deps'
+      - 'install-game-deps'
+      - 'install-user-deps'
+      - 'install-analytics-deps'
+      - 'install-frontend-deps'
+
+  # ============================================
+  # Step 3: Build Docker Images (Parallel)
+  # ============================================
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-gateway'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-gateway:$SHORT_SHA'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-gateway:latest'
+      - '-f'
+      - 'gateway/Dockerfile'
+      - './gateway'
+    waitFor: ['lint-all-services']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-auth'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-auth:$SHORT_SHA'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-auth:latest'
+      - '-f'
+      - 'services/auth-service/Dockerfile'
+      - './services/auth-service'
+    waitFor: ['lint-all-services']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-quiz'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-quiz:$SHORT_SHA'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-quiz:latest'
+      - '-f'
+      - 'services/quiz-service/Dockerfile'
+      - './services/quiz-service'
+    waitFor: ['lint-all-services']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-game'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-game:$SHORT_SHA'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-game:latest'
+      - '-f'
+      - 'services/game-service/Dockerfile'
+      - './services/game-service'
+    waitFor: ['lint-all-services']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-user'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-user:$SHORT_SHA'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-user:latest'
+      - '-f'
+      - 'services/user-service/Dockerfile'
+      - './services/user-service'
+    waitFor: ['lint-all-services']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-analytics'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-analytics:$SHORT_SHA'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-analytics:latest'
+      - '-f'
+      - 'services/analytics-service/Dockerfile'
+      - './services/analytics-service'
+    waitFor: ['lint-all-services']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-frontend'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-frontend:$SHORT_SHA'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-frontend:latest'
+      - '-f'
+      - 'frontend/Dockerfile'
+      - './frontend'
+    waitFor: ['lint-all-services']
+
+  # ============================================
+  # Step 4: Security Scanning with Trivy
+  # ============================================
+  - name: 'aquasec/trivy:latest'
+    id: 'scan-gateway'
+    args:
+      - 'image'
+      - '--severity'
+      - 'HIGH,CRITICAL'
+      - '--format'
+      - 'json'
+      - '--output'
+      - '/workspace/trivy-gateway-report.json'
+      - 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-gateway:$SHORT_SHA'
+    waitFor: ['build-gateway']
+
+  - name: 'aquasec/trivy:latest'
+    id: 'scan-auth'
+    args:
+      - 'image'
+      - '--severity'
+      - 'HIGH,CRITICAL'
+      - '--format'
+      - 'json'
+      - '--output'
+      - '/workspace/trivy-auth-report.json'
+      - 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-auth:$SHORT_SHA'
+    waitFor: ['build-auth']
+
+  # ============================================
+  # Step 5: Push Docker Images to GCR
+  # ============================================
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-gateway'
+    args: ['push', '--all-tags', 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-gateway']
+    waitFor: ['scan-gateway']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-auth'
+    args: ['push', '--all-tags', 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-auth']
+    waitFor: ['scan-auth']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-quiz'
+    args: ['push', '--all-tags', 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-quiz']
+    waitFor: ['build-quiz']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-game'
+    args: ['push', '--all-tags', 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-game']
+    waitFor: ['build-game']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-user'
+    args: ['push', '--all-tags', 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-user']
+    waitFor: ['build-user']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-analytics'
+    args: ['push', '--all-tags', 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-analytics']
+    waitFor: ['build-analytics']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-frontend'
+    args: ['push', '--all-tags', 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-frontend']
+    waitFor: ['build-frontend']
+
+  # ============================================
+  # Step 6: Deploy to Cloud Run
+  # ============================================
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-gateway'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - '${_PROJECT_NAME}-gateway'
+      - '--image=gcr.io/$PROJECT_ID/${_PROJECT_NAME}-gateway:$SHORT_SHA'
+      - '--region=${_REGION}'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--service-account=${_CLOUD_RUN_SA}'
+      - '--set-env-vars=NODE_ENV=production,PORT=3000'
+      - '--memory=512Mi'
+      - '--cpu=1'
+      - '--min-instances=0'
+      - '--max-instances=10'
+      - '--timeout=30s'
+    waitFor: ['push-gateway']
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-auth'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - '${_PROJECT_NAME}-auth'
+      - '--image=gcr.io/$PROJECT_ID/${_PROJECT_NAME}-auth:$SHORT_SHA'
+      - '--region=${_REGION}'
+      - '--platform=managed'
+      - '--no-allow-unauthenticated'
+      - '--service-account=${_CLOUD_RUN_SA}'
+      - '--set-secrets=MONGODB_URI=${_PROJECT_NAME}-mongodb-uri:latest,JWT_SECRET=${_PROJECT_NAME}-jwt-secret:latest'
+      - '--memory=512Mi'
+      - '--cpu=1'
+    waitFor: ['push-auth']
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-quiz'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - '${_PROJECT_NAME}-quiz'
+      - '--image=gcr.io/$PROJECT_ID/${_PROJECT_NAME}-quiz:$SHORT_SHA'
+      - '--region=${_REGION}'
+      - '--platform=managed'
+      - '--no-allow-unauthenticated'
+      - '--service-account=${_CLOUD_RUN_SA}'
+      - '--set-secrets=MONGODB_URI=${_PROJECT_NAME}-mongodb-uri:latest'
+      - '--set-env-vars=GCS_BUCKET_NAME=${_GCS_QUIZ_BUCKET}'
+      - '--memory=512Mi'
+      - '--cpu=1'
+    waitFor: ['push-quiz']
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-game'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - '${_PROJECT_NAME}-game'
+      - '--image=gcr.io/$PROJECT_ID/${_PROJECT_NAME}-game:$SHORT_SHA'
+      - '--region=${_REGION}'
+      - '--platform=managed'
+      - '--no-allow-unauthenticated'
+      - '--service-account=${_CLOUD_RUN_SA}'
+      - '--set-secrets=MONGODB_URI=${_PROJECT_NAME}-mongodb-uri:latest'
+      - '--memory=1Gi'
+      - '--cpu=2'
+      - '--min-instances=1'
+      - '--timeout=3600s'
+    waitFor: ['push-game']
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-user'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - '${_PROJECT_NAME}-user'
+      - '--image=gcr.io/$PROJECT_ID/${_PROJECT_NAME}-user:$SHORT_SHA'
+      - '--region=${_REGION}'
+      - '--platform=managed'
+      - '--no-allow-unauthenticated'
+      - '--service-account=${_CLOUD_RUN_SA}'
+      - '--set-secrets=MONGODB_URI=${_PROJECT_NAME}-mongodb-uri:latest'
+      - '--set-env-vars=GCS_BUCKET_NAME=${_GCS_AVATAR_BUCKET}'
+      - '--memory=512Mi'
+      - '--cpu=1'
+    waitFor: ['push-user']
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-analytics'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - '${_PROJECT_NAME}-analytics'
+      - '--image=gcr.io/$PROJECT_ID/${_PROJECT_NAME}-analytics:$SHORT_SHA'
+      - '--region=${_REGION}'
+      - '--platform=managed'
+      - '--no-allow-unauthenticated'
+      - '--service-account=${_ANALYTICS_SA}'
+      - '--set-secrets=MONGODB_URI=${_PROJECT_NAME}-mongodb-uri:latest'
+      - '--set-env-vars=BIGQUERY_DATASET=${_BIGQUERY_DATASET},GCP_PROJECT_ID=$PROJECT_ID'
+      - '--memory=512Mi'
+      - '--cpu=1'
+    waitFor: ['push-analytics']
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'deploy-frontend'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - '${_PROJECT_NAME}-frontend'
+      - '--image=gcr.io/$PROJECT_ID/${_PROJECT_NAME}-frontend:$SHORT_SHA'
+      - '--region=${_REGION}'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--service-account=${_CLOUD_RUN_SA}'
+      - '--memory=512Mi'
+      - '--cpu=1'
+    waitFor: ['push-frontend', 'deploy-gateway']
+
+  # ============================================
+  # Step 7: Health Checks
+  # ============================================
+  - name: 'gcr.io/cloud-builders/curl'
+    id: 'health-check'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        echo "Waiting for services to be ready..."
+        sleep 30
+        
+        # Get Gateway URL
+        GATEWAY_URL=$(gcloud run services describe ${_PROJECT_NAME}-gateway --region=${_REGION} --format='value(status.url)')
+        echo "Gateway URL: $GATEWAY_URL"
+        
+        # Health check
+        curl -f "$GATEWAY_URL/health" || exit 1
+        echo "✅ Gateway health check passed!"
+    waitFor: 
+      - 'deploy-gateway'
+      - 'deploy-auth'
+      - 'deploy-quiz'
+      - 'deploy-game'
+      - 'deploy-user'
+      - 'deploy-analytics'
+      - 'deploy-frontend'
+
+# ============================================
+# Images to be pushed to Container Registry
+# ============================================
+images:
+  - 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-gateway:$SHORT_SHA'
+  - 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-gateway:latest'
+  - 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-auth:$SHORT_SHA'
+  - 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-auth:latest'
+  - 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-quiz:$SHORT_SHA'
+  - 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-quiz:latest'
+  - 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-game:$SHORT_SHA'
+  - 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-game:latest'
+  - 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-user:$SHORT_SHA'
+  - 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-user:latest'
+  - 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-analytics:$SHORT_SHA'
+  - 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-analytics:latest'
+  - 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-frontend:$SHORT_SHA'
+  - 'gcr.io/$PROJECT_ID/${_PROJECT_NAME}-frontend:latest'
+
+# ============================================
+# Artifacts to Store
+# ============================================
+artifacts:
+  objects:
+    location: 'gs://${_PROJECT_NAME}-build-artifacts-$PROJECT_ID'
+    paths:
+      - 'trivy-*-report.json'
+
+# ============================================
+# Options
+# ============================================
+options:
+  machineType: 'E2_HIGHCPU_8'  # 8 vCPU for faster builds
+  logging: CLOUD_LOGGING_ONLY
+  logStreamingOption: STREAM_ON
+  substitutionOption: ALLOW_LOOSE
+  dynamic_substitutions: true
+
+# ============================================
+# Substitutions (Default Values)
+# ============================================
+substitutions:
+  _PROJECT_NAME: 'kahoot-clone'
+  _REGION: 'us-central1'
+  _CLOUD_RUN_SA: 'kahoot-clone-cloud-run-sa@${PROJECT_ID}.iam.gserviceaccount.com'
+  _ANALYTICS_SA: 'kahoot-clone-analytics-sa@${PROJECT_ID}.iam.gserviceaccount.com'
+  _GCS_QUIZ_BUCKET: 'kahoot-clone-quiz-media-${PROJECT_ID}'
+  _GCS_AVATAR_BUCKET: 'kahoot-clone-user-avatars-${PROJECT_ID}'
+  _BIGQUERY_DATASET: 'kahoot_clone_analytics'
+
+# ============================================
+# Timeout
+# ============================================
+timeout: 3600s  # 1 hour

@@ -23,9 +23,34 @@ yarn-error.log*
 
 # Sensitive Terraform files
 terraform/terraform.tfvars
+terraform/*.tfvars
 terraform/*.pem
+terraform/*.key
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/.terraform/
+terraform/.terraform.lock.hcl
 terraform/QUICKSTART.md
 terraform/README.md
+
+# GCP sensitive files
+**/credentials.json
+**/service-account-key.json
+**/.gcloud/
+**/.config/gcloud/
+
+# SSH keys and certificates
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# Secrets and passwords
+secrets/
+**/*secret*
+**/*password*
+**/*credentials*
 
 # IDEs
 .vscode/

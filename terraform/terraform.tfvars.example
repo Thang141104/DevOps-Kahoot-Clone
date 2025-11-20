@@ -1,0 +1,108 @@
+# ============================================
+# GCP Terraform Variables Configuration
+# Copy this file to terraform.tfvars and update with your values
+# ============================================
+
+# GCP Project Configuration
+gcp_project_id = "your-gcp-project-id"  # REQUIRED: Your GCP Project ID
+gcp_region     = "us-central1"           # GCP Region (us-central1, asia-southeast1, europe-west1, etc.)
+gcp_zone       = "us-central1-a"         # GCP Zone
+
+# Environment
+environment  = "production"  # dev, staging, production
+project_name = "kahoot-clone"
+
+# ============================================
+# Deployment Configuration
+# ============================================
+
+# Deployment Method: cloud-run, gke, or hybrid
+deployment_method = "cloud-run"  # Recommended: cloud-run (easiest and cheapest)
+
+# Enable/Disable Components
+enable_gke            = false  # Set to true if using Kubernetes (GKE)
+enable_jenkins_vm     = false  # Set to true to create Jenkins VM (not recommended - use Cloud Build)
+enable_cloud_sql      = false  # Set to true to use Cloud SQL instead of MongoDB Atlas
+enable_bigquery       = true   # Enable BigQuery for analytics
+enable_dataproc       = false  # Enable Dataproc for big data processing
+enable_cloud_monitoring = true # Enable Cloud Monitoring & Logging
+
+# ============================================
+# Database Configuration
+# ============================================
+
+# MongoDB Atlas Connection String (if not using Cloud SQL)
+mongodb_uri = "mongodb+srv://username:password@cluster.mongodb.net/quiz-app?retryWrites=true&w=majority"
+
+# ============================================
+# Application Secrets
+# ============================================
+
+# JWT Secret Key
+jwt_secret = "change-this-to-a-secure-random-string-in-production"
+
+# Email Configuration (for OTP/notifications)
+email_user     = "your-email@gmail.com"
+email_password = "your-app-specific-password"  # Use App Password for Gmail
+
+# ============================================
+# Cloud Run Configuration
+# ============================================
+
+cloud_run_min_instances = 0    # Minimum instances (0 = scale to zero)
+cloud_run_max_instances = 10   # Maximum instances
+cloud_run_cpu           = "1"  # CPU allocation (1, 2, 4)
+cloud_run_memory        = "512Mi"  # Memory (128Mi, 256Mi, 512Mi, 1Gi, 2Gi)
+
+# ============================================
+# GKE Configuration (if enabled)
+# ============================================
+
+gke_node_count    = 3             # Number of GKE nodes
+gke_machine_type  = "e2-standard-2"  # Machine type (e2-medium, e2-standard-2, n1-standard-2)
+
+# ============================================
+# Compute Engine Configuration
+# ============================================
+
+jenkins_machine_type = "e2-medium"  # Jenkins VM machine type (if enabled)
+
+# ============================================
+# Storage Configuration
+# ============================================
+
+storage_class    = "STANDARD"  # STANDARD, NEARLINE, COLDLINE, ARCHIVE
+storage_location = "US"        # US, EU, ASIA
+
+# ============================================
+# BigQuery Configuration
+# ============================================
+
+bigquery_dataset_location = "US"  # US, EU, asia-northeast1, etc.
+
+# ============================================
+# Dataproc Configuration (if enabled)
+# ============================================
+
+dataproc_num_workers          = 2                # Number of Dataproc worker nodes
+dataproc_worker_machine_type  = "n1-standard-2" # Dataproc machine type
+
+# ============================================
+# Networking Configuration
+# ============================================
+
+vpc_cidr           = "10.0.0.0/16"
+subnet_cidr        = "10.0.1.0/24"
+
+# ============================================
+# Monitoring Configuration
+# ============================================
+
+log_retention_days = 30  # Log retention period in days
+
+# ============================================
+# GitHub Repository (for Cloud Build)
+# ============================================
+
+github_repo   = "https://github.com/Thang141104/DevOps-Kahoot-Clone.git"
+github_branch = "main"
