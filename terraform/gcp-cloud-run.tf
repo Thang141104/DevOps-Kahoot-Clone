@@ -131,6 +131,11 @@ resource "google_cloud_run_service" "auth" {
   project  = var.gcp_project_id
   location = var.gcp_region
 
+  depends_on = [
+    null_resource.build_auth_image,
+    time_sleep.wait_for_images
+  ]
+
   template {
     spec {
       service_account_name = google_service_account.cloud_run_sa.email
