@@ -17,8 +17,9 @@ const userProfileSchema = new mongoose.Schema({
   },
   email: {
     type: String,
-    required: true,
+    required: false,
     unique: true,
+    sparse: true, // Allow multiple null/undefined values while keeping unique constraint for actual emails
     lowercase: true
   },
   

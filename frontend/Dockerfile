@@ -15,6 +15,10 @@ COPY . .
 # Fix permissions for node_modules executables
 RUN chmod -R +x node_modules/.bin
 
+# Build arguments for API URLs
+ARG REACT_APP_API_URL
+ARG REACT_APP_SOCKET_URL
+
 # Build the application
 RUN npm run build
 

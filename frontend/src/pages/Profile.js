@@ -4,6 +4,8 @@ import { FiArrowLeft, FiEdit2, FiCamera, FiAward, FiTrendingUp, FiUser, FiX, FiC
 import API_URLS from '../config/api';
 import './Profile.css';
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+
 // Updated styling v2
 const Profile = () => {
   const navigate = useNavigate();
@@ -214,7 +216,7 @@ const Profile = () => {
             <div 
               className="profile-avatar-large"
               style={profile.avatarUrl 
-                ? { backgroundImage: `url(http://localhost:3004${profile.avatarUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+                ? { backgroundImage: `url(${API_BASE_URL}${profile.avatarUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
                 : { backgroundColor: '#667eea' }
               }
             >
@@ -311,7 +313,7 @@ const Profile = () => {
               if (isOwner) {
                 try {
                   const user = JSON.parse(localStorage.getItem('user'));
-                  const response = await fetch(`http://localhost:3004/api/users/${user.id}/check`, {
+                  const response = await fetch(`${API_BASE_URL}/api/user/users/${user.id}/check`, {
                     method: 'POST'
                   });
                   const data = await response.json();

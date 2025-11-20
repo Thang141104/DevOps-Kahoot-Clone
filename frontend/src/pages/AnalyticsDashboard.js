@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import './AnalyticsDashboard.css';
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+
 const AnalyticsDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -20,11 +22,11 @@ const AnalyticsDashboard = () => {
       setLoading(true);
       
       // Fetch dashboard summary
-      const dashboardResponse = await fetch('http://localhost:3000/api/analytics/stats/dashboard');
+      const dashboardResponse = await fetch(`${API_BASE_URL}/api/analytics/stats/dashboard`);
       const dashboardJson = await dashboardResponse.json();
       
       // Fetch global stats
-      const statsResponse = await fetch('http://localhost:3000/api/analytics/stats/global');
+      const statsResponse = await fetch(`${API_BASE_URL}/api/analytics/stats/global`);
       const statsJson = await statsResponse.json();
       
       setDashboardData(dashboardJson);

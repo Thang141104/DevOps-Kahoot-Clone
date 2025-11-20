@@ -1,0 +1,13 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '--build-arg'
+      - 'REACT_APP_API_URL=${_REACT_APP_API_URL}'
+      - '--build-arg'
+      - 'REACT_APP_SOCKET_URL=${_REACT_APP_SOCKET_URL}'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/kahoot-clone-frontend:latest'
+      - '.'
+images:
+  - 'gcr.io/$PROJECT_ID/kahoot-clone-frontend:latest'
