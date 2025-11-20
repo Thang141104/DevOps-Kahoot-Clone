@@ -16,10 +16,12 @@ terraform {
     }
   }
   
-  backend "gcs" {
-    bucket = "kahoot-clone-terraform-state"  # Thay đổi bucket name
-    prefix = "terraform/state"
-  }
+  # Backend configuration - Using local for initial setup
+  # After GCP setup, uncomment GCS backend and run: terraform init -migrate-state
+  # backend "gcs" {
+  #   bucket = "kahoot-clone-terraform-state"
+  #   prefix = "terraform/state"
+  # }
 }
 
 provider "google" {

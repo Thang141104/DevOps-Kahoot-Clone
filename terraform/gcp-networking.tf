@@ -204,6 +204,25 @@ resource "google_compute_global_address" "lb_ip" {
   project = var.gcp_project_id
 }
 
+# Health check for backend service
+resource "google_compute_health_check" "default" {
+  count   = var.deployment_method == "cloud-run" ? 1 : 0
+  name    = "${var.project_name}-health-check"
+  project = var.gcp_project_id
+
+  http_health_check {
+    port         = 3000
+    request_path = "/health"
+  }
+
+  timeout_sec        = 5
+  check_interval_sec = 10
+  
+  log_config {
+    enable = true
+  }
+}
+
 # Backend service for Cloud Run (Gateway)
 resource "google_compute_region_network_endpoint_group" "gateway_neg" {
   count                 = var.deployment_method == "cloud-run" ? 1 : 0
@@ -236,7 +255,8 @@ resource "google_compute_backend_service" "gateway_backend" {
     sample_rate = 1.0
   }
 
-  health_checks = []  # Cloud Run handles health checks internally
+  # Health check (required, but Cloud Run manages its own internally)
+  health_checks = [google_compute_health_check.default[0].id]
 }
 
 # URL map
@@ -273,7 +293,7 @@ resource "google_compute_global_forwarding_rule" "http" {
 
 resource "google_vpc_access_connector" "connector" {
   count         = var.deployment_method == "cloud-run" ? 1 : 0
-  name          = "${var.project_name}-vpc-connector"
+  name          = "kahoot-vpc-conn"  # Must match pattern ^[a-z][-a-z0-9]{0,23}[a-z0-9]$
   project       = var.gcp_project_id
   region        = var.gcp_region
   network       = google_compute_network.vpc.name

@@ -150,10 +150,10 @@ resource "google_dataproc_cluster" "analytics_cluster" {
       auto_delete_time = null     # Don't auto-delete at specific time
     }
 
-    # Encryption
-    encryption_config {
-      gce_pd_kms_key_name = null  # Use Google-managed encryption
-    }
+    # Encryption (Google-managed by default)
+    # encryption_config {
+    #   kms_key_name = "projects/PROJECT_ID/locations/LOCATION/keyRings/RING/cryptoKeys/KEY"
+    # }
   }
 
   labels = {

@@ -10,13 +10,13 @@ resource "google_project_service" "cloudbuild" {
   disable_on_destroy = false
 }
 
-# Enable Cloud Source Repositories API
-resource "google_project_service" "sourcerepo" {
-  project = var.gcp_project_id
-  service = "sourcerepo.googleapis.com"
-  
-  disable_on_destroy = false
-}
+# Cloud Source Repositories API - NOT NEEDED (using GitHub directly)
+# resource "google_project_service" "sourcerepo" {
+#   project = var.gcp_project_id
+#   service = "sourcerepo.googleapis.com"
+#   
+#   disable_on_destroy = false
+# }
 
 # Enable Cloud Scheduler API (for scheduled builds)
 resource "google_project_service" "cloudscheduler" {
@@ -29,89 +29,94 @@ resource "google_project_service" "cloudscheduler" {
 # ============================================
 # Cloud Build Triggers (GitHub Integration)
 # ============================================
+# NOTE: These triggers require GitHub connection first!
+# Run this command before enabling triggers:
+# gcloud builds connections create github --region=us-central1 --name=github-connection
+# Then visit: https://console.cloud.google.com/cloud-build/triggers;region=global/connect
 
+# TEMPORARILY DISABLED - Enable after GitHub connection
 # Trigger: Build and Deploy on Push to Main
-resource "google_cloudbuild_trigger" "deploy_main" {
-  project     = var.gcp_project_id
-  name        = "${var.project_name}-deploy-main"
-  description = "Build and deploy all services on push to main branch"
-
-  github {
-    owner = "Thang141104"  # Your GitHub username
-    name  = "DevOps-Kahoot-Clone"
-    
-    push {
-      branch = "^main$"
-    }
-  }
-
-  filename = "cloudbuild.yaml"
-
-  substitutions = {
-    _PROJECT_ID       = var.gcp_project_id
-    _REGION           = var.gcp_region
-    _DEPLOYMENT_TYPE  = var.deployment_method
-    _GCS_QUIZ_BUCKET  = google_storage_bucket.quiz_media.name
-    _GCS_AVATAR_BUCKET = google_storage_bucket.user_avatars.name
-  }
-
-  service_account = google_service_account.cloud_build_sa.id
-}
+# resource "google_cloudbuild_trigger" "deploy_main" {
+#   project     = var.gcp_project_id
+#   name        = "${var.project_name}-deploy-main"
+#   description = "Build and deploy all services on push to main branch"
+# 
+#   github {
+#     owner = "Thang141104"  # Your GitHub username
+#     name  = "DevOps-Kahoot-Clone"
+#     
+#     push {
+#       branch = "^main$"
+#     }
+#   }
+# 
+#   filename = "cloudbuild.yaml"
+# 
+#   substitutions = {
+#     _PROJECT_ID       = var.gcp_project_id
+#     _REGION           = var.gcp_region
+#     _DEPLOYMENT_TYPE  = var.deployment_method
+#     _GCS_QUIZ_BUCKET  = google_storage_bucket.quiz_media.name
+#     _GCS_AVATAR_BUCKET = google_storage_bucket.user_avatars.name
+#   }
+# 
+#   service_account = google_service_account.cloud_build_sa.id
+# }
 
 # Trigger: Build and Test on Pull Request
-resource "google_cloudbuild_trigger" "test_pr" {
-  project     = var.gcp_project_id
-  name        = "${var.project_name}-test-pr"
-  description = "Run tests on pull requests"
+# resource "google_cloudbuild_trigger" "test_pr" {
+#   project     = var.gcp_project_id
+#   name        = "${var.project_name}-test-pr"
+#   description = "Run tests on pull requests"
+# 
+#   github {
+#     owner = "Thang141104"
+#     name  = "DevOps-Kahoot-Clone"
+#     
+#     pull_request {
+#       branch          = ".*"
+#       comment_control = "COMMENTS_ENABLED"
+#     }
+#   }
+# 
+#   filename = "cloudbuild-test.yaml"
+# 
+#   service_account = google_service_account.cloud_build_sa.id
+# }
 
-  github {
-    owner = "Thang141104"
-    name  = "DevOps-Kahoot-Clone"
-    
-    pull_request {
-      branch          = ".*"
-      comment_control = "COMMENTS_ENABLED"
-    }
-  }
-
-  filename = "cloudbuild-test.yaml"
-
-  service_account = google_service_account.cloud_build_sa.id
-}
-
-# Trigger: Manual Deployment
-resource "google_cloudbuild_trigger" "manual_deploy" {
-  project     = var.gcp_project_id
-  name        = "${var.project_name}-manual-deploy"
-  description = "Manual deployment trigger"
-
-  # No automatic trigger - must be invoked manually
-  disabled = false
-
-  github {
-    owner = "Thang141104"
-    name  = "DevOps-Kahoot-Clone"
-    
-    push {
-      branch = "^(main|staging|dev)$"
-    }
-  }
-
-  filename = "cloudbuild.yaml"
-
-  substitutions = {
-    _PROJECT_ID       = var.gcp_project_id
-    _REGION           = var.gcp_region
-    _DEPLOYMENT_TYPE  = var.deployment_method
-  }
-
-  service_account = google_service_account.cloud_build_sa.id
-
-  # Approval required
-  approval_config {
-    approval_required = true
-  }
-}
+# Trigger: Manual Deployment (DISABLED - requires GitHub connection)
+# resource "google_cloudbuild_trigger" "manual_deploy" {
+#   project     = var.gcp_project_id
+#   name        = "${var.project_name}-manual-deploy"
+#   description = "Manual deployment trigger"
+# 
+#   # No automatic trigger - must be invoked manually
+#   disabled = false
+# 
+#   github {
+#     owner = "Thang141104"
+#     name  = "DevOps-Kahoot-Clone"
+#     
+#     push {
+#       branch = "^(main|staging|dev)$"
+#     }
+#   }
+# 
+#   filename = "cloudbuild.yaml"
+# 
+#   substitutions = {
+#     _PROJECT_ID       = var.gcp_project_id
+#     _REGION           = var.gcp_region
+#     _DEPLOYMENT_TYPE  = var.deployment_method
+#   }
+# 
+#   service_account = google_service_account.cloud_build_sa.id
+# 
+#   # Approval required
+#   approval_config {
+#     approval_required = true
+#   }
+# }
 
 # ============================================
 # Cloud Build Worker Pool (for private builds)
@@ -208,31 +213,31 @@ resource "google_pubsub_subscription" "build_notifications_sub" {
 }
 
 # ============================================
-# Cloud Build Notification Config
+# Cloud Build Notification Config (DISABLED)
 # ============================================
 
-resource "google_cloudbuild_trigger" "build_notifications" {
-  project     = var.gcp_project_id
-  name        = "${var.project_name}-build-status-notifier"
-  description = "Notify build status"
-
-  pubsub_config {
-    topic = google_pubsub_topic.build_notifications.id
-  }
-
-  github {
-    owner = "Thang141104"
-    name  = "DevOps-Kahoot-Clone"
-    
-    push {
-      branch = ".*"
-    }
-  }
-
-  filename = "cloudbuild.yaml"
-
-  service_account = google_service_account.cloud_build_sa.id
-}
+# resource "google_cloudbuild_trigger" "build_notifications" {
+#   project     = var.gcp_project_id
+#   name        = "${var.project_name}-build-status-notifier"
+#   description = "Notify build status"
+# 
+#   pubsub_config {
+#     topic = google_pubsub_topic.build_notifications.id
+#   }
+# 
+#   github {
+#     owner = "Thang141104"
+#     name  = "DevOps-Kahoot-Clone"
+#     
+#     push {
+#       branch = ".*"
+#     }
+#   }
+# 
+#   filename = "cloudbuild.yaml"
+# 
+#   service_account = google_service_account.cloud_build_sa.id
+# }
 
 # ============================================
 # IAM for Cloud Build
@@ -269,15 +274,15 @@ resource "google_secret_manager_secret_iam_member" "cloudbuild_jwt" {
 # Outputs
 # ============================================
 
-output "cloud_build_trigger_main" {
-  description = "Cloud Build Trigger ID for main branch"
-  value       = google_cloudbuild_trigger.deploy_main.trigger_id
-}
+# output "cloud_build_trigger_main" {
+#   description = "Cloud Build Trigger ID for main branch"
+#   value       = google_cloudbuild_trigger.deploy_main.trigger_id
+# }
 
-output "cloud_build_trigger_pr" {
-  description = "Cloud Build Trigger ID for pull requests"
-  value       = google_cloudbuild_trigger.test_pr.trigger_id
-}
+# output "cloud_build_trigger_pr" {
+#   description = "Cloud Build Trigger ID for pull requests"
+#   value       = google_cloudbuild_trigger.test_pr.trigger_id
+# }
 
 output "cloud_build_console_url" {
   description = "Cloud Build Console URL"

@@ -412,7 +412,7 @@ resource "google_bigquery_table" "popular_quizzes" {
 resource "google_bigquery_data_transfer_config" "daily_aggregation" {
   count                  = var.enable_bigquery ? 1 : 0
   project                = var.gcp_project_id
-  location               = var.gcp_region
+  location               = var.bigquery_dataset_location  # Must match dataset location (US, EU, etc.)
   display_name           = "${var.project_name}-daily-aggregation"
   data_source_id         = "scheduled_query"
   schedule               = "every day 02:00"

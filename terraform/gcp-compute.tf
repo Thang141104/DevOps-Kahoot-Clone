@@ -50,11 +50,41 @@ resource "google_compute_instance" "jenkins" {
     enable-oslogin = "TRUE"
   }
 
-  metadata_startup_script = templatefile("${path.module}/scripts/jenkins-startup.sh", {
-    project_id   = var.gcp_project_id
-    github_repo  = var.github_repo
-    github_branch = var.github_branch
-  })
+  # Startup script - Install Jenkins, Docker, kubectl
+  metadata_startup_script = <<-EOF
+    #!/bin/bash
+    set -e
+    
+    # Update system
+    apt-get update
+    apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+    
+    # Install Docker
+    curl -fsSL https://get.docker.com -o get-docker.sh
+    sh get-docker.sh
+    usermod -aG docker ubuntu
+    
+    # Install Jenkins
+    wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io.key | apt-key add -
+    sh -c 'echo deb https://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list'
+    apt-get update
+    apt-get install -y jenkins openjdk-11-jdk
+    
+    # Install kubectl
+    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+    
+    # Install gcloud SDK
+    echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
+    apt-get update && apt-get install -y google-cloud-sdk
+    
+    # Start Jenkins
+    systemctl start jenkins
+    systemctl enable jenkins
+    
+    echo "Jenkins installation complete. Access at: http://$(curl -s http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip -H 'Metadata-Flavor: Google'):8080"
+  EOF
 
   allow_stopping_for_update = true
 
@@ -135,13 +165,38 @@ resource "google_compute_instance_template" "app_template" {
     enable-oslogin = "TRUE"
   }
 
-  metadata_startup_script = templatefile("${path.module}/scripts/app-startup.sh", {
-    project_id     = var.gcp_project_id
-    github_repo    = var.github_repo
-    github_branch  = var.github_branch
-    mongodb_uri    = var.mongodb_uri
-    jwt_secret     = var.jwt_secret
-  })
+  # Startup script for app instances
+  metadata_startup_script = <<-EOF
+    #!/bin/bash
+    set -e
+    
+    # Update system
+    apt-get update
+    apt-get install -y docker.io git curl
+    
+    # Start Docker
+    systemctl start docker
+    systemctl enable docker
+    
+    # Clone repository
+    cd /opt
+    git clone ${var.github_repo}
+    cd DevOps-Kahoot-Clone
+    git checkout ${var.github_branch}
+    
+    # Run with docker-compose
+    curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    chmod +x /usr/local/bin/docker-compose
+    
+    # Set environment variables
+    export MONGODB_URI="${var.mongodb_uri}"
+    export JWT_SECRET="${var.jwt_secret}"
+    
+    # Start services
+    docker-compose up -d
+    
+    echo "Application started successfully"
+  EOF
 
   labels = {
     environment = var.environment

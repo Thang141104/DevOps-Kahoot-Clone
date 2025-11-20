@@ -191,8 +191,10 @@ resource "google_monitoring_alert_policy" "high_cpu" {
       threshold_value = 0.8  # 80% CPU
       
       aggregations {
-        alignment_period   = "60s"
-        per_series_aligner = "ALIGN_MEAN"
+        alignment_period     = "60s"
+        per_series_aligner   = "ALIGN_PERCENTILE_95"
+        cross_series_reducer = "REDUCE_MEAN"
+        group_by_fields      = ["resource.service_name"]
       }
     }
   }
@@ -221,8 +223,10 @@ resource "google_monitoring_alert_policy" "high_memory" {
       threshold_value = 0.9  # 90% Memory
       
       aggregations {
-        alignment_period   = "60s"
-        per_series_aligner = "ALIGN_MEAN"
+        alignment_period     = "60s"
+        per_series_aligner   = "ALIGN_PERCENTILE_95"
+        cross_series_reducer = "REDUCE_MEAN"
+        group_by_fields      = ["resource.service_name"]
       }
     }
   }
