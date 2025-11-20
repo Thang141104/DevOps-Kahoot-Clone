@@ -290,18 +290,20 @@ resource "google_compute_global_forwarding_rule" "http" {
 # ============================================
 # VPC Connector (for Cloud Run to VPC access)
 # ============================================
+# DISABLED: VPC Connector keeps failing with internal errors
+# Cloud Run services will work without it (no private VPC access needed)
 
-resource "google_vpc_access_connector" "connector" {
-  count         = var.deployment_method == "cloud-run" ? 1 : 0
-  name          = "kahoot-vpc-conn"  # Must match pattern ^[a-z][-a-z0-9]{0,23}[a-z0-9]$
-  project       = var.gcp_project_id
-  region        = var.gcp_region
-  network       = google_compute_network.vpc.name
-  ip_cidr_range = "10.8.0.0/28"
-  
-  min_instances = 2
-  max_instances = 10
-}
+# resource "google_vpc_access_connector" "connector" {
+#   count         = var.deployment_method == "cloud-run" ? 1 : 0
+#   name          = "kahoot-vpc-conn"  # Must match pattern ^[a-z][-a-z0-9]{0,23}[a-z0-9]$
+#   project       = var.gcp_project_id
+#   region        = var.gcp_region
+#   network       = google_compute_network.vpc.name
+#   ip_cidr_range = "10.8.0.0/28"
+#   
+#   min_instances = 2
+#   max_instances = 10
+# }
 
 # ============================================
 # Private Service Connection (for Cloud SQL)
@@ -350,5 +352,5 @@ output "load_balancer_ip" {
 
 output "vpc_connector_id" {
   description = "VPC Connector ID for Cloud Run"
-  value       = var.deployment_method == "cloud-run" ? google_vpc_access_connector.connector[0].id : "Not using VPC Connector"
+  value       = "VPC Connector DISABLED - Not needed for Cloud Run with public MongoDB"
 }

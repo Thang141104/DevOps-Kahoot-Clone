@@ -71,12 +71,6 @@ resource "google_cloud_run_service" "gateway" {
             memory = var.cloud_run_memory
           }
         }
-
-        env {
-          name  = "PORT"
-          value = "3000"
-        }
-
         env {
           name  = "NODE_ENV"
           value = var.environment
@@ -113,8 +107,8 @@ resource "google_cloud_run_service" "gateway" {
       annotations = {
         "autoscaling.knative.dev/minScale"      = tostring(var.cloud_run_min_instances)
         "autoscaling.knative.dev/maxScale"      = tostring(var.cloud_run_max_instances)
-        "run.googleapis.com/vpc-access-connector" = google_vpc_access_connector.connector[0].id
-        "run.googleapis.com/vpc-access-egress"    = "all-traffic"
+        # "run.googleapis.com/vpc-access-connector" = google_vpc_access_connector.connector[0].id  # DISABLED
+        # "run.googleapis.com/vpc-access-egress" = "all-traffic"  # DISABLED
       }
     }
   }
@@ -154,12 +148,6 @@ resource "google_cloud_run_service" "auth" {
             memory = var.cloud_run_memory
           }
         }
-
-        env {
-          name  = "PORT"
-          value = "3001"
-        }
-
         env {
           name  = "NODE_ENV"
           value = var.environment
@@ -206,7 +194,7 @@ resource "google_cloud_run_service" "auth" {
       annotations = {
         "autoscaling.knative.dev/minScale"      = tostring(var.cloud_run_min_instances)
         "autoscaling.knative.dev/maxScale"      = tostring(var.cloud_run_max_instances)
-        "run.googleapis.com/vpc-access-connector" = google_vpc_access_connector.connector[0].id
+        # "run.googleapis.com/vpc-access-connector" = google_vpc_access_connector.connector[0].id  # DISABLED
       }
     }
   }
@@ -244,12 +232,6 @@ resource "google_cloud_run_service" "quiz" {
             memory = var.cloud_run_memory
           }
         }
-
-        env {
-          name  = "PORT"
-          value = "3002"
-        }
-
         env {
           name  = "NODE_ENV"
           value = var.environment
@@ -276,7 +258,7 @@ resource "google_cloud_run_service" "quiz" {
       annotations = {
         "autoscaling.knative.dev/minScale"      = tostring(var.cloud_run_min_instances)
         "autoscaling.knative.dev/maxScale"      = tostring(var.cloud_run_max_instances)
-        "run.googleapis.com/vpc-access-connector" = google_vpc_access_connector.connector[0].id
+        # "run.googleapis.com/vpc-access-connector" = google_vpc_access_connector.connector[0].id  # DISABLED
       }
     }
   }
@@ -315,12 +297,6 @@ resource "google_cloud_run_service" "game" {
             memory = "1Gi"    # More memory for real-time connections
           }
         }
-
-        env {
-          name  = "PORT"
-          value = "3003"
-        }
-
         env {
           name  = "NODE_ENV"
           value = var.environment
@@ -347,7 +323,7 @@ resource "google_cloud_run_service" "game" {
       annotations = {
         "autoscaling.knative.dev/minScale"      = "1"  # Keep at least 1 for Socket.io
         "autoscaling.knative.dev/maxScale"      = "20"
-        "run.googleapis.com/vpc-access-connector" = google_vpc_access_connector.connector[0].id
+        # "run.googleapis.com/vpc-access-connector" = google_vpc_access_connector.connector[0].id  # DISABLED
       }
     }
   }
@@ -385,12 +361,6 @@ resource "google_cloud_run_service" "user" {
             memory = var.cloud_run_memory
           }
         }
-
-        env {
-          name  = "PORT"
-          value = "3004"
-        }
-
         env {
           name  = "NODE_ENV"
           value = var.environment
@@ -417,7 +387,7 @@ resource "google_cloud_run_service" "user" {
       annotations = {
         "autoscaling.knative.dev/minScale"      = tostring(var.cloud_run_min_instances)
         "autoscaling.knative.dev/maxScale"      = tostring(var.cloud_run_max_instances)
-        "run.googleapis.com/vpc-access-connector" = google_vpc_access_connector.connector[0].id
+        # "run.googleapis.com/vpc-access-connector" = google_vpc_access_connector.connector[0].id  # DISABLED
       }
     }
   }
@@ -455,12 +425,6 @@ resource "google_cloud_run_service" "analytics" {
             memory = var.cloud_run_memory
           }
         }
-
-        env {
-          name  = "PORT"
-          value = "3005"
-        }
-
         env {
           name  = "NODE_ENV"
           value = var.environment
@@ -492,7 +456,7 @@ resource "google_cloud_run_service" "analytics" {
       annotations = {
         "autoscaling.knative.dev/minScale"      = tostring(var.cloud_run_min_instances)
         "autoscaling.knative.dev/maxScale"      = tostring(var.cloud_run_max_instances)
-        "run.googleapis.com/vpc-access-connector" = google_vpc_access_connector.connector[0].id
+        # "run.googleapis.com/vpc-access-connector" = google_vpc_access_connector.connector[0].id  # DISABLED
       }
     }
   }
@@ -530,12 +494,6 @@ resource "google_cloud_run_service" "frontend" {
             memory = var.cloud_run_memory
           }
         }
-
-        env {
-          name  = "PORT"
-          value = "3006"
-        }
-
         env {
           name  = "REACT_APP_API_URL"
           value = "https://${google_cloud_run_service.gateway[0].status[0].url}"
@@ -615,3 +573,4 @@ output "artifact_registry_repository" {
   description = "Artifact Registry Repository"
   value       = var.deployment_method == "cloud-run" || var.deployment_method == "gke" ? google_artifact_registry_repository.docker_repo[0].name : "Not using Artifact Registry"
 }
+
