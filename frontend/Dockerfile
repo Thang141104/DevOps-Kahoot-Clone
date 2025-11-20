@@ -6,11 +6,14 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies with proper permissions
+RUN npm ci --prefer-offline --no-audit
 
 # Copy application files
 COPY . .
+
+# Fix permissions for node_modules executables
+RUN chmod -R +x node_modules/.bin
 
 # Build the application
 RUN npm run build
