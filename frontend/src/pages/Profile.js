@@ -214,7 +214,7 @@ const Profile = () => {
             <div 
               className="profile-avatar-large"
               style={profile.avatarUrl 
-                ? { backgroundImage: `url(http://localhost:3004${profile.avatarUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+                ? { backgroundImage: `url(${process.env.REACT_APP_API_URL || 'http://localhost:3000'}${profile.avatarUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
                 : { backgroundColor: '#667eea' }
               }
             >
@@ -311,7 +311,7 @@ const Profile = () => {
               if (isOwner) {
                 try {
                   const user = JSON.parse(localStorage.getItem('user'));
-                  const response = await fetch(`http://localhost:3004/api/users/${user.id}/check`, {
+                  const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/user/users/${user.id}/check`, {
                     method: 'POST'
                   });
                   const data = await response.json();
