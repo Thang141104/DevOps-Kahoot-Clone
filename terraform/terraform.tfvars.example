@@ -1,0 +1,32 @@
+# AWS Credentials (Get from AWS IAM)
+aws_access_key = "YOUR_AWS_ACCESS_KEY_ID"
+aws_secret_key = "YOUR_AWS_SECRET_ACCESS_KEY"
+
+# AWS Region
+aws_region = "us-east-1" 
+
+# Environment
+environment = "production"
+
+# EC2 Configuration
+instance_type = "t3.small" 
+
+# SSH Key (Create this in AWS EC2 Console first)
+key_name = "your-key-name"  
+
+# MongoDB Atlas Connection String
+mongodb_uri = "mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<database>?retryWrites=true&w=majority"
+
+# Email Configuration (Gmail App Password)
+email_user     = "your-email@gmail.com"
+email_password = "your-gmail-app-password" 
+
+# JWT Secret (Generate a strong random string)
+jwt_secret = "your-super-secret-jwt-key-change-this"
+
+# Elastic IP
+use_elastic_ip = true 
+
+# GitHub Repository
+github_repo   = "https://github.com/YOUR_USERNAME/YOUR_REPO.git"
+github_branch = "main" 
