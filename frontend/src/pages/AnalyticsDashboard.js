@@ -19,12 +19,14 @@ const AnalyticsDashboard = () => {
     try {
       setLoading(true);
       
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+      
       // Fetch dashboard summary
-      const dashboardResponse = await fetch('http://localhost:3000/api/analytics/stats/dashboard');
+      const dashboardResponse = await fetch(`${API_URL}/api/analytics/stats/dashboard`);
       const dashboardJson = await dashboardResponse.json();
       
       // Fetch global stats
-      const statsResponse = await fetch('http://localhost:3000/api/analytics/stats/global');
+      const statsResponse = await fetch(`${API_URL}/api/analytics/stats/global`);
       const statsJson = await statsResponse.json();
       
       setDashboardData(dashboardJson);
