@@ -4,7 +4,7 @@ pipeline {
     environment {
         // Docker Hub credentials
         DOCKER_REGISTRY = 'docker.io'
-        DOCKER_USERNAME = env.DOCKERHUB_USERNAME ?: '22521284'
+        DOCKER_USERNAME = '22521284'
         DOCKER_CREDENTIALS = credentials('dockerhub-credentials')
         
         // SonarQube
