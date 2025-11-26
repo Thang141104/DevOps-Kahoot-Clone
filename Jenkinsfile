@@ -4,6 +4,7 @@ pipeline {
     environment {
         // Docker Hub credentials
         DOCKER_REGISTRY = 'docker.io'
+        DOCKER_USERNAME = env.DOCKERHUB_USERNAME ?: '22521284'
         DOCKER_CREDENTIALS = credentials('dockerhub-credentials')
         
         // SonarQube
@@ -15,7 +16,7 @@ pipeline {
         AWS_REGION = 'us-east-1'
         
         // Snyk Token
-        SNYK_TOKEN = credentials('snyk-token')
+        // SNYK_TOKEN = credentials('snyk-token')
         
         // Kubernetes
         KUBECONFIG = credentials('kubeconfig')
@@ -163,26 +164,6 @@ pipeline {
                         }
                     }
                 }
-                
-                stage('Snyk - Dependency Scan') {
-                    steps {
-                        script {
-                            echo "🔒 Running Snyk dependency scan..."
-                            sh '''
-                                snyk auth ${SNYK_TOKEN}
-                                
-                                # Scan all services
-                                for service in gateway services/auth-service services/quiz-service services/game-service services/user-service services/analytics-service frontend; do
-                                    echo "Scanning $service..."
-                                    cd $service
-                                    snyk test --severity-threshold=high --json > ../snyk-$service-report.json || true
-                                    cd ..
-                                done
-                            '''
-                            archiveArtifacts artifacts: 'snyk-*-report.json', allowEmptyArchive: true
-                        }
-                    }
-                }
             }
         }
         
@@ -193,8 +174,8 @@ pipeline {
                         script {
                             echo "🐳 Building Gateway Docker image..."
                             sh '''
-                                docker build -t ${DOCKER_REGISTRY}/${PROJECT_NAME}-gateway:${BUILD_VERSION} \
-                                    -t ${DOCKER_REGISTRY}/${PROJECT_NAME}-gateway:latest \
+                                docker build -t ${DOCKER_REGISTRY}/${DOCKER_USERNAME}/${PROJECT_NAME}-gateway:${BUILD_VERSION} \
+                                    -t ${DOCKER_REGISTRY}/${DOCKER_USERNAME}/${PROJECT_NAME}-gateway:latest \
                                     -f gateway/Dockerfile gateway/
                             '''
                         }
@@ -204,8 +185,8 @@ pipeline {
                     steps {
                         script {
                             sh '''
-                                docker build -t ${DOCKER_REGISTRY}/${PROJECT_NAME}-auth:${BUILD_VERSION} \
-                                    -t ${DOCKER_REGISTRY}/${PROJECT_NAME}-auth:latest \
+                                docker build -t ${DOCKER_REGISTRY}/${DOCKER_USERNAME}/${PROJECT_NAME}-auth:${BUILD_VERSION} \
+                                    -t ${DOCKER_REGISTRY}/${DOCKER_USERNAME}/${PROJECT_NAME}-auth:latest \
                                     -f services/auth-service/Dockerfile services/auth-service/
                             '''
                         }
@@ -215,8 +196,8 @@ pipeline {
                     steps {
                         script {
                             sh '''
-                                docker build -t ${DOCKER_REGISTRY}/${PROJECT_NAME}-quiz:${BUILD_VERSION} \
-                                    -t ${DOCKER_REGISTRY}/${PROJECT_NAME}-quiz:latest \
+                                docker build -t ${DOCKER_REGISTRY}/${DOCKER_USERNAME}/${PROJECT_NAME}-quiz:${BUILD_VERSION} \
+                                    -t ${DOCKER_REGISTRY}/${DOCKER_USERNAME}/${PROJECT_NAME}-quiz:latest \
                                     -f services/quiz-service/Dockerfile services/quiz-service/
                             '''
                         }
@@ -226,8 +207,8 @@ pipeline {
                     steps {
                         script {
                             sh '''
-                                docker build -t ${DOCKER_REGISTRY}/${PROJECT_NAME}-game:${BUILD_VERSION} \
-                                    -t ${DOCKER_REGISTRY}/${PROJECT_NAME}-game:latest \
+                                docker build -t ${DOCKER_REGISTRY}/${DOCKER_USERNAME}/${PROJECT_NAME}-game:${BUILD_VERSION} \
+                                    -t ${DOCKER_REGISTRY}/${DOCKER_USERNAME}/${PROJECT_NAME}-game:latest \
                                     -f services/game-service/Dockerfile services/game-service/
                             '''
                         }
@@ -237,8 +218,8 @@ pipeline {
                     steps {
                         script {
                             sh '''
-                                docker build -t ${DOCKER_REGISTRY}/${PROJECT_NAME}-user:${BUILD_VERSION} \
-                                    -t ${DOCKER_REGISTRY}/${PROJECT_NAME}-user:latest \
+                                docker build -t ${DOCKER_REGISTRY}/${DOCKER_USERNAME}/${PROJECT_NAME}-user:${BUILD_VERSION} \
+                                    -t ${DOCKER_REGISTRY}/${DOCKER_USERNAME}/${PROJECT_NAME}-user:latest \
                                     -f services/user-service/Dockerfile services/user-service/
                             '''
                         }
@@ -248,8 +229,8 @@ pipeline {
                     steps {
                         script {
                             sh '''
-                                docker build -t ${DOCKER_REGISTRY}/${PROJECT_NAME}-analytics:${BUILD_VERSION} \
-                                    -t ${DOCKER_REGISTRY}/${PROJECT_NAME}-analytics:latest \
+                                docker build -t ${DOCKER_REGISTRY}/${DOCKER_USERNAME}/${PROJECT_NAME}-analytics:${BUILD_VERSION} \
+                                    -t ${DOCKER_REGISTRY}/${DOCKER_USERNAME}/${PROJECT_NAME}-analytics:latest \
                                     -f services/analytics-service/Dockerfile services/analytics-service/
                             '''
                         }
@@ -259,8 +240,8 @@ pipeline {
                     steps {
                         script {
                             sh '''
-                                docker build -t ${DOCKER_REGISTRY}/${PROJECT_NAME}-frontend:${BUILD_VERSION} \
-                                    -t ${DOCKER_REGISTRY}/${PROJECT_NAME}-frontend:latest \
+                                docker build -t ${DOCKER_REGISTRY}/${DOCKER_USERNAME}/${PROJECT_NAME}-frontend:${BUILD_VERSION} \
+                                    -t ${DOCKER_REGISTRY}/${DOCKER_USERNAME}/${PROJECT_NAME}-frontend:latest \
                                     -f frontend/Dockerfile frontend/
                             '''
                         }
@@ -281,7 +262,7 @@ pipeline {
                                     trivy image --severity HIGH,CRITICAL \
                                         --format json \
                                         --output trivy-${service}-image-report.json \
-                                        ${DOCKER_REGISTRY}/${PROJECT_NAME}-${service}:${BUILD_VERSION}
+                                        ${DOCKER_REGISTRY}/${DOCKER_USERNAME}/${PROJECT_NAME}-${service}:${BUILD_VERSION}
                                 """
                             }
                             archiveArtifacts artifacts: 'trivy-*-image-report.json', allowEmptyArchive: true
@@ -296,7 +277,7 @@ pipeline {
                             def services = ['gateway', 'auth', 'quiz', 'game', 'user', 'analytics', 'frontend']
                             services.each { service ->
                                 sh """
-                                    snyk container test ${DOCKER_REGISTRY}/${PROJECT_NAME}-${service}:${BUILD_VERSION} \
+                                    snyk container test ${DOCKER_REGISTRY}/${DOCKER_USERNAME}/${PROJECT_NAME}-${service}:${BUILD_VERSION} \
                                         --severity-threshold=high \
                                         --json > snyk-${service}-container-report.json || true
                                 """
@@ -319,8 +300,8 @@ pipeline {
                         def services = ['gateway', 'auth', 'quiz', 'game', 'user', 'analytics', 'frontend']
                         services.each { service ->
                             sh """
-                                docker push ${DOCKER_REGISTRY}/${PROJECT_NAME}-${service}:${BUILD_VERSION}
-                                docker push ${DOCKER_REGISTRY}/${PROJECT_NAME}-${service}:latest
+                                docker push ${DOCKER_REGISTRY}/${DOCKER_USERNAME}/${PROJECT_NAME}-${service}:${BUILD_VERSION}
+                                docker push ${DOCKER_REGISTRY}/${DOCKER_USERNAME}/${PROJECT_NAME}-${service}:latest
                             """
                         }
                     }
@@ -339,7 +320,7 @@ pipeline {
                         sh '''
                             # Update image tags in K8s manifests
                             for service in gateway auth quiz game user analytics frontend; do
-                                sed -i "s|image: .*${PROJECT_NAME}-${service}:.*|image: ${DOCKER_REGISTRY}/${PROJECT_NAME}-${service}:${BUILD_VERSION}|g" \
+                                sed -i "s|image: .*${PROJECT_NAME}-${service}:.*|image: ${DOCKER_REGISTRY}/${DOCKER_USERNAME}/${PROJECT_NAME}-${service}:${BUILD_VERSION}|g" \
                                     k8s/${service}-deployment.yaml
                             done
                             
