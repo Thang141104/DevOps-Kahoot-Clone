@@ -8,7 +8,7 @@ pipeline {
         DOCKER_CREDENTIALS = credentials('dockerhub-credentials')
         
         // SonarQube
-        SONAR_HOST_URL = 'http://sonarqube:9000'
+        SONAR_HOST_URL = 'http://localhost:9000'
         SONAR_TOKEN = credentials('sonarqube-token')
         
         // AWS Credentials
