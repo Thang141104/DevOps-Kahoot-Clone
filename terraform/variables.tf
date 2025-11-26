@@ -106,3 +106,16 @@ variable "project_name" {
   type        = string
   default     = "Kahoot-Clone"
 }
+
+# Jenkins Infrastructure Configuration
+variable "jenkins_instance_type" {
+  description = "EC2 instance type for Jenkins server"
+  type        = string
+  default     = "t3.medium"
+}
+
+variable "k8s_instance_type" {
+  description = "EC2 instance type for Kubernetes master node"
+  type        = string
+  default     = "t3.medium"
+}
