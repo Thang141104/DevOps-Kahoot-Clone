@@ -124,18 +124,17 @@ pipeline {
                 script {
                     echo "📊 Running SonarQube analysis..."
                     catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
-                        withSonarQubeEnv('SonarQube') {
-                            sh '''
-                                ${SCANNER_HOME}/bin/sonar-scanner \
-                                    -Dsonar.host.url=${SONAR_HOST_URL} \
-                                    -Dsonar.projectKey=${PROJECT_NAME} \
-                                    -Dsonar.projectName=${PROJECT_NAME} \
-                                    -Dsonar.projectVersion=${BUILD_VERSION} \
-                                    -Dsonar.sources=. \
-                                    -Dsonar.exclusions=**/node_modules/**,**/test/**,**/tests/**,**/*.test.js,**/*.spec.js \
-                                    -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
-                            '''
-                        }
+                        sh '''
+                            ${SCANNER_HOME}/bin/sonar-scanner \
+                                -Dsonar.host.url=${SONAR_HOST_URL} \
+                                -Dsonar.login=${SONAR_TOKEN} \
+                                -Dsonar.projectKey=${PROJECT_NAME} \
+                                -Dsonar.projectName=${PROJECT_NAME} \
+                                -Dsonar.projectVersion=${BUILD_VERSION} \
+                                -Dsonar.sources=. \
+                                -Dsonar.exclusions=**/node_modules/**,**/test/**,**/tests/**,**/*.test.js,**/*.spec.js \
+                                -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+                        '''
                     }
                 }
             }
