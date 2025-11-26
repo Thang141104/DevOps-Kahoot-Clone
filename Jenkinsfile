@@ -33,6 +33,10 @@ pipeline {
         timeout(time: 1, unit: 'HOURS')
     }
     
+    tools {
+        nodejs 'NodeJS-18'
+    }
+    
     stages {
         stage('Checkout') {
             steps {
@@ -384,23 +388,9 @@ pipeline {
         }
         success {
             echo "✅ Pipeline completed successfully!"
-            script {
-                if (env.BRANCH_NAME == 'main') {
-                    slackSend(
-                        color: 'good',
-                        message: "✅ Build #${BUILD_NUMBER} succeeded for ${PROJECT_NAME}\nBranch: ${BRANCH_NAME}\nCommit: ${GIT_COMMIT_SHORT}"
-                    )
-                }
-            }
         }
         failure {
             echo "❌ Pipeline failed!"
-            script {
-                slackSend(
-                    color: 'danger',
-                    message: "❌ Build #${BUILD_NUMBER} failed for ${PROJECT_NAME}\nBranch: ${BRANCH_NAME}\nCommit: ${GIT_COMMIT_SHORT}"
-                )
-            }
         }
         cleanup {
             echo "🧹 Cleaning up workspace..."
