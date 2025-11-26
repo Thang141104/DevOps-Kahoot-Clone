@@ -162,21 +162,14 @@ pipeline {
                     steps {
                         script {
                             echo "🔒 Running Trivy filesystem scan..."
-                            catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
-                                sh '''
-                                    if command -v trivy >/dev/null 2>&1; then
-                                        trivy fs --severity HIGH,CRITICAL \
-                                            --format table \
-                                            --exit-code 0 \
-                                            --output trivy-fs-report.txt \
-                                            .
-                                    else
-                                        echo "⚠️ Trivy not found, skipping filesystem scan"
-                                        echo "Trivy not installed" > trivy-fs-report.txt
-                                    fi
-                                '''
-                                archiveArtifacts artifacts: 'trivy-fs-report.txt', allowEmptyArchive: true
-                            }
+                            sh '''
+                                trivy fs --severity HIGH,CRITICAL \
+                                    --format table \
+                                    --exit-code 0 \
+                                    --output trivy-fs-report.txt \
+                                    .
+                            '''
+                            archiveArtifacts artifacts: 'trivy-fs-report.txt', allowEmptyArchive: true
                         }
                     }
                 }
@@ -272,23 +265,16 @@ pipeline {
                     steps {
                         script {
                             echo "🔒 Scanning Docker images with Trivy..."
-                            catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
-                                def services = ['gateway', 'auth', 'quiz', 'game', 'user', 'analytics', 'frontend']
-                                services.each { service ->
-                                    sh """
-                                        if command -v trivy >/dev/null 2>&1; then
-                                            trivy image --severity HIGH,CRITICAL \
-                                                --format json \
-                                                --output trivy-${service}-image-report.json \
-                                                ${DOCKER_REGISTRY}/${DOCKER_USERNAME}/${PROJECT_NAME}-${service}:${BUILD_VERSION}
-                                        else
-                                            echo "⚠️ Trivy not found, skipping image scan for ${service}"
-                                            echo '{"error": "Trivy not installed"}' > trivy-${service}-image-report.json
-                                        fi
-                                    """
-                                }
-                                archiveArtifacts artifacts: 'trivy-*-image-report.json', allowEmptyArchive: true
+                            def services = ['gateway', 'auth', 'quiz', 'game', 'user', 'analytics', 'frontend']
+                            services.each { service ->
+                                sh """
+                                    trivy image --severity HIGH,CRITICAL \
+                                        --format json \
+                                        --output trivy-${service}-image-report.json \
+                                        ${DOCKER_REGISTRY}/${DOCKER_USERNAME}/${PROJECT_NAME}-${service}:${BUILD_VERSION}
+                                """
                             }
+                            archiveArtifacts artifacts: 'trivy-*-image-report.json', allowEmptyArchive: true
                         }
                     }
                 }
