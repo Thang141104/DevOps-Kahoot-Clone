@@ -41,7 +41,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 script {
-                    echo "🔄 Checking out code from repository..."
+                    echo " Checking out code from repository..."
                     checkout scm
                     sh 'git rev-parse --short HEAD > .git/commit-id'
                     env.GIT_COMMIT_SHORT = readFile('.git/commit-id').trim()
@@ -52,7 +52,7 @@ pipeline {
         stage('Environment Setup') {
             steps {
                 script {
-                    echo "🔧 Setting up environment..."
+                    echo " Setting up environment..."
                     sh '''
                         node --version
                         npm --version
@@ -122,7 +122,7 @@ pipeline {
             }
             steps {
                 script {
-                    echo "📊 Running SonarQube analysis..."
+                    echo " Running SonarQube analysis..."
                     catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
                         sh '''
                             ${SCANNER_HOME}/bin/sonar-scanner \
@@ -143,7 +143,7 @@ pipeline {
         stage('Quality Gate') {
             steps {
                 script {
-                    echo "🎯 Waiting for SonarQube Quality Gate..."
+                    echo " Waiting for SonarQube Quality Gate..."
                     catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
                         timeout(time: 5, unit: 'MINUTES') {
                             try {
@@ -165,7 +165,7 @@ pipeline {
                 stage('Trivy - Filesystem Scan') {
                     steps {
                         script {
-                            echo "🔒 Running Trivy filesystem scan..."
+                            echo " Running Trivy filesystem scan..."
                             sh '''
                                 trivy fs --severity HIGH,CRITICAL \
                                     --format table \
@@ -185,7 +185,7 @@ pipeline {
                 stage('Build Gateway') {
                     steps {
                         script {
-                            echo "🐳 Building Gateway Docker image..."
+                            echo " Building Gateway Docker image..."
                             sh '''
                                 docker build -t ${DOCKER_REGISTRY}/${DOCKER_USERNAME}/${PROJECT_NAME}-gateway:${BUILD_VERSION} \
                                     -t ${DOCKER_REGISTRY}/${DOCKER_USERNAME}/${PROJECT_NAME}-gateway:latest \
@@ -268,7 +268,7 @@ pipeline {
                 stage('Trivy - Image Scan') {
                     steps {
                         script {
-                            echo "🔒 Scanning Docker images with Trivy..."
+                            echo " Scanning Docker images with Trivy..."
                             def services = ['gateway', 'auth', 'quiz', 'game', 'user', 'analytics', 'frontend']
                             services.each { service ->
                                 sh """
@@ -291,7 +291,7 @@ pipeline {
             }
             steps {
                 script {
-                    echo "📤 Pushing Docker images to registry..."
+                    echo " Pushing Docker images to registry..."
                     docker.withRegistry("https://${DOCKER_REGISTRY}", 'dockerhub-credentials') {
                         def services = ['gateway', 'auth', 'quiz', 'game', 'user', 'analytics', 'frontend']
                         services.each { service ->
@@ -311,7 +311,7 @@ pipeline {
             }
             steps {
                 script {
-                    echo "☸️ Deploying to Kubernetes..."
+                    echo " Deploying to Kubernetes..."
                     withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
                         sh '''
                             # Update image tags in K8s manifests
@@ -346,7 +346,7 @@ pipeline {
             }
             steps {
                 script {
-                    echo "🏥 Running health checks..."
+                    echo " Running health checks..."
                     sh '''
                         # Wait for services to be ready
                         sleep 30
@@ -363,7 +363,7 @@ pipeline {
     post {
         always {
             script {
-                echo "📊 Collecting artifacts and reports..."
+                echo " Collecting artifacts and reports..."
                 // Archive test results
                 junit allowEmptyResults: true, testResults: '**/test-results/*.xml'
                 
@@ -379,13 +379,13 @@ pipeline {
             }
         }
         success {
-            echo "✅ Pipeline completed successfully!"
+            echo " Pipeline completed successfully!"
         }
         failure {
-            echo "❌ Pipeline failed!"
+            echo " Pipeline failed!"
         }
         cleanup {
-            echo "🧹 Cleaning up workspace..."
+            echo " Cleaning up workspace..."
             cleanWs()
         }
     }
