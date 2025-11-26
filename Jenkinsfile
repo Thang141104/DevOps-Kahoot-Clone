@@ -127,6 +127,7 @@ pipeline {
                         withSonarQubeEnv('SonarQube') {
                             sh '''
                                 ${SCANNER_HOME}/bin/sonar-scanner \
+                                    -Dsonar.host.url=${SONAR_HOST_URL} \
                                     -Dsonar.projectKey=${PROJECT_NAME} \
                                     -Dsonar.projectName=${PROJECT_NAME} \
                                     -Dsonar.projectVersion=${BUILD_VERSION} \
