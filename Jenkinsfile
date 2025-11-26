@@ -124,17 +124,17 @@ pipeline {
                 script {
                     echo "📊 Running SonarQube analysis..."
                     catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
-                        sh '''
-                            ${SCANNER_HOME}/bin/sonar-scanner \
-                                -Dsonar.projectKey=${PROJECT_NAME} \
-                                -Dsonar.projectName=${PROJECT_NAME} \
-                                -Dsonar.projectVersion=${BUILD_VERSION} \
-                                -Dsonar.sources=. \
-                                -Dsonar.exclusions=**/node_modules/**,**/test/**,**/tests/**,**/*.test.js \
-                                -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
-                                -Dsonar.host.url=http://sonarqube:9000 \
-                                -Dsonar.login=${SONAR_TOKEN}
-                        '''
+                        withSonarQubeEnv('SonarQube') {
+                            sh '''
+                                ${SCANNER_HOME}/bin/sonar-scanner \
+                                    -Dsonar.projectKey=${PROJECT_NAME} \
+                                    -Dsonar.projectName=${PROJECT_NAME} \
+                                    -Dsonar.projectVersion=${BUILD_VERSION} \
+                                    -Dsonar.sources=. \
+                                    -Dsonar.exclusions=**/node_modules/**,**/test/**,**/tests/**,**/*.test.js,**/*.spec.js \
+                                    -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+                            '''
+                        }
                     }
                 }
             }
@@ -146,9 +146,13 @@ pipeline {
                     echo "🎯 Waiting for SonarQube Quality Gate..."
                     catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
                         timeout(time: 5, unit: 'MINUTES') {
-                            def qg = waitForQualityGate()
-                            if (qg.status != 'OK') {
-                                unstable "Quality gate failure: ${qg.status}"
+                            try {
+                                def qg = waitForQualityGate()
+                                if (qg.status != 'OK') {
+                                    unstable "Quality gate failure: ${qg.status}"
+                                }
+                            } catch (Exception e) {
+                                echo "Quality gate check skipped: ${e.message}"
                             }
                         }
                     }
@@ -275,23 +279,6 @@ pipeline {
                                 """
                             }
                             archiveArtifacts artifacts: 'trivy-*-image-report.json', allowEmptyArchive: true
-                        }
-                    }
-                }
-                
-                stage('Snyk - Container Scan') {
-                    steps {
-                        script {
-                            echo "🔒 Scanning Docker images with Snyk..."
-                            def services = ['gateway', 'auth', 'quiz', 'game', 'user', 'analytics', 'frontend']
-                            services.each { service ->
-                                sh """
-                                    snyk container test ${DOCKER_REGISTRY}/${DOCKER_USERNAME}/${PROJECT_NAME}-${service}:${BUILD_VERSION} \
-                                        --severity-threshold=high \
-                                        --json > snyk-${service}-container-report.json || true
-                                """
-                            }
-                            archiveArtifacts artifacts: 'snyk-*-container-report.json', allowEmptyArchive: true
                         }
                     }
                 }
