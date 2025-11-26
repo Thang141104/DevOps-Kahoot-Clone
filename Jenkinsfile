@@ -35,7 +35,6 @@ pipeline {
     
     tools {
         nodejs 'NodeJS 18'
-        'org.sonarsource.scanner.jenkins.tool.SonarRunnerInstallation' 'SonarQube Scanner'
     }
     
     stages {
