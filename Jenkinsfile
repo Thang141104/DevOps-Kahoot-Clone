@@ -117,12 +117,15 @@ pipeline {
         }
         
         stage('Code Quality - SonarQube Analysis') {
+            environment {
+                SCANNER_HOME = tool 'SonarQube Scanner'
+            }
             steps {
                 script {
                     echo "📊 Running SonarQube analysis..."
                     withSonarQubeEnv('SonarQube') {
                         sh '''
-                            sonar-scanner \
+                            ${SCANNER_HOME}/bin/sonar-scanner \
                                 -Dsonar.projectKey=${PROJECT_NAME} \
                                 -Dsonar.projectName=${PROJECT_NAME} \
                                 -Dsonar.projectVersion=${BUILD_VERSION} \
