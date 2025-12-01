@@ -106,3 +106,18 @@ variable "project_name" {
   type        = string
   default     = "Kahoot-Clone"
 }
+
+# Jenkins Configuration
+variable "jenkins_instance_type" {
+  description = "EC2 instance type for Jenkins server"
+  type        = string
+  default     = "t3.small"  # 2 vCPU, 2GB RAM (~$15/month)
+}
+
+# Kubernetes Configuration
+variable "k8s_instance_type" {
+  description = "EC2 instance type for Kubernetes master"
+  type        = string
+  default     = "t3.small"  # 2 vCPU, 2GB RAM (~$15/month)
+}
+
