@@ -59,6 +59,10 @@ cp terraform.tfvars.example terraform.tfvars
 
 Edit `terraform.tfvars` with your values:
 ```hcl
+# AWS Credentials (Already provided)
+aws_access_key = "your_access_key"
+aws_secret_key = "your_secret_key"
+aws_region     = "us-east-1"
 
 # MongoDB Atlas Connection (REQUIRED - Get from MongoDB Atlas)
 mongodb_uri = "mongodb+srv://username:password@cluster.mongodb.net/kahoot?retryWrites=true&w=majority"
