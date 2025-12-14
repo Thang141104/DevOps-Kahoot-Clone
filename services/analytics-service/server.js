@@ -2,10 +2,14 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const { metricsMiddleware, register } = require('./utils/metrics');
 
 // Initialize Express app
 const app = express();
 const PORT = process.env.PORT || 3005;
+
+// Metrics middleware
+app.use(metricsMiddleware);
 
 // Middleware
 app.use(cors());
@@ -30,6 +34,17 @@ mongoose.connect(process.env.MONGODB_URI)
 app.use('/events', eventsRoutes);
 app.use('/stats', statsRoutes);
 app.use('/reports', statsRoutes); // Reports are also in stats routes
+
+// Metrics endpoint
+app.get('/metrics', async (req, res) => {
+  try {
+    res.set('Content-Type', register.contentType);
+    const metrics = await register.metrics();
+    res.end(metrics);
+  } catch (err) {
+    res.status(500).end(err.message);
+  }
+});
 
 // Health check
 app.get('/health', (req, res) => {

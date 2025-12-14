@@ -4,10 +4,14 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const { metricsMiddleware, register } = require('./utils/metrics');
 
 // Initialize Express app
 const app = express();
 const PORT = process.env.PORT || 3004;
+
+// Metrics middleware
+app.use(metricsMiddleware);
 
 // Middleware
 app.use(cors());
@@ -60,6 +64,17 @@ async function initializeAchievements() {
     console.error('❌ Error initializing achievements:', error);
   }
 }
+
+// Metrics endpoint
+app.get('/metrics', async (req, res) => {
+  try {
+    res.set('Content-Type', register.contentType);
+    const metrics = await register.metrics();
+    res.end(metrics);
+  } catch (err) {
+    res.status(500).end(err.message);
+  }
+});
 
 // Health check endpoint
 app.get('/health', (req, res) => {

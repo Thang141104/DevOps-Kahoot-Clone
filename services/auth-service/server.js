@@ -1,9 +1,13 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const { metricsMiddleware, register } = require('./utils/metrics');
 require('dotenv').config();
 
 const app = express();
+
+// Metrics middleware (must be first)
+app.use(metricsMiddleware);
 
 // Middleware
 app.use(cors());
@@ -23,6 +27,17 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/quiz-a
 mongoose.connect(MONGODB_URI)
   .then(() => console.log('✅ Auth Service: Connected to MongoDB'))
   .catch((err) => console.error('❌ Auth Service: MongoDB connection error:', err));
+
+// Metrics endpoint
+app.get('/metrics', async (req, res) => {
+  try {
+    res.set('Content-Type', register.contentType);
+    const metrics = await register.metrics();
+    res.end(metrics);
+  } catch (err) {
+    res.status(500).end(err.message);
+  }
+});
 
 // Health check (must be before auth routes to avoid conflicts)
 app.get('/health', (req, res) => {

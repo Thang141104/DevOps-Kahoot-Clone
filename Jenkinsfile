@@ -34,7 +34,7 @@ pipeline {
     }
     
     tools {
-        nodejs 'NodeJS 18'
+        nodejs 'Node JS 18'
     }
     
     stages {
@@ -306,9 +306,6 @@ pipeline {
         }
         
         stage('Deploy to Kubernetes') {
-            when {
-                branch 'main'
-            }
             steps {
                 script {
                     echo " Deploying to Kubernetes..."
@@ -326,6 +323,10 @@ pipeline {
                             kubectl apply -f k8s/secrets.yaml
                             kubectl apply -f k8s/
                             
+                            # Deploy monitoring stack
+                            kubectl apply -f k8s/prometheus-deployment.yaml
+                            kubectl apply -f k8s/grafana-deployment.yaml
+                            
                             # Wait for rollout
                             kubectl rollout status deployment/gateway -n kahoot-clone
                             kubectl rollout status deployment/auth-service -n kahoot-clone
@@ -334,6 +335,10 @@ pipeline {
                             kubectl rollout status deployment/user-service -n kahoot-clone
                             kubectl rollout status deployment/analytics-service -n kahoot-clone
                             kubectl rollout status deployment/frontend -n kahoot-clone
+                            
+                            # Wait for monitoring stack
+                            kubectl rollout status deployment/prometheus -n monitoring
+                            kubectl rollout status deployment/grafana -n monitoring
                         '''
                     }
                 }
@@ -341,9 +346,6 @@ pipeline {
         }
         
         stage('Health Check') {
-            when {
-                branch 'main'
-            }
             steps {
                 script {
                     echo " Running health checks..."
@@ -352,8 +354,25 @@ pipeline {
                         sleep 30
                         
                         # Check service health
+                        echo "=== Application Pods ==="
                         kubectl get pods -n kahoot-clone
                         kubectl get services -n kahoot-clone
+                        
+                        echo ""
+                        echo "=== Monitoring Stack ==="
+                        kubectl get pods -n monitoring
+                        kubectl get services -n monitoring
+                        
+                        # Get monitoring URLs
+                        K8S_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="ExternalIP")].address}')
+                        if [ -z "$K8S_IP" ]; then
+                            K8S_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')
+                        fi
+                        
+                        echo ""
+                        echo "=== Monitoring Access URLs ==="
+                        echo "Prometheus: http://$K8S_IP:30090"
+                        echo "Grafana:    http://$K8S_IP:30300 (admin/admin123)"
                     '''
                 }
             }

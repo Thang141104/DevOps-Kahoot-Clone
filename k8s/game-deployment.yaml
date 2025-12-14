@@ -17,6 +17,10 @@ spec:
       labels:
         app: game-service
         tier: backend
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3003"
+        prometheus.io/path: "/metrics"
     spec:
       containers:
       - name: game-service

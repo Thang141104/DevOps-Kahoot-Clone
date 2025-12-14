@@ -17,6 +17,10 @@ spec:
       labels:
         app: user-service
         tier: backend
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3004"
+        prometheus.io/path: "/metrics"
     spec:
       containers:
       - name: user-service

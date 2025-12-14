@@ -173,6 +173,19 @@ Upload this kubeconfig file as a Jenkins credential named `kubeconfig`.
    - Repository URL: `https://github.com/Thang141104/DevOps-Kahoot-Clone.git`
    - Branch: `fix/auth-routing-issues` or `main`
    - Script Path: `Jenkinsfile`
+3. Build Triggers:
+   - ☑️ **GitHub hook trigger for GITScm polling**
+
+### Step 6.1: Configure GitHub Webhook
+
+1. Go to GitHub Repository → **Settings** → **Webhooks** → **Add webhook**
+2. Configure:
+   - **Payload URL**: `http://<JENKINS_PUBLIC_IP>:8080/github-webhook/`
+   - **Content type**: `application/json`
+   - **Events**: Just the push event
+   - ☑️ Active
+3. Click **Add webhook**
+4. Test webhook: Make a push and verify pipeline triggers automatically
 
 ### Step 7: Build Docker Images
 

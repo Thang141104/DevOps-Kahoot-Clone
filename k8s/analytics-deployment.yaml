@@ -17,6 +17,10 @@ spec:
       labels:
         app: analytics-service
         tier: backend
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3005"
+        prometheus.io/path: "/metrics"
     spec:
       containers:
       - name: analytics-service

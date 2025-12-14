@@ -17,6 +17,8 @@ spec:
       labels:
         app: frontend
         tier: frontend
+      annotations:
+        prometheus.io/scrape: "false"
     spec:
       containers:
       - name: frontend

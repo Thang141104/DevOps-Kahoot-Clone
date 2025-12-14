@@ -3,6 +3,7 @@ const http = require('http');
 const socketIo = require('socket.io');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const { metricsMiddleware, register } = require('./utils/metrics');
 require('dotenv').config();
 const { trackEventAndUpdateStats } = require('./utils/eventTracker');
 
@@ -14,6 +15,9 @@ const io = socketIo(server, {
     methods: ["GET", "POST"]
   }
 });
+
+// Metrics middleware
+app.use(metricsMiddleware);
 
 // Middleware
 app.use(cors());
@@ -545,6 +549,17 @@ function generatePin() {
 // REST API routes
 const gameRoutes = require('./routes/game.routes');
 app.use('/games', gameRoutes);
+
+// Metrics endpoint
+app.get('/metrics', async (req, res) => {
+  try {
+    res.set('Content-Type', register.contentType);
+    const metrics = await register.metrics();
+    res.end(metrics);
+  } catch (err) {
+    res.status(500).end(err.message);
+  }
+});
 
 // Health check
 app.get('/health', (req, res) => {

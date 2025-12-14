@@ -142,7 +142,18 @@ Hoặc tạo thủ công theo template trong JENKINS_CICD_README.md
    - **Repository**: https://github.com/Thang141104/DevOps-Kahoot-Clone.git
    - **Branch**: fix/auth-routing-issues
    - **Script Path**: Jenkinsfile
-3. Save
+3. **Build Triggers**:
+   - ☑️ **GitHub hook trigger for GITScm polling**
+4. Save
+
+### Bước 7.1: Cấu hình GitHub Webhook
+
+1. GitHub → Repository **Settings** → **Webhooks** → **Add webhook**
+2. Configure:
+   - **Payload URL**: `http://<JENKINS_IP>:8080/github-webhook/`
+   - **Content type**: `application/json`
+   - **Events**: Just the push event
+3. Click **Add webhook**
 
 ### Bước 8: Build!
 

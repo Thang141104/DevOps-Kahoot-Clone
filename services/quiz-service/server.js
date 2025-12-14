@@ -2,9 +2,13 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
+const { metricsMiddleware, register } = require('./utils/metrics');
 require('dotenv').config();
 
 const app = express();
+
+// Metrics middleware
+app.use(metricsMiddleware);
 
 // Middleware
 app.use(cors());
@@ -26,6 +30,17 @@ const quizRoutes = require('./routes/quiz.routes');
 const uploadRoutes = require('./routes/upload.routes');
 app.use('/quizzes', quizRoutes);
 app.use('/upload', uploadRoutes);
+
+// Metrics endpoint
+app.get('/metrics', async (req, res) => {
+  try {
+    res.set('Content-Type', register.contentType);
+    const metrics = await register.metrics();
+    res.end(metrics);
+  } catch (err) {
+    res.status(500).end(err.message);
+  }
+});
 
 // Health check
 app.get('/health', (req, res) => {

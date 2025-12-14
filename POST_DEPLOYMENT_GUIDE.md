@@ -1,10 +1,10 @@
-# 📋 Post-Deployment Guide - Kahoot Clone CI/CD
+#  Post-Deployment Guide - Kahoot Clone CI/CD
 
 Hướng dẫn chi tiết các bước sau khi chạy `terraform apply` thành công.
 
 ---
 
-## 🚀 **Bước 1: Lấy thông tin Infrastructure**
+##  **Bước 1: Lấy thông tin Infrastructure**
 
 ```bash
 cd terraform
@@ -19,7 +19,7 @@ terraform output
 
 ---
 
-## 🔐 **Bước 2: Truy cập Jenkins**
+##  **Bước 2: Truy cập Jenkins**
 
 ### **2.1. Mở Jenkins UI**
 ```
@@ -31,7 +31,7 @@ Password: admin123
 ### **2.2. Kiểm tra plugins đã cài**
 Vào: **Manage Jenkins** → **Plugins** → **Installed plugins**
 
-✅ Cần có:
+ Cần có:
 - Docker Pipeline
 - Kubernetes CLI
 - SonarQube Scanner
@@ -39,7 +39,7 @@ Vào: **Manage Jenkins** → **Plugins** → **Installed plugins**
 - NodeJS
 - HTML Publisher
 - Workspace Cleanup
-
+- Github
 ### **2.3. Cấu hình Tools**
 Vào: **Manage Jenkins** → **Tools**
 
@@ -49,7 +49,7 @@ Vào: **Manage Jenkins** → **Tools**
 
 #### **SonarQube Scanner:**
 - Name: `SonarQube Scanner`
-- Version: SonarQube Scanner 5.0.1.3006
+- Version: SonarQube Scanner 8.0.1.6346
 
 #### **Docker:**
 - Name: `docker`
@@ -91,7 +91,7 @@ cat ~/.kube/config
 
 ---
 
-## 🔍 **Bước 3: Cấu hình SonarQube**
+##  **Bước 3: Cấu hình SonarQube**
 
 ### **3.1. Truy cập SonarQube**
 ```
@@ -122,19 +122,21 @@ Vào Jenkins: **Manage Jenkins** → **System** → **SonarQube servers**
 
 ---
 
-## 🔨 **Bước 4: Tạo Jenkins Pipeline Job**
+##  **Bước 4: Tạo Jenkins Pipeline Job**
 
 ### **4.1. Tạo Job mới**
 1. **New Item** → Nhập tên: `kahoot-clone-pipeline`
 2. Chọn **Pipeline** → Click **OK**
 
 ### **4.2. Cấu hình General**
-- ✅ **Discard old builds**: 
+-  **Discard old builds**: 
   - Days to keep: `7`
   - Max # of builds to keep: `10`
 
 ### **4.3. Cấu hình Build Triggers**
-- ✅ **Poll SCM**: `H/5 * * * *` (Poll GitHub mỗi 5 phút)
+-  **GitHub hook trigger for GITScm polling** (Trigger tự động khi có push vào GitHub)
+
+> **Lưu ý**: Cần cấu hình webhook trên GitHub (xem bước 10)
 
 ### **4.4. Cấu hình Pipeline**
 - Definition: `Pipeline script from SCM`
@@ -150,7 +152,7 @@ Vào Jenkins: **Manage Jenkins** → **System** → **SonarQube servers**
 
 ---
 
-## 📊 **Bước 5: Kiểm tra Pipeline chạy thành công**
+##  **Bước 5: Kiểm tra Pipeline chạy thành công**
 
 ### **5.1. Xem Console Output**
 Click vào build number → **Console Output**
@@ -159,17 +161,17 @@ Click vào build number → **Console Output**
 
 | Stage | Mô tả | Thời gian |
 |-------|-------|-----------|
-| ✅ Checkout | Clone code từ GitHub | ~5s |
-| ✅ Environment Setup | Kiểm tra Node, npm, Docker | ~2s |
-| ✅ Install Dependencies | npm ci cho 7 services | ~15s |
-| ✅ SonarQube Analysis | Phân tích code quality | ~2m |
-| ⚠️ Quality Gate | Chờ SonarQube kết quả | ~30s |
-| ✅ Security Scanning | Trivy filesystem scan | ~5s |
-| ✅ Build Docker Images | Build 7 images | ~45s |
-| ✅ Security Scan Images | Trivy image scans | ~10s |
-| ⏭️ Push Images | *Chỉ chạy trên main branch* | ~30s |
-| ⏭️ Deploy to K8s | *Chỉ chạy trên main branch* | ~2m |
-| ⏭️ Health Check | *Chỉ chạy trên main branch* | ~30s |
+|  Checkout | Clone code từ GitHub | ~5s |
+|  Environment Setup | Kiểm tra Node, npm, Docker | ~2s |
+|  Install Dependencies | npm ci cho 7 services | ~15s |
+|  SonarQube Analysis | Phân tích code quality | ~2m |
+|  Quality Gate | Chờ SonarQube kết quả | ~30s |
+|  Security Scanning | Trivy filesystem scan | ~5s |
+|  Build Docker Images | Build 7 images | ~45s |
+|  Security Scan Images | Trivy image scans | ~10s |
+|  Push Images | *Chỉ chạy trên main branch* | ~30s |
+|  Deploy to K8s | *Chỉ chạy trên main branch* | ~2m |
+|  Health Check | *Chỉ chạy trên main branch* | ~30s |
 
 ### **5.3. Nếu có lỗi SonarQube:**
 - Vào SonarQube UI: http://<jenkins_ip>:9000
@@ -178,7 +180,7 @@ Click vào build number → **Console Output**
 
 ---
 
-## 🐳 **Bước 6: Verify Docker Images**
+##  **Bước 6: Verify Docker Images**
 
 ### **6.1. Kiểm tra images đã build**
 SSH vào Jenkins server:
@@ -204,7 +206,7 @@ Trong Jenkins UI → Build → **Workspace** → Các file `trivy-*-report.json`
 
 ---
 
-## 🚢 **Bước 7: Deploy lên Kubernetes (Main branch)**
+##  **Bước 7: Deploy lên Kubernetes (Main branch)**
 
 ### **7.1. Merge code vào main**
 ```bash
@@ -215,9 +217,9 @@ git push origin main
 
 ### **7.2. Jenkins tự động trigger**
 Pipeline sẽ chạy lại và thực hiện:
-1. ✅ Push images lên Docker Hub
-2. ✅ Deploy lên K8s cluster
-3. ✅ Health check pods
+1.  Push images lên Docker Hub
+2.  Deploy lên K8s cluster
+3.  Health check pods
 
 ### **7.3. Kiểm tra deployment**
 SSH vào K8s master:
@@ -236,7 +238,7 @@ kubectl logs -f deployment/gateway -n kahoot-clone
 
 ---
 
-## 🔍 **Bước 8: Truy cập Application**
+##  **Bước 8: Truy cập Application**
 
 ### **8.1. Lấy service URLs**
 ```bash
@@ -255,7 +257,7 @@ curl http://<K8s-External-IP>:3000/health
 
 ---
 
-## 📈 **Bước 9: Monitoring & Logs**
+##  **Bước 9: Monitoring & Logs**
 
 ### **9.1. Jenkins Logs**
 ```
@@ -281,7 +283,7 @@ kubectl get events -n kahoot-clone
 
 ---
 
-## 🛠️ **Bước 10: Troubleshooting**
+##  **Bước 10: Troubleshooting**
 
 ### **Vấn đề 1: Pipeline fail ở SonarQube**
 **Lỗi**: `out of memory` hoặc `timeout`
@@ -333,12 +335,14 @@ terraform apply
 
 ---
 
-## 📝 **Checklist hoàn thành**
+##  **Checklist hoàn thành**
 
 - [ ] Jenkins accessible tại http://<ip>:8080
 - [ ] SonarQube accessible tại http://<ip>:9000
 - [ ] Pipeline job được tạo
 - [ ] Tất cả credentials đã cấu hình
+- [ ] **GitHub webhook đã được cấu hình** ✅
+- [ ] **Webhook test thành công (status 200)** ✅
 - [ ] Build đầu tiên chạy thành công
 - [ ] Docker images được build thành công
 - [ ] SonarQube analysis hoàn thành
@@ -351,12 +355,59 @@ terraform apply
 
 ---
 
-## 🎯 **Next Steps**
+##  **Bước 11: Cấu hình GitHub Webhook** (Bắt buộc)
 
-1. **Thêm webhooks** (nếu bạn là owner của repo):
-   - GitHub → Settings → Webhooks
-   - Payload URL: `http://<jenkins_ip>:8080/github-webhook/`
-   - Trigger: Push events
+### **11.1. Truy cập GitHub Repository**
+```
+https://github.com/Thang141104/DevOps-Kahoot-Clone
+```
+
+### **11.2. Thêm Webhook**
+1. **Settings** → **Webhooks** → **Add webhook**
+2. Cấu hình:
+   - **Payload URL**: `http://<jenkins_public_ip>:8080/github-webhook/`
+   - **Content type**: `application/json`
+   - **SSL verification**: Disable (cho development)
+   - **Which events**: Chọn "Just the push event"
+   - ☑️ **Active**
+
+3. Click **Add webhook**
+
+### **11.3. Test Webhook**
+```bash
+# Push test commit
+git commit --allow-empty -m "Test webhook trigger"
+git push origin main
+```
+
+Jenkins pipeline sẽ tự động chạy sau vài giây!
+
+### **11.4. Xem Webhook Status**
+- GitHub → Webhooks → Click vào webhook
+- Tab **Recent Deliveries** → Xem response từ Jenkins
+- Status 200 = Success ✅
+
+### **11.5. Troubleshooting Webhook**
+
+**Lỗi: Connection timeout**
+- Kiểm tra Security Group của Jenkins EC2
+- Port 8080 phải allow từ GitHub IPs (0.0.0.0/0)
+
+**Lỗi: 403 Forbidden**
+- Kiểm tra Jenkins Security settings
+- Manage Jenkins → Security → Enable proxy compatibility
+
+**Lỗi: 404 Not Found**
+- URL phải là: `http://<ip>:8080/github-webhook/` (có trailing slash)
+- Không được là: `/job/kahoot-clone-pipeline/build`
+
+---
+
+## **Next Steps**
+
+1. **Monitoring tự động với webhook**:
+   - Mỗi push sẽ trigger build ngay lập tức
+   - Không cần Poll SCM (tiết kiệm resource)
 
 2. **Cấu hình monitoring**:
    - Prometheus + Grafana cho K8s
@@ -380,7 +431,7 @@ terraform apply
 
 ---
 
-## 📞 **Support**
+##  **Support**
 
 Nếu gặp vấn đề:
 1. Kiểm tra Jenkins console output
@@ -391,4 +442,4 @@ Nếu gặp vấn đề:
 
 ---
 
-**🎊 Chúc mừng! CI/CD pipeline đã sẵn sàng!**
+** Chúc mừng! CI/CD pipeline đã sẵn sàng!**
