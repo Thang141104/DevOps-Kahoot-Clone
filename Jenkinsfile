@@ -34,7 +34,7 @@ pipeline {
     }
     
     tools {
-        nodejs 'NodeJS 18'
+        nodejs 'Node JS 18'
     }
     
     stages {
@@ -306,6 +306,9 @@ pipeline {
         }
         
         stage('Deploy to Kubernetes') {
+            when {
+                branch 'main'
+            }
             steps {
                 script {
                     echo " Deploying to Kubernetes..."
@@ -346,6 +349,9 @@ pipeline {
         }
         
         stage('Health Check') {
+            when {
+                branch 'main'
+            }
             steps {
                 script {
                     echo " Running health checks..."
@@ -380,32 +386,11 @@ pipeline {
     }
     
     post {
-        always {
-            script {
-                echo " Collecting artifacts and reports..."
-                // Archive test results
-                junit allowEmptyResults: true, testResults: '**/test-results/*.xml'
-                
-                // Publish HTML reports
-                publishHTML([
-                    allowMissing: true,
-                    alwaysLinkToLastBuild: true,
-                    keepAll: true,
-                    reportDir: 'coverage',
-                    reportFiles: 'index.html',
-                    reportName: 'Coverage Report'
-                ])
-            }
-        }
         success {
             echo " Pipeline completed successfully!"
         }
         failure {
             echo " Pipeline failed!"
-        }
-        cleanup {
-            echo " Cleaning up workspace..."
-            cleanWs()
         }
     }
 }
