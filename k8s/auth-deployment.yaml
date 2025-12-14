@@ -24,7 +24,7 @@ spec:
     spec:
       containers:
       - name: auth-service
-        image: docker.io/kahoot-clone-auth:latest
+        image: 22521284/kahoot-clone-auth:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 3001

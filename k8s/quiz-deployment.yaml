@@ -24,7 +24,7 @@ spec:
     spec:
       containers:
       - name: quiz-service
-        image: docker.io/kahoot-clone-quiz:latest
+        image: 22521284/kahoot-clone-quiz:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 3002

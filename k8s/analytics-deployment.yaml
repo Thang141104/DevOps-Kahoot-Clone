@@ -24,7 +24,7 @@ spec:
     spec:
       containers:
       - name: analytics-service
-        image: docker.io/kahoot-clone-analytics:latest
+        image: 22521284/kahoot-clone-analytics:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 3005

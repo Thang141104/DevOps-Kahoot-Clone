@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: docker.io/kahoot-clone-frontend:latest
+        image: 22521284/kahoot-clone-frontend:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 3006
