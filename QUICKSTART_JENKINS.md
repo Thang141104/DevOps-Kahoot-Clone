@@ -3,11 +3,11 @@
 ## 📋 Tổng Quan Hệ Thống
 
 ### Infrastructure đã tạo:
-- ✅ **Jenkins Server** (EC2 t3.medium) - Port 8080
-- ✅ **SonarQube** - Port 9000  
-- ✅ **Kubernetes Cluster** (k3s) - Port 6443
-- ✅ **Docker Registry** - Port 5000
-- ✅ **PostgreSQL** - Database cho SonarQube
+- ✅ **Jenkins Server** (c7i-flex.large) - Port 8080
+- ✅ **Kubernetes Cluster** (k3s) - Port 6443  
+- ✅ **Docker Registry** - Registry 22521284
+- ❌ **KHÔNG CÓ SonarQube** (đã loại bỏ)
+- ❌ **KHÔNG CÓ App Server** (chỉ dùng K8s)
 
 ### AWS Credentials Required:
 ```
@@ -21,33 +21,18 @@ Region: us-east-1
 ## 🎯 CI/CD Pipeline Stages
 
 1. **Checkout** - Clone code từ GitHub
-2. **Install Dependencies** - npm install cho 7 services
-3. **SonarQube Analysis** - Kiểm tra chất lượng code
-4. **Quality Gate** - Đảm bảo code đạt tiêu chuẩn
-5. **Security Scan** - Trivy + Snyk scan dependencies
-6. **Build Docker Images** - Build 7 images
-7. **Scan Docker Images** - Security scan images
-8. **Push to Registry** - Push lên Docker Hub
-9. **Deploy to K8s** - Deploy lên Kubernetes
-10. **Health Check** - Verify deployment
+2. **Environment Setup** - Kiểm tra Node, npm, Docker
+3. **Install Dependencies** - npm install cho 7 services
+4. **Build Docker Images** - Build 7 images
+5. **Push to Registry** - Push lên Docker Hub (22521284)
+6. **Deploy to K8s** - Deploy lên Kubernetes
+7. **Health Check** - Verify deployment
 
-## 🔒 Security Tools
-
-### Trivy
-- Filesystem vulnerability scanning
-- Docker image scanning
-- HIGH/CRITICAL severities
-
-### Snyk
-- Dependency vulnerability scanning
-- Container scanning
-- License compliance
-
-### SonarQube
-- Code quality analysis
-- Security hotspots
-- Code coverage
-- Technical debt
+**❌ ĐÃ LOẠI BỎ:**
+- ~~SonarQube Analysis~~ (removed for performance)
+- ~~Quality Gate~~ (removed)
+- ~~Trivy Security Scan~~ (removed for performance)
+- ~~Snyk Dependency Scan~~ (removed)
 
 ## ☸️ Kubernetes Deployments
 
@@ -65,88 +50,97 @@ Mỗi service:
 - Health checks
 - Resource limits
 - Auto-restart
+- Registry: **22521284** (NOT docker.io)
 
 ## 🚀 Bắt Đầu Nhanh
 
 ### Bước 1: Deploy Infrastructure
 ```powershell
 cd terraform
-.\setup-jenkins.ps1
+terraform init
+terraform plan
+terraform apply -auto-approve
 ```
+
+**Đợi 10-15 phút** cho user-data scripts:
+- Jenkins: Cài Docker, setup Jenkins container
+- K8s: Cài k3s cluster, setup kubectl
 
 ### Bước 2: Chờ Services Khởi Động (5 phút)
 ```bash
-# Kiểm tra status
-ssh -i kahoot-key.pem ubuntu@<JENKINS_IP>
-/home/ubuntu/show-info.sh
+# Lấy thông tin
+cd terraform
+terraform output
+```
+
+Bạn sẽ thấy:
+```
+jenkins_url = "http://<JENKINS_IP>:8080"
+k8s_api_endpoint = "https://<K8S_IP>:6443"
 ```
 
 ### Bước 3: Cấu Hình Jenkins
 
 1. **Truy cập Jenkins**: http://<JENKINS_IP>:8080
-2. **Lấy password**: Từ /home/ubuntu/show-info.sh
-3. **Install plugins**:
+
+2. **Lấy admin password**:
+```bash
+ssh -i kahoot-key.pem ubuntu@<JENKINS_IP>
+docker exec -it jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+```
+
+3. **Install suggested plugins** + thêm:
    - Docker Pipeline
-   - Kubernetes
-   - SonarQube Scanner
-   - Git, NodeJS
+   - Kubernetes CLI Plugin
+   - NodeJS Plugin
 
 4. **Thêm Credentials** (Manage Jenkins → Credentials):
 
    | ID | Type | Values |
    |---|---|---|
-   | `dockerhub-credentials` | Username/Password | Docker Hub login |
-   | `aws-credentials` | AWS Credentials | YOUR_AWS_KEY / YOUR_SECRET |
-   | `sonarqube-token` | Secret Text | From SonarQube |
-   | `snyk-token` | Secret Text | From snyk.io |
-   | `kubeconfig` | Secret File | From K8s server |
+   | `dockerhub-credentials` | Username/Password | Docker Hub login (22521284) |
+   | `github-credentials` | Username/Password | GitHub token |
+   | `kubeconfig` | Secret File | K8s kubeconfig file |
 
-### Bước 4: Cấu Hình SonarQube
+**❌ KHÔNG CẦN:**
+- ~~sonarqube-token~~ (đã loại bỏ SonarQube)
+- ~~snyk-token~~ (đã loại bỏ Snyk)
 
-1. **Truy cập**: http://<JENKINS_IP>:9000
-2. **Login**: admin/admin (đổi ngay)
-3. **Tạo token**: My Account → Security → Generate Token
-4. **Add vào Jenkins**: Manage Jenkins → Configure System → SonarQube
-
-### Bước 5: Get Kubeconfig
+### Bước 4: Get Kubeconfig
 
 ```bash
 # SSH to K8s server
 ssh -i kahoot-key.pem ubuntu@<K8S_IP>
-/home/ubuntu/get-kubeconfig.sh
+
+# Get kubeconfig
+sudo cat /etc/rancher/k3s/k3s.yaml > ~/kubeconfig.yaml
+exit
 
 # Download kubeconfig
-scp ubuntu@<K8S_IP>:/etc/rancher/k3s/k8s.yaml ./kubeconfig
+scp -i kahoot-key.pem ubuntu@<K8S_IP>:~/kubeconfig.yaml ./kubeconfig.yaml
 
-# Update IP
-sed -i 's/127.0.0.1/<K8S_PUBLIC_IP>/g' kubeconfig
+# Update IP trong file
+# Thay 127.0.0.1 thành <K8S_PUBLIC_IP>
 ```
 
-Upload file này làm Jenkins credential: `kubeconfig`
+Upload file này làm Jenkins credential ID: `kubeconfig`
 
-### Bước 6: Tạo Dockerfiles
+### Bước 5: Tạo Jenkins Pipeline
 
-```bash
-# Run script
-bash create-dockerfiles.sh
-```
-
-Hoặc tạo thủ công theo template trong JENKINS_CICD_README.md
-
-### Bước 7: Tạo Jenkins Pipeline
-
-1. Jenkins → New Item → **Pipeline**
-2. Configure:
+1. Jenkins → **New Item** → Tên: `kahoot-clone-pipeline`
+2. Chọn **Pipeline** → OK
+3. Configure:
    - **Definition**: Pipeline script from SCM
    - **SCM**: Git
    - **Repository**: https://github.com/Thang141104/DevOps-Kahoot-Clone.git
-   - **Branch**: fix/auth-routing-issues
-   - **Script Path**: Jenkinsfile
-3. **Build Triggers**:
+   - **Credentials**: Chọn `github-credentials`
+   - **Branch**: `*/fix/auth-routing-issues` hoặc `*/main`
+   - **Script Path**: `Jenkinsfile`
+4. **Build Triggers**:
    - ☑️ **GitHub hook trigger for GITScm polling**
-4. Save
+5. **Save**
 
-### Bước 7.1: Cấu hình GitHub Webhook
+### Bước 6: Cấu hình GitHub Webhook
 
 1. GitHub → Repository **Settings** → **Webhooks** → **Add webhook**
 2. Configure:
@@ -155,7 +149,7 @@ Hoặc tạo thủ công theo template trong JENKINS_CICD_README.md
    - **Events**: Just the push event
 3. Click **Add webhook**
 
-### Bước 8: Build!
+### Bước 7: Build!
 
 Click **Build Now** và theo dõi pipeline!
 
@@ -165,36 +159,40 @@ Click **Build Now** và theo dõi pipeline!
 ```
 URL: http://<JENKINS_IP>:8080
 - Build history
-- Test results  
-- Security reports
+- Console output
+- Artifacts (nếu có)
 ```
 
-### SonarQube Dashboard
+### Kubernetes Monitoring
 ```
-URL: http://<JENKINS_IP>:9000
-- Code quality
-- Security issues
-- Coverage
+Prometheus: http://<K8S_IP>:30090
+Grafana:    http://<K8S_IP>:30300 (admin/admin)
 ```
 
 ### Application Access (sau khi deploy)
 ```
 Frontend: http://<K8S_IP>:30006
-Gateway: http://<K8S_IP>:30000
+Gateway:  http://<K8S_IP>:30000
 ```
 
 ### Kubernetes Commands
 ```bash
+# SSH to K8s server
+ssh -i kahoot-key.pem ubuntu@<K8S_IP>
+
 # Check pods
 kubectl get pods -n kahoot-clone
+
+# Expected: 14 pods (7 services × 2 replicas)
+# All should be Running
 
 # Check services
 kubectl get svc -n kahoot-clone
 
 # Check logs
-kubectl logs <pod-name> -n kahoot-clone
+kubectl logs <pod-name> -n kahoot-clone -f
 
-# Describe pod
+# Describe pod (for troubleshooting)
 kubectl describe pod <pod-name> -n kahoot-clone
 ```
 
@@ -202,90 +200,111 @@ kubectl describe pod <pod-name> -n kahoot-clone
 
 ### Jenkins không start?
 ```bash
+ssh -i kahoot-key.pem ubuntu@<JENKINS_IP>
+docker ps -a
 docker logs jenkins
 docker restart jenkins
 ```
 
-### SonarQube không kết nối?
-```bash
-docker logs sonarqube
-# Đợi thêm 2-3 phút
-```
-
 ### Pipeline fail?
-1. Kiểm tra Jenkins console output
-2. Review security scan reports (artifacts)
-3. Check credentials trong Jenkins
-4. Verify SonarQube connection
+1. Kiểm tra Jenkins **Console Output**
+2. Kiểm tra credentials:
+   - `dockerhub-credentials` (username: 22521284)
+   - `github-credentials`
+   - `kubeconfig`
+3. Kiểm tra Jenkinsfile syntax
 
 ### K8s pods không start?
 ```bash
 kubectl describe pod <pod-name> -n kahoot-clone
 kubectl logs <pod-name> -n kahoot-clone
+
+# Check events
+kubectl get events -n kahoot-clone --sort-by='.lastTimestamp'
 ```
 
-## 📁 Files Đã Tạo
+### Docker images không pull được?
+Kiểm tra registry trong K8s deployment YAMLs:
+```yaml
+image: 22521284/kahoot-clone-auth:latest  # ✅ ĐÚNG
+# NOT: docker.io/kahoot-clone-auth:latest  # ❌ SAI
+```
+
+### Environment variables không đúng?
+Chạy validation script:
+```bash
+bash scripts/validate-env-vars.sh
+```
+
+Hoặc kiểm tra K8s secrets:
+```bash
+kubectl get secret app-secrets -n kahoot-clone -o yaml
+kubectl get configmap app-config -n kahoot-clone -o yaml
+```
+
+## 📁 Files Quan Trọng
 
 ```
 ✅ Jenkinsfile                     - Pipeline definition
-✅ sonar-project.properties        - SonarQube config
-✅ terraform/jenkins-infrastructure.tf - Jenkins & K8s infra
-✅ terraform/jenkins-user-data.sh  - Jenkins setup
-✅ terraform/k8s-user-data.sh      - K8s setup
-✅ k8s/*.yaml                      - K8s manifests (8 files)
-✅ JENKINS_CICD_README.md          - Full documentation
-✅ create-dockerfiles.sh           - Dockerfile generator
-✅ terraform/setup-jenkins.ps1     - Quick setup script
+✅ terraform/*.tf                  - Infrastructure as Code
+✅ k8s/*.yaml                      - Kubernetes manifests (10 files)
+✅ docker-compose.yml              - Local development
+✅ ENVIRONMENT_VARIABLES_GUIDE.md  - Env vars automation guide
+✅ POST_DEPLOYMENT_GUIDE.md        - Full deployment guide
 ```
 
 ## 🎓 Điểm Nổi Bật
 
-### Security
-- ✅ Trivy filesystem & image scanning
-- ✅ Snyk dependency & container scanning
-- ✅ SonarQube security hotspots
-- ✅ Secrets in Kubernetes Secrets
-- ✅ RBAC enabled
+### Architecture
+- ✅ **2 EC2 instances only**: Jenkins + K8s (NO App Server)
+- ✅ **Kubernetes-only deployment**: All microservices on K8s
+- ✅ **Single Docker registry**: 22521284 for all images
+- ✅ **Auto-generated secrets**: From Terraform to K8s
+- ❌ **NO SonarQube**: Removed for performance
+- ❌ **NO Trivy/Snyk**: Removed for performance
 
 ### DevOps Best Practices
 - ✅ Infrastructure as Code (Terraform)
 - ✅ Declarative pipelines (Jenkinsfile)
 - ✅ GitOps workflow
-- ✅ Automated testing
-- ✅ Quality gates
 - ✅ Container orchestration (K8s)
-- ✅ High availability (2 replicas)
-- ✅ Health checks
-- ✅ Resource management
+- ✅ High availability (2 replicas per service)
+- ✅ Health checks & auto-restart
+- ✅ Resource limits
+- ✅ Monitoring (Prometheus + Grafana)
 
 ### CI/CD Features
+- ✅ Automated build → test → deploy
+- ✅ Docker multi-stage builds
 - ✅ Parallel builds (faster)
-- ✅ Automated quality checks
-- ✅ Security scanning
-- ✅ Docker image optimization
-- ✅ Blue-green deployment ready
-- ✅ Rollback support
-- ✅ Monitoring & logging
-
-## 📞 Thông Tin Hỗ Trợ
-
-- **Terraform outputs**: Chạy `terraform output` trong folder terraform
-- **Connection info**: Xem file `terraform/CONNECTION_INFO.txt`
-- **Full guide**: Đọc `JENKINS_CICD_README.md`
+- ✅ GitHub webhook integration
+- ✅ Rollback support (K8s)
+- ✅ Zero-downtime deployment
 
 ## 🎉 Kết Quả Mong Đợi
 
 Sau khi setup xong:
-1. ✅ Jenkins pipeline tự động build/test/deploy
-2. ✅ SonarQube phân tích code quality
-3. ✅ Trivy & Snyk scan vulnerabilities
-4. ✅ Docker images được build và scan
-5. ✅ Deploy tự động lên Kubernetes
-6. ✅ 7 microservices chạy HA (2 replicas mỗi service)
-7. ✅ Application truy cập được qua NodePort
+1. ✅ Jenkins pipeline tự động build/deploy
+2. ✅ Docker images build với registry 22521284
+3. ✅ Deploy tự động lên Kubernetes
+4. ✅ 7 microservices chạy HA (14 pods total)
+5. ✅ Monitoring với Prometheus + Grafana
+6. ✅ Application truy cập qua NodePort 30006
+7. ❌ **NO SonarQube, NO Trivy** (streamlined pipeline)
+
+## 📞 Pipeline Duration
+
+Expected build time:
+- Checkout: ~5s
+- Environment Setup: ~2s
+- Install Dependencies: ~30s
+- Build Docker Images: ~2m
+- Push Images: ~1m
+- Deploy to K8s: ~3m
+- **Total**: ~6-7 minutes
 
 ---
 
-**Version:** 1.0.0  
-**Created:** November 2025  
-**Platform:** AWS + Jenkins + K8s + SonarQube + Trivy + Snyk
+**Version:** 2.0.0  
+**Updated:** December 2025  
+**Platform:** AWS + Jenkins + Kubernetes (K8s-only, NO SonarQube/Trivy)

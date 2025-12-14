@@ -1,62 +1,51 @@
-# 📊 Kubernetes Deployment & Monitoring Guide - Kahoot Clone
+# 📊 Kubernetes Monitoring Guide - Kahoot Clone
 
-> Hướng dẫn đầy đủ triển khai Kubernetes với Prometheus & Grafana monitoring cho Kahoot Clone
-
----
-
-## 📋 **Mục Lục**
-
-1. [Tổng Quan Hệ Thống](#1-tổng-quan-hệ-thống)
-2. [Prerequisites](#2-prerequisites)
-3. [Bước 1: Triển Khai Infrastructure với Terraform](#3-bước-1-triển-khai-infrastructure)
-4. [Bước 2: Cấu Hình Jenkins](#4-bước-2-cấu-hình-jenkins)
-5. [Bước 3: Thêm Application Metrics](#5-bước-3-thêm-application-metrics)
-6. [Bước 4: Deploy lên Kubernetes](#6-bước-4-deploy-lên-kubernetes)
-7. [Bước 5: Cấu Hình Grafana Dashboards](#7-bước-5-cấu-hình-grafana)
-8. [Bước 6: Monitoring & Troubleshooting](#8-bước-6-monitoring--troubleshooting)
-9. [Commands Cheat Sheet](#9-commands-cheat-sheet)
+> Hướng dẫn monitoring Kubernetes cluster với Prometheus & Grafana
 
 ---
 
-## 1. Tổng Quan Hệ Thống
+## 📋 Tổng Quan
 
-### **Architecture**
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                         AWS Cloud                            │
-├─────────────────────────────────────────────────────────────┤
-│                                                               │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────┐ │
-│  │   Jenkins       │  │  K8s Master     │  │  App Server │ │
-│  │   + SonarQube   │  │  + Prometheus   │  │  (Optional) │ │
-│  │                 │  │  + Grafana      │  │             │ │
-│  │  c7i-flex.large │  │  c7i-flex.large │  │  t3.small   │ │
-│  └─────────────────┘  └─────────────────┘  └─────────────┘ │
-│         │                      │                             │
-│         └──────────────────────┘                             │
-│                    │                                          │
-│         ┌──────────┴──────────┐                             │
-│         ▼                      ▼                             │
-│  ┌─────────────┐       ┌─────────────┐                      │
-│  │  Namespace  │       │  Namespace  │                      │
-│  │ kahoot-clone│       │ monitoring  │                      │
-│  ├─────────────┤       ├─────────────┤                      │
-│  │ • gateway   │       │ • Prometheus│                      │
-│  │ • auth      │       │ • Grafana   │                      │
-│  │ • quiz      │       └─────────────┘                      │
-│  │ • game      │                                             │
-│  │ • user      │                                             │
-│  │ • analytics │                                             │
-│  │ • frontend  │                                             │
-│  └─────────────┘                                             │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### **Monitoring Stack**
+### Architecture (UPDATED - NO App Server, NO SonarQube)
 
 ```
-Application Services → /metrics endpoint
+┌─────────────────────────────────────────────────────┐
+│                    AWS Cloud                         │
+├─────────────────────────────────────────────────────┤
+│                                                       │
+│  ┌─────────────────┐        ┌─────────────────┐    │
+│  │   Jenkins       │        │  K8s Master     │    │
+│  │   (Docker)      │        │  + Prometheus   │    │
+│  │                 │        │  + Grafana      │    │
+│  │  c7i-flex.large │        │  c7i-flex.large │    │
+│  └─────────────────┘        └─────────────────┘    │
+│         │                            │               │
+│         └────────────────────────────┘               │
+│                          │                           │
+│               ┌──────────┴──────────┐               │
+│               ▼                      ▼               │
+│        ┌─────────────┐       ┌─────────────┐       │
+│        │  Namespace  │       │  Namespace  │       │
+│        │kahoot-clone │       │ monitoring  │       │
+│        ├─────────────┤       ├─────────────┤       │
+│        │ 7 services  │       │• Prometheus │       │
+│        │ 2 replicas  │       │• Grafana    │       │
+│        │ 14 pods     │       └─────────────┘       │
+│        └─────────────┘                              │
+└─────────────────────────────────────────────────────┘
+```
+
+**❌ REMOVED:**
+- App Server (Docker Compose deployment)
+- SonarQube
+- PostgreSQL
+
+### Monitoring Flow
+
+```
+Application Services (7 microservices)
+         ↓
+    /metrics endpoint (if implemented)
          ↓
     Prometheus (scrape every 15s)
          ↓
@@ -69,170 +58,180 @@ Application Services → /metrics endpoint
 
 ---
 
-## 2. Prerequisites
+## 🚀 Quick Start
 
-### **Công Cụ Cần Có:**
-
-- ✅ AWS Account với credentials
-- ✅ Terraform v1.14+
-- ✅ AWS CLI configured
-- ✅ SSH key pair (kahoot-key.pem)
-- ✅ Docker Hub account
-- ✅ Git & GitHub account
-
-### **Kiểm Tra:**
-
-```powershell
-# AWS credentials
-aws sts get-caller-identity
-
-# Terraform
-terraform version
-
-# SSH key
-Test-Path kahoot-key.pem
-
-# Docker Hub
-docker login
-```
-
----
-
-## 3. Bước 1: Triển Khai Infrastructure
-
-### **3.1. Review Terraform Configuration**
+### 1. Deploy Infrastructure
 
 ```powershell
 cd terraform
 terraform init
-terraform plan -out=tfplan
+terraform apply -auto-approve
 ```
 
-**Sẽ tạo:**
-- 1x Jenkins EC2 (c7i-flex.large) - Jenkins + SonarQube
-- 1x K8s EC2 (c7i-flex.large) - k3s + Prometheus + Grafana
-- 1x App EC2 (t3.small) - Optional
-- VPC, Subnets, Security Groups
-- 3x Elastic IPs
+**Wait 10-15 minutes** for:
+- Jenkins Docker setup
+- K8s k3s installation
+- Prometheus & Grafana deployment
 
-**Chi phí:** ~$5-6/day (~$160/month)
-
-### **3.2. Apply Terraform**
+### 2. Get Access URLs
 
 ```powershell
-terraform apply tfplan
+terraform output
+
+# You'll see:
+# jenkins_url = "http://<JENKINS_IP>:8080"
+# k8s_api_endpoint = "https://<K8S_IP>:6443"
 ```
 
-**Đợi ~10-15 phút** cho user-data scripts chạy xong.
-
-### **3.3. Lấy Outputs**
-
-```powershell
-# Jenkins URL
-terraform output jenkins_url
-# → http://3.217.0.239:8080
-
-# K8s Master IP
-terraform output k8s_master_ip
-# → 13.57.123.45
-
-# SonarQube URL
-terraform output sonarqube_url
-# → http://3.217.0.239:9000
+Monitoring URLs:
+```
+Prometheus: http://<K8S_IP>:30090
+Grafana:    http://<K8S_IP>:30300
 ```
 
-### **3.4. Kiểm Tra K8s Cluster**
+### 3. Access Grafana
 
-```powershell
-# SSH vào K8s master
-ssh -i ..\kahoot-key.pem ubuntu@<K8S_IP>
+1. Open: `http://<K8S_IP>:30300`
+2. Login:
+   - Username: `admin`
+   - Password: `admin`
+3. Change password when prompted
 
-# Xem cluster info
-./show-k8s-info.sh
+---
 
-# Xem monitoring stack
-./show-monitoring.sh
+## 📊 Prometheus Setup
+
+Prometheus is **automatically deployed** by Terraform user-data script on K8s master.
+
+### Verify Prometheus
+
+```bash
+# SSH to K8s
+ssh -i kahoot-key.pem ubuntu@<K8S_IP>
+
+# Check Prometheus pod
+kubectl get pods -n monitoring
+
+# Expected output:
+# NAME                          READY   STATUS    RESTARTS   AGE
+# prometheus-xxxxxxxxxx-xxxxx   1/1     Running   0          10m
+# grafana-xxxxxxxxxx-xxxxx      1/1     Running   0          10m
 ```
 
-**Expected output:**
+### Access Prometheus UI
+
 ```
-Kubernetes Cluster Ready!
-Nodes: 1
-Namespaces: kahoot-clone, monitoring
+URL: http://<K8S_IP>:30090
+```
+
+**Check Targets:**
+1. Click **Status** → **Targets**
+2. Verify all targets are **UP**
+3. Should see:
+   - Kubernetes API server
+   - Kubelet metrics
+   - Node exporter (if installed)
+   - Application services (if /metrics implemented)
+
+### Prometheus Configuration
+
+Located at: `/home/ubuntu/app/k8s/prometheus-deployment.yaml`
+
+Key settings:
+```yaml
+scrape_interval: 15s
+evaluation_interval: 15s
+scrape_configs:
+  - job_name: 'kubernetes-pods'
+    kubernetes_sd_configs:
+      - role: pod
 ```
 
 ---
 
-## 4. Bước 2: Cấu Hình Jenkins
+## 📈 Grafana Dashboards
 
-### **4.1. Lấy Kubeconfig**
+### Default Datasource
 
-```powershell
-# Trên local machine
-ssh -i kahoot-key.pem ubuntu@<K8S_IP> "sudo cat /etc/rancher/k3s/k3s.yaml" > k8s-config.yaml
-
-# Sửa server URL
-(Get-Content k8s-config.yaml) -replace '127.0.0.1', '<K8S_IP>' | Set-Content k8s-config.yaml
+Grafana is pre-configured with Prometheus datasource:
+```
+Name: Prometheus
+Type: Prometheus
+URL: http://prometheus:9090
+Access: Server (Default)
 ```
 
-### **4.2. Thêm Kubeconfig Credential vào Jenkins**
+### Import Kubernetes Dashboards
 
-1. Truy cập: http://jenkins_url:8080
-2. Login: `admin` / `admin123`
-3. Navigate: **Manage Jenkins** → **Credentials** → **System** → **Global credentials**
-4. Click: **Add Credentials**
-5. Configure:
-   - **Kind:** Secret file
-   - **File:** Upload `k8s-config.yaml`
-   - **ID:** `kubeconfig`
-   - **Description:** Kubernetes cluster config
-6. Click: **Create**
+**Option 1: Import from Grafana.com**
 
-### **4.3. Verify Jenkins Setup**
+1. Go to **Dashboards** → **New** → **Import**
+2. Enter Dashboard ID:
+   - `315` - Kubernetes cluster monitoring
+   - `6417` - Kubernetes cluster monitoring (advanced)
+   - `8588` - Kubernetes Deployment metrics
+   - `747` - Kubernetes Pod metrics
+3. Click **Load** → Select Prometheus datasource → **Import**
 
-Check các credentials có sẵn:
-- ✅ `dockerhub-credentials` - Docker Hub
-- ✅ `sonarqube-token` - SonarQube
-- ✅ `github-credentials` - GitHub
-- ✅ `kubeconfig` - K8s cluster (vừa thêm)
+**Option 2: Create Custom Dashboard**
+
+Example panels:
+- **Pod Count**: `count(kube_pod_info{namespace="kahoot-clone"})`
+- **CPU Usage**: `rate(container_cpu_usage_seconds_total[5m])`
+- **Memory Usage**: `container_memory_usage_bytes`
+- **Network I/O**: `rate(container_network_receive_bytes_total[5m])`
 
 ---
 
-## 5. Bước 3: Thêm Application Metrics
+## 🔍 Monitoring Queries
 
-### **5.1. Install Prometheus Client**
+### Useful PromQL Queries
 
-Thêm vào **tất cả** services (gateway, auth, quiz, game, user, analytics):
-
-```powershell
-# Gateway
-cd services/gateway
-npm install prom-client --save
-
-# Auth
-cd ../auth-service
-npm install prom-client --save
-
-# Quiz
-cd ../quiz-service
-npm install prom-client --save
-
-# Game
-cd ../game-service
-npm install prom-client --save
-
-# User
-cd ../user-service
-npm install prom-client --save
-
-# Analytics
-cd ../analytics-service
-npm install prom-client --save
+**Check running pods:**
+```promql
+count(kube_pod_info{namespace="kahoot-clone"})
 ```
 
-### **5.2. Tạo Metrics Middleware**
+**Pod status:**
+```promql
+kube_pod_status_phase{namespace="kahoot-clone"}
+```
 
-Tạo file `services/gateway/middleware/metrics.js`:
+**Container restarts:**
+```promql
+rate(kube_pod_container_status_restarts_total{namespace="kahoot-clone"}[5m])
+```
+
+**CPU usage by pod:**
+```promql
+sum(rate(container_cpu_usage_seconds_total{namespace="kahoot-clone"}[5m])) by (pod)
+```
+
+**Memory usage by pod:**
+```promql
+sum(container_memory_usage_bytes{namespace="kahoot-clone"}) by (pod)
+```
+
+**Network receive rate:**
+```promql
+sum(rate(container_network_receive_bytes_total{namespace="kahoot-clone"}[5m])) by (pod)
+```
+
+---
+
+## 🎯 Application Metrics (Optional)
+
+If you want to add custom metrics to your microservices:
+
+### 1. Install prom-client (Node.js)
+
+```bash
+npm install prom-client
+```
+
+### 2. Add Metrics to Service
+
+Example for [auth-service/server.js](auth-service/server.js):
 
 ```javascript
 const promClient = require('prom-client');
@@ -240,472 +239,195 @@ const promClient = require('prom-client');
 // Create a Registry
 const register = new promClient.Registry();
 
-// Add default metrics (CPU, Memory, etc.)
-promClient.collectDefaultMetrics({ 
-  register,
-  prefix: 'nodejs_'
-});
+// Enable default metrics
+promClient.collectDefaultMetrics({ register });
 
-// Custom HTTP metrics
+// Custom metrics
 const httpRequestDuration = new promClient.Histogram({
   name: 'http_request_duration_seconds',
   help: 'Duration of HTTP requests in seconds',
   labelNames: ['method', 'route', 'status_code'],
-  buckets: [0.1, 0.5, 1, 2, 5]
+  registers: [register]
 });
 
-const httpRequestTotal = new promClient.Counter({
-  name: 'http_requests_total',
-  help: 'Total number of HTTP requests',
-  labelNames: ['method', 'route', 'status_code']
-});
-
-const httpRequestErrors = new promClient.Counter({
-  name: 'http_request_errors_total',
-  help: 'Total number of HTTP request errors',
-  labelNames: ['method', 'route', 'status_code']
-});
-
-// Register custom metrics
-register.registerMetric(httpRequestDuration);
-register.registerMetric(httpRequestTotal);
-register.registerMetric(httpRequestErrors);
-
-// Middleware function
-function metricsMiddleware(req, res, next) {
-  const start = Date.now();
-  
-  // Override res.end to capture metrics
-  const originalEnd = res.end;
-  res.end = function(...args) {
-    const duration = (Date.now() - start) / 1000;
-    const route = req.route ? req.route.path : req.path;
-    const labels = {
-      method: req.method,
-      route: route,
-      status_code: res.statusCode
-    };
-    
-    // Record metrics
-    httpRequestDuration.observe(labels, duration);
-    httpRequestTotal.inc(labels);
-    
-    if (res.statusCode >= 400) {
-      httpRequestErrors.inc(labels);
-    }
-    
-    originalEnd.apply(res, args);
-  };
-  
-  next();
-}
-
-module.exports = {
-  metricsMiddleware,
-  register
-};
-```
-
-### **5.3. Update Server Files**
-
-**Gateway Service** (`services/gateway/server.js`):
-
-```javascript
-const express = require('express');
-const { metricsMiddleware, register } = require('./middleware/metrics');
-
-const app = express();
-
-// Apply metrics middleware FIRST (before other routes)
-app.use(metricsMiddleware);
-
-// ... existing middleware and routes ...
-
-// Metrics endpoint
+// Expose /metrics endpoint
 app.get('/metrics', async (req, res) => {
-  try {
-    res.set('Content-Type', register.contentType);
-    const metrics = await register.metrics();
-    res.end(metrics);
-  } catch (err) {
-    res.status(500).end(err);
-  }
-});
-
-// ... rest of your code ...
-```
-
-**Lặp lại cho tất cả services:** auth, quiz, game, user, analytics
-
-### **5.4. Thêm Business Metrics (Optional)**
-
-Ví dụ cho User Service:
-
-```javascript
-// services/user-service/middleware/metrics.js
-const promClient = require('prom-client');
-
-// Business metrics
-const activeUsers = new promClient.Gauge({
-  name: 'kahoot_active_users',
-  help: 'Number of currently active users'
-});
-
-const loginAttempts = new promClient.Counter({
-  name: 'kahoot_login_attempts_total',
-  help: 'Total login attempts',
-  labelNames: ['status'] // success, failed
-});
-
-const gamesCreated = new promClient.Counter({
-  name: 'kahoot_games_created_total',
-  help: 'Total number of games created'
-});
-
-module.exports = {
-  activeUsers,
-  loginAttempts,
-  gamesCreated
-};
-```
-
-**Sử dụng trong routes:**
-
-```javascript
-const { loginAttempts } = require('../middleware/metrics');
-
-// In login route
-router.post('/login', async (req, res) => {
-  try {
-    // ... login logic ...
-    loginAttempts.inc({ status: 'success' });
-    res.json({ success: true });
-  } catch (error) {
-    loginAttempts.inc({ status: 'failed' });
-    res.status(401).json({ error: 'Login failed' });
-  }
+  res.set('Content-Type', register.contentType);
+  res.end(await register.metrics());
 });
 ```
 
-### **5.5. Update Deployment YAMLs**
+### 3. Update Prometheus Config
 
-Thêm Prometheus annotations vào **tất cả** service deployments:
-
-**gateway-deployment.yaml:**
-
+Prometheus will auto-discover pods with annotations:
 ```yaml
-apiVersion: apps/v1
-kind: Deployment
 metadata:
-  name: gateway
-  namespace: kahoot-clone
-spec:
-  template:
-    metadata:
-      labels:
-        app: gateway
-      annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port: "3000"
-        prometheus.io/path: "/metrics"
-    spec:
-      containers:
-      - name: gateway
-        # ... rest of config ...
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "3001"
+    prometheus.io/path: "/metrics"
 ```
 
-**Lặp lại cho:** auth, quiz, game, user, analytics (với port tương ứng)
+This is already in K8s deployment YAMLs if you added annotations.
 
 ---
 
-## 6. Bước 4: Deploy lên Kubernetes
+## 🔧 Troubleshooting
 
-### **6.1. Commit & Push Code**
+### Prometheus không scrape được pods?
 
-```powershell
-git add .
-git commit -m "feat: Add Prometheus metrics to all services"
-git push origin fix/auth-routing-issues
+**Check 1: Pod annotations**
+```bash
+kubectl get pod <pod-name> -n kahoot-clone -o yaml | grep prometheus.io
 ```
 
-### **6.2. Jenkins Tự Động Build**
+Should see:
+```yaml
+prometheus.io/scrape: "true"
+prometheus.io/port: "3001"
+prometheus.io/path: "/metrics"
+```
 
-Jenkins sẽ tự động:
-1. ✅ Checkout code
-2. ✅ Install dependencies (npm ci)
-3. ✅ Run tests
-4. ✅ SonarQube analysis
-5. ✅ Build Docker images
-6. ✅ Push to Docker Hub
-7. ✅ Deploy to Kubernetes
-8. ✅ Deploy Prometheus & Grafana
-9. ✅ Health checks
+**Check 2: Service có /metrics endpoint?**
+```bash
+kubectl port-forward -n kahoot-clone svc/auth-service 3001:3001
+curl http://localhost:3001/metrics
+```
 
-**Monitor build:** http://jenkins_url:8080/job/kahoot-clone/
+**Check 3: Prometheus logs**
+```bash
+kubectl logs -n monitoring deployment/prometheus
+```
 
-### **6.3. Verify Deployment**
+### Grafana không connect được Prometheus?
 
-```powershell
-# SSH vào K8s master
-ssh -i kahoot-key.pem ubuntu@<K8S_IP>
-
-# Check all pods
-kubectl get pods -n kahoot-clone
-kubectl get pods -n monitoring
-
-# Check services
-kubectl get svc -n kahoot-clone
+**Check datasource:**
+```bash
+# SSH to K8s
 kubectl get svc -n monitoring
 
-# Check if metrics endpoints work
-kubectl port-forward -n kahoot-clone svc/gateway 3000:3000
-# Visit: http://localhost:3000/metrics
+# Should see prometheus service
+# NAME         TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)
+# prometheus   ClusterIP   10.43.xxx.xxx   <none>        9090/TCP
 ```
 
-**Expected output:**
+**Test connection từ Grafana pod:**
+```bash
+kubectl exec -n monitoring deployment/grafana -- wget -O- http://prometheus:9090/api/v1/status/config
 ```
-NAME                               READY   STATUS    RESTARTS   AGE
-gateway-xxxxxxxxx-xxxxx            1/1     Running   0          2m
-auth-service-xxxxxxxxx-xxxxx       1/1     Running   0          2m
-quiz-service-xxxxxxxxx-xxxxx       1/1     Running   0          2m
-game-service-xxxxxxxxx-xxxxx       1/1     Running   0          2m
-user-service-xxxxxxxxx-xxxxx       1/1     Running   0          2m
-analytics-service-xxxxxxxxx-xxxxx  1/1     Running   0          2m
-frontend-xxxxxxxxx-xxxxx           1/1     Running   0          2m
 
-NAME                READY   STATUS    RESTARTS   AGE
-prometheus-xxxxx    1/1     Running   0          2m
-grafana-xxxxx       1/1     Running   0          2m
+### Pods không chạy?
+
+```bash
+# Check pod status
+kubectl get pods -n kahoot-clone
+
+# Describe pod
+kubectl describe pod <pod-name> -n kahoot-clone
+
+# Check logs
+kubectl logs <pod-name> -n kahoot-clone
+
+# Check events
+kubectl get events -n kahoot-clone --sort-by='.lastTimestamp'
 ```
 
 ---
 
-## 7. Bước 5: Cấu Hình Grafana
+## 📊 Dashboard Examples
 
-### **7.1. Truy Cập Grafana**
+### Kubernetes Overview Dashboard
 
+Create new dashboard with these panels:
+
+**1. Total Pods**
+```promql
+count(kube_pod_info{namespace="kahoot-clone"})
 ```
-URL: http://<K8S_IP>:30300
-Username: admin
-Password: admin123
-```
+Type: Stat
 
-### **7.2. Verify Prometheus Datasource**
-
-1. Navigate: **Configuration** → **Data sources**
-2. Should see: **Prometheus** (pre-configured)
-3. Click: **Test** → Should show "Data source is working"
-
-### **7.3. Import Pre-Built Dashboards**
-
-**Kubernetes Cluster Monitoring:**
-1. Click: **+** → **Import**
-2. Dashboard ID: `315`
-3. Click: **Load**
-4. Select datasource: **Prometheus**
-5. Click: **Import**
-
-**Kubernetes Pod Monitoring:**
-1. Click: **+** → **Import**
-2. Dashboard ID: `6417`
-3. Click: **Load**
-4. Select datasource: **Prometheus**
-5. Click: **Import**
-
-**Node Exporter Full:**
-1. Click: **+** → **Import**
-2. Dashboard ID: `1860`
-3. Click: **Load**
-4. Select datasource: **Prometheus**
-5. Click: **Import**
-
-### **7.4. Tạo Custom Dashboard cho Kahoot Clone**
-
-1. Click: **+** → **Create** → **Dashboard**
-2. Click: **Add new panel**
-
-**Panel 1: HTTP Request Rate**
-- Query: `rate(http_requests_total[5m])`
-- Legend: `{{method}} {{route}}`
-- Panel type: Graph
-- Title: "HTTP Request Rate"
-
-**Panel 2: HTTP Request Duration**
-- Query: `histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))`
-- Legend: `{{method}} {{route}}`
-- Panel type: Graph
-- Title: "95th Percentile Response Time"
-
-**Panel 3: Error Rate**
-- Query: `rate(http_request_errors_total[5m])`
-- Legend: `{{method}} {{route}}`
-- Panel type: Graph
-- Title: "Error Rate (4xx, 5xx)"
-
-**Panel 4: Active Users (if implemented)**
-- Query: `kahoot_active_users`
-- Panel type: Stat
-- Title: "Active Users"
-
-**Panel 5: Games Created**
-- Query: `increase(kahoot_games_created_total[1h])`
-- Panel type: Stat
-- Title: "Games Created (Last Hour)"
-
-3. Click: **Save dashboard**
-4. Name: "Kahoot Clone - Application Metrics"
-
-### **7.5. Setup Alerts (Optional)**
-
-**High Error Rate Alert:**
-1. Edit panel: "Error Rate"
-2. Click: **Alert** tab
-3. Condition: `WHEN last() OF query(A) IS ABOVE 10`
-4. Configure notification channel (email, slack, etc.)
-
----
-
-## 8. Bước 6: Monitoring & Troubleshooting
-
-### **8.1. Access Points**
-
-```
-Jenkins:     http://<JENKINS_IP>:8080
-SonarQube:   http://<JENKINS_IP>:9000
-Prometheus:  http://<K8S_IP>:30090
-Grafana:     http://<K8S_IP>:30300
-Application: http://<K8S_IP>:30xxx (NodePort services)
-```
-
-### **8.2. Common Prometheus Queries**
-
-**Pod CPU Usage:**
+**2. CPU Usage**
 ```promql
 sum(rate(container_cpu_usage_seconds_total{namespace="kahoot-clone"}[5m])) by (pod)
 ```
+Type: Graph
 
-**Pod Memory Usage:**
+**3. Memory Usage**
 ```promql
-sum(container_memory_working_set_bytes{namespace="kahoot-clone"}) by (pod)
+sum(container_memory_usage_bytes{namespace="kahoot-clone"}) by (pod) / 1024 / 1024
 ```
+Type: Graph
 
-**HTTP Request Rate by Service:**
+**4. Network Traffic**
 ```promql
-sum(rate(http_requests_total{namespace="kahoot-clone"}[5m])) by (service)
+sum(rate(container_network_receive_bytes_total{namespace="kahoot-clone"}[5m])) by (pod) / 1024
 ```
-
-**95th Percentile Latency:**
-```promql
-histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, service))
-```
-
-**Error Rate:**
-```promql
-sum(rate(http_request_errors_total[5m])) by (service, status_code)
-```
-
-### **8.3. Troubleshooting**
-
-**Pods không start:**
-```bash
-kubectl describe pod <pod-name> -n kahoot-clone
-kubectl logs <pod-name> -n kahoot-clone
-kubectl get events -n kahoot-clone
-```
-
-**Prometheus không scrape metrics:**
-```bash
-# Check Prometheus targets
-kubectl port-forward -n monitoring svc/prometheus 9090:9090
-# Visit: http://localhost:9090/targets
-
-# Check pod annotations
-kubectl get pod <pod-name> -n kahoot-clone -o yaml | grep annotations -A 5
-```
-
-**Grafana không hiển thị data:**
-- Verify datasource connection
-- Check time range (last 5-15 minutes)
-- Verify query syntax in Prometheus first
+Type: Graph
 
 ---
 
-## 9. Commands Cheat Sheet
+## 🎯 Alerts (Optional)
 
-### **Terraform**
-```powershell
-terraform init                    # Initialize
-terraform plan -out=tfplan        # Plan changes
-terraform apply tfplan            # Apply changes
-terraform destroy                 # Destroy all
-terraform output                  # Show outputs
-```
+### Create Alert Rules
 
-### **Kubernetes**
-```bash
-# Pods
-kubectl get pods -n kahoot-clone
-kubectl describe pod <pod> -n kahoot-clone
-kubectl logs <pod> -n kahoot-clone
-kubectl logs <pod> -n kahoot-clone -f  # Follow logs
+Edit Prometheus config to add alerts:
 
-# Services
-kubectl get svc -n kahoot-clone
-kubectl describe svc <service> -n kahoot-clone
-
-# Deployments
-kubectl get deployments -n kahoot-clone
-kubectl rollout status deployment/<name> -n kahoot-clone
-kubectl rollout restart deployment/<name> -n kahoot-clone
-
-# Monitoring
-kubectl get pods -n monitoring
-kubectl logs prometheus-xxx -n monitoring
-kubectl logs grafana-xxx -n monitoring
-
-# Port Forward
-kubectl port-forward -n kahoot-clone svc/gateway 3000:3000
-kubectl port-forward -n monitoring svc/prometheus 9090:9090
-kubectl port-forward -n monitoring svc/grafana 3000:3000
-```
-
-### **Docker**
-```bash
-# Build
-docker build -t kahoot-clone-gateway:latest ./gateway
-
-# Push
-docker tag kahoot-clone-gateway:latest 22521284/kahoot-clone-gateway:v1.0
-docker push 22521284/kahoot-clone-gateway:v1.0
+```yaml
+groups:
+  - name: kahoot-clone-alerts
+    rules:
+      - alert: PodDown
+        expr: kube_pod_status_phase{namespace="kahoot-clone",phase!="Running"} > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Pod {{ $labels.pod }} is down"
+          
+      - alert: HighMemoryUsage
+        expr: container_memory_usage_bytes{namespace="kahoot-clone"} > 500000000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Pod {{ $labels.pod }} high memory usage"
 ```
 
 ---
 
-## 📞 **Support & Resources**
+## 📁 Related Files
 
-- **Prometheus Docs:** https://prometheus.io/docs/
-- **Grafana Docs:** https://grafana.com/docs/
-- **Kubernetes Docs:** https://kubernetes.io/docs/
-- **prom-client NPM:** https://www.npmjs.com/package/prom-client
-
----
-
-## ✅ **Checklist**
-
-- [ ] Terraform infrastructure deployed
-- [ ] Jenkins configured with kubeconfig
-- [ ] prom-client installed in all services
-- [ ] Metrics middleware added to all services
-- [ ] /metrics endpoints working
-- [ ] Deployment YAMLs updated with annotations
-- [ ] Code committed and pushed
-- [ ] Jenkins build successful
-- [ ] All pods running
-- [ ] Prometheus scraping targets
-- [ ] Grafana dashboards imported
-- [ ] Custom Kahoot dashboard created
-- [ ] Alerts configured (optional)
+```
+k8s/prometheus-deployment.yaml    - Prometheus K8s manifest
+k8s/grafana-deployment.yaml       - Grafana K8s manifest
+terraform/user-data.sh            - Auto-deploys monitoring stack
+ENVIRONMENT_VARIABLES_GUIDE.md    - Env vars for services
+POST_DEPLOYMENT_GUIDE.md          - Full deployment guide
+```
 
 ---
 
-**🎉 Hoàn thành! Hệ thống monitoring đã sẵn sàng!**
+## 🎓 Key Points
+
+**✅ What's Deployed:**
+- Prometheus on K8s (namespace: monitoring)
+- Grafana on K8s (namespace: monitoring)
+- 7 microservices (namespace: kahoot-clone)
+- 14 pods total (2 replicas each)
+
+**❌ What's NOT Deployed:**
+- NO SonarQube (removed)
+- NO App Server (removed)
+- NO PostgreSQL (removed)
+
+**🔗 Access:**
+- Prometheus: `http://<K8S_IP>:30090`
+- Grafana: `http://<K8S_IP>:30300`
+- Frontend: `http://<K8S_IP>:30006`
+- Gateway: `http://<K8S_IP>:30000`
+
+---
+
+**Version:** 2.0.0  
+**Updated:** December 2025  
+**Platform:** Kubernetes + Prometheus + Grafana (NO SonarQube, NO App Server)

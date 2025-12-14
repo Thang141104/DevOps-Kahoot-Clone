@@ -1,6 +1,11 @@
-#  Post-Deployment Guide - Kahoot Clone CI/CD
+#  Post-Deployment Guide - Kahoot Clone CI/CD (Kubernetes-Based)
 
 Hướng dẫn chi tiết các bước sau khi chạy `terraform apply` thành công.
+
+**⚠️ QUAN TRỌNG**: 
+- Infrastructure này **CHỈ sử dụng Kubernetes** để deploy microservices
+- **KHÔNG có App Server** với Docker Compose (đã bị comment out)
+- Microservices chạy dưới dạng Kubernetes Pods, KHÔNG phải Docker Compose containers
 
 ---
 
@@ -12,10 +17,15 @@ terraform output
 ```
 
 **Lưu lại các thông tin quan trọng:**
-- `jenkins_url`: http://3.217.0.239:8080
-- `sonarqube_url`: http://3.217.0.239:9000
+- `jenkins_url`: http://<jenkins_ip>:8080
 - `k8s_master_ip`: IP của Kubernetes master node
 - `jenkins_public_ip`: IP của Jenkins server
+- `k8s_api_endpoint`: https://<k8s_ip>:6443
+
+**❌ KHÔNG CÒN:**
+- ~~App Server (t3.small instance)~~
+- ~~SonarQube URL~~
+- ~~Frontend URL trên App Server~~
 
 ---
 
@@ -34,12 +44,16 @@ Vào: **Manage Jenkins** → **Plugins** → **Installed plugins**
  Cần có:
 - Docker Pipeline
 - Kubernetes CLI
-- SonarQube Scanner
 - Timestamper
 - NodeJS
 - HTML Publisher
 - Workspace Cleanup
 - Github
+
+**❌ KHÔNG CẦN:**
+- ~~SonarQube Scanner~~ (đã loại bỏ)
+- ~~Trivy~~ (đã loại bỏ)
+
 ### **2.3. Cấu hình Tools**
 Vào: **Manage Jenkins** → **Tools**
 
@@ -47,88 +61,54 @@ Vào: **Manage Jenkins** → **Tools**
 - Name: `NodeJS 18`
 - Version: NodeJS 18.20.8
 
-#### **SonarQube Scanner:**
-- Name: `SonarQube Scanner`
-- Version: SonarQube Scanner 8.0.1.6346
-
 #### **Docker:**
 - Name: `docker`
 - Installation root: `/usr/bin`
+
+**❌ KHÔNG CẦN:**
+- ~~SonarQube Scanner~~ (đã loại bỏ từ pipeline)
 
 ### **2.4. Cấu hình Credentials**
 Vào: **Manage Jenkins** → **Credentials** → **System** → **Global credentials**
 
 Tạo các credentials sau:
 
-#### **a) Docker Hub (dockerhub-credentials)**
-- Type: `Username with password`
-- Username: `22521284` (hoặc Docker Hub username của bạn)
 - Password: Docker Hub access token
 - ID: `dockerhub-credentials`
 
+**Tạo Docker Hub Access Token:**
+1. Login vào https://hub.docker.com
+2. Account Settings → Security → New Access Token
+3. Copy token và paste vào Jenkins
+
 #### **b) GitHub (github-credentials)**
 - Type: `Username with password`
-- Username: GitHub username
+- Username: GitHub username của bạn
 - Password: GitHub Personal Access Token
 - ID: `github-credentials`
 
-#### **c) SonarQube Token (sonarqube-token)**
-- Type: `Secret text`
-- Secret: SonarQube token (lấy từ bước 3)
-- ID: `sonarqube-token`
+**Tạo GitHub PAT:**
+1. GitHub → Settings → Developer settings → Personal access tokens
+2. Generate new token (classic)
+3. Scopes: `repo`, `admin:repo_hook`
 
-#### **d) Kubeconfig (kubeconfig)**
+#### **c) Kubeconfig (kubeconfig)**
 - Type: `Secret file`
 - File: Upload file kubeconfig từ K8s master
 - ID: `kubeconfig`
 
-**Lấy kubeconfig từ K8s master:**
-```bash
-ssh -i kahoot-key.pem ubuntu@<k8s_master_ip>
-cat ~/.kube/config
-# Copy nội dung và save vào file local
-```
+**❌ KHÔNG CẦN:**
+- ~~SonarQube Token~~ (SonarQube đã bị loại bỏ)
 
 ---
 
-##  **Bước 3: Cấu hình SonarQube**
+## **Bước 3: Tạo Jenkins Pipeline Job**
 
-### **3.1. Truy cập SonarQube**
-```
-URL: http://<jenkins_public_ip>:9000
-Username: admin
-Password: admin123
-```
-
-**Đổi password ngay lần đầu login!**
-
-### **3.2. Tạo Project**
-1. Click **Create Project** → **Manually**
-2. Project key: `kahoot-clone`
-3. Display name: `Kahoot Clone Microservices`
-4. Click **Set Up**
-
-### **3.3. Tạo Token**
-1. Vào Administrators
-2. Generate token
-3. **Copy token** → Dùng cho Jenkins credentials (bước 2.4.c)
-
-### **3.4. Cấu hình SonarQube Server trong Jenkins**
-Vào Jenkins: **Manage Jenkins** → **System** → **SonarQube servers**
-
-- Name: `SonarQube`
-- Server URL: `http://sonarqube:9000` (Docker service name)
-- Token: Chọn credential `sonarqube-token`
-
----
-
-##  **Bước 4: Tạo Jenkins Pipeline Job**
-
-### **4.1. Tạo Job mới**
+### **3.1. Tạo Job mới**
 1. **New Item** → Nhập tên: `kahoot-clone-pipeline`
 2. Chọn **Pipeline** → Click **OK**
 
-### **4.2. Cấu hình General**
+### **3.2. Cấu hình General**
 -  **Discard old builds**: 
   - Days to keep: `7`
   - Max # of builds to keep: `10`
@@ -138,7 +118,7 @@ Vào Jenkins: **Manage Jenkins** → **System** → **SonarQube servers**
 
 > **Lưu ý**: Cần cấu hình webhook trên GitHub (xem bước 10)
 
-### **4.4. Cấu hình Pipeline**
+### **3.3. Cấu hình Pipeline**
 - Definition: `Pipeline script from SCM`
 - SCM: `Git`
 - Repository URL: `https://github.com/Thang141104/DevOps-Kahoot-Clone.git`
@@ -146,87 +126,101 @@ Vào Jenkins: **Manage Jenkins** → **System** → **SonarQube servers**
 - Branch: `*/fix/auth-routing-issues` (hoặc `*/main`)
 - Script Path: `Jenkinsfile`
 
-### **4.5. Save và Build**
+### **3.4. Save và Build**
 1. Click **Save**
 2. Click **Build Now** để test
 
 ---
 
-##  **Bước 5: Kiểm tra Pipeline chạy thành công**
+##  **Bước 4: Kiểm tra Pipeline chạy thành công**
 
-### **5.1. Xem Console Output**
+### **4.1. Xem Console Output**
 Click vào build number → **Console Output**
 
-### **5.2. Các stages cần PASS:**
+### **4.2. Các stages cần PASS:**
 
 | Stage | Mô tả | Thời gian |
 |-------|-------|-----------|
 |  Checkout | Clone code từ GitHub | ~5s |
 |  Environment Setup | Kiểm tra Node, npm, Docker | ~2s |
-|  Install Dependencies | npm ci cho 7 services | ~15s |
-|  SonarQube Analysis | Phân tích code quality | ~2m |
-|  Quality Gate | Chờ SonarQube kết quả | ~30s |
-|  Security Scanning | Trivy filesystem scan | ~5s |
-|  Build Docker Images | Build 7 images | ~45s |
-|  Security Scan Images | Trivy image scans | ~10s |
-|  Push Images | *Chỉ chạy trên main branch* | ~30s |
-|  Deploy to K8s | *Chỉ chạy trên main branch* | ~2m |
-|  Health Check | *Chỉ chạy trên main branch* | ~30s |
+|  Install Dependencies | npm ci cho 7 services | ~30s |
+|  Security Scanning | Skipped (Trivy not installed) | ~1s |
+|  Build Docker Images | Build 7 images | ~2m |
+|  Push Images | Push lên Docker Hub (22521284) | ~1m |
+|  Deploy to K8s | Deploy 7 services + monitoring | ~3m |
+|  Health Check | Kiểm tra pods running | ~30s |
 
-### **5.3. Nếu có lỗi SonarQube:**
-- Vào SonarQube UI: http://<jenkins_ip>:9000
-- Kiểm tra project `kahoot-clone`
-- Xem issues/bugs được phát hiện
+**❌ KHÔNG CÒN:**
+- ~~SonarQube Analysis~~
+- ~~Quality Gate~~
+- ~~Security Scan Images (Trivy)~~
 
 ---
 
-##  **Bước 6: Verify Docker Images**
+##  **Bước 5: Verify Docker Images**
 
-### **6.1. Kiểm tra images đã build**
+### **5.1. Kiểm tra images đã build**
 SSH vào Jenkins server:
 ```bash
 ssh -i kahoot-key.pem ubuntu@<jenkins_public_ip>
 docker exec -it jenkins bash
-docker images | grep kahoot-clone
+docker images | grep 22521284
 ```
 
-Bạn sẽ thấy 7 images:
+Bạn sẽ thấy 7 images với registry `22521284`:
 ```
-22521284/kahoot-clone-gateway
-22521284/kahoot-clone-auth
-22521284/kahoot-clone-quiz
-22521284/kahoot-clone-game
-22521284/kahoot-clone-user
-22521284/kahoot-clone-analytics
-22521284/kahoot-clone-frontend
+22521284/kahoot-clone-gateway:latest
+22521284/kahoot-clone-auth:latest
+22521284/kahoot-clone-quiz:latest
+22521284/kahoot-clone-game:latest
+22521284/kahoot-clone-user:latest
+22521284/kahoot-clone-analytics:latest
+22521284/kahoot-clone-frontend:latest
 ```
 
-### **6.2. Xem Trivy scan reports**
-Trong Jenkins UI → Build → **Workspace** → Các file `trivy-*-report.json`
+### **5.2. Xem trên Docker Hub**
+1. Login vào https://hub.docker.com
+2. Repositories → Xem 7 images đã được push
 
 ---
 
-##  **Bước 7: Deploy lên Kubernetes (Main branch)**
+##  **Bước 6: Deploy lên Kubernetes**
 
-### **7.1. Merge code vào main**
-```bash
-git checkout main
-git merge fix/auth-routing-issues
-git push origin main
-```
+### **6.1. Automatic Deployment (via Jenkins)**
+Jenkins sẽ tự động deploy lên K8s khi pipeline chạy thành công:
+1.  Apply namespace, configmap, secrets
+2.  Deploy 7 microservices
+3.  Deploy Prometheus + Grafana
+4.  Wait for rollout completion
 
-### **7.2. Jenkins tự động trigger**
-Pipeline sẽ chạy lại và thực hiện:
-1.  Push images lên Docker Hub
-2.  Deploy lên K8s cluster
-3.  Health check pods
-
-### **7.3. Kiểm tra deployment**
+### **6.2. Manual Deployment (nếu cần)**
 SSH vào K8s master:
 ```bash
 ssh -i kahoot-key.pem ubuntu@<k8s_master_ip>
 
-# Xem pods
+# Repo đã được clone bởi user-data.sh
+cd /home/ubuntu/app
+
+# Apply Kubernetes manifests
+kubectl apply -f k8s/namespace.yaml
+kubectl apply -f k8s/configmap.yaml
+kubectl apply -f k8s/secrets.yaml  # Auto-generated từ Terraform
+kubectl apply -f k8s/
+
+# Deploy monitoring stack
+kubectl apply -f k8s/prometheus-deployment.yaml
+kubectl apply -f k8s/grafana-deployment.yaml
+```
+
+### **6.3. Kiểm tra deployment**
+SSH vào K8s master:
+```bash
+ssh -i kahoot-key.pem ubuntu@<k8s_master_ip>
+
+# Xem tất cả pods
+kubectl get pods --all-namespaces
+
+# Xem pods của application
 kubectl get pods -n kahoot-clone
 
 # Xem services
@@ -236,40 +230,84 @@ kubectl get services -n kahoot-clone
 kubectl logs -f deployment/gateway -n kahoot-clone
 ```
 
+**Kết quả mong đợi:**
+```
+NAMESPACE       NAME                                 READY   STATUS    
+kahoot-clone    gateway-xxx-xxx                      2/2     Running
+kahoot-clone    auth-service-xxx-xxx                 2/2     Running
+kahoot-clone    quiz-service-xxx-xxx                 2/2     Running
+kahoot-clone    game-service-xxx-xxx                 2/2     Running
+kahoot-clone    user-service-xxx-xxx                 2/2     Running
+kahoot-clone    analytics-service-xxx-xxx            2/2     Running
+kahoot-clone    frontend-xxx-xxx                     2/2     Running
+monitoring      prometheus-xxx-xxx                   1/1     Running
+monitoring      grafana-xxx-xxx                      1/1     Running
+```
+
 ---
 
-##  **Bước 8: Truy cập Application**
+##  **Bước 7: Truy cập Application**
 
-### **8.1. Lấy service URLs**
+### **7.1. Lấy service URLs**
 ```bash
 kubectl get services -n kahoot-clone
 ```
 
-### **8.2. Truy cập Frontend**
+### **7.2. Truy cập Frontend qua NodePort**
 ```
-http://<K8s-External-IP>:3006
+http://<K8s-Master-IP>:30006
 ```
 
-### **8.3. Test API Gateway**
+### **7.3. Truy cập các services**
 ```bash
-curl http://<K8s-External-IP>:3000/health
+# Gateway API
+http://<K8s-Master-IP>:30000
+
+# Prometheus
+http://<K8s-Master-IP>:30090
+
+# Grafana
+http://<K8s-Master-IP>:30300
+Username: admin
+Password: admin123
 ```
+
+**❌ KHÔNG CÒN App Server:**
+- ~~http://<App-Server-IP>:3006~~ (đã loại bỏ)
+- Application CHỈ chạy trên Kubernetes
 
 ---
 
-##  **Bước 9: Monitoring & Logs**
+##  **Bước 8: Monitoring & Logs**
 
-### **9.1. Jenkins Logs**
+### **8.1. Jenkins Logs**
 ```
 http://<jenkins_ip>:8080/job/kahoot-clone-pipeline/<build_number>/console
 ```
 
-### **9.2. SonarQube Dashboard**
+### **8.2. Prometheus**
 ```
-http://<jenkins_ip>:9000/dashboard?id=kahoot-clone
+URL: http://<k8s_ip>:30090
+```
+- Targets: Status → Targets (xem services được scrape)
+- Queries: Graph → Execute queries
+
+### **8.3. Grafana Dashboards**
+```
+URL: http://<k8s_ip>:30300
+Username: admin
+Password: admin123
 ```
 
-### **9.3. Kubernetes Logs**
+**Import dashboards:**
+1. Dashboard → Import
+2. Import IDs:
+   - **315**: Kubernetes cluster monitoring
+   - **6417**: Kubernetes Cluster Metrics
+   - **1860**: Node Exporter
+   - **Custom**: KUBERNETES_MONITORING_GUIDE.md có dashboard cho Kahoot services
+
+### **8.4. Kubernetes Logs**
 ```bash
 # Xem tất cả pods
 kubectl get pods -n kahoot-clone
@@ -283,49 +321,57 @@ kubectl get events -n kahoot-clone
 
 ---
 
-##  **Bước 10: Troubleshooting**
+##  **Bước 9: Troubleshooting**
 
-### **Vấn đề 1: Pipeline fail ở SonarQube**
-**Lỗi**: `out of memory` hoặc `timeout`
+### **Vấn đề 1: Images pull failed (ImagePullBackOff)**
+**Lỗi**: `ImagePullBackOff` hoặc `ErrImagePull`
 
-**Giải pháp**:
-```properties
-# File: sonar-project.properties
-sonar.javascript.node.maxspace=1536
-sonar.exclusions=**/profile.routes.js,**/imageUpload.js
-```
-
-### **Vấn đề 2: Không push được images**
-**Lỗi**: `unauthorized` khi push lên Docker Hub
-
-**Giải pháp**:
-1. Kiểm tra credential `dockerhub-credentials`
-2. Đảm bảo Docker Hub token còn valid
-3. Kiểm tra username: `22521284`
-
-### **Vấn đề 3: K8s deployment fail**
-**Lỗi**: `ImagePullBackOff` hoặc `CrashLoopBackOff`
+**Nguyên nhân**: Registry không đúng hoặc image chưa được push
 
 **Giải pháp**:
 ```bash
-# Describe pod để xem lỗi chi tiết
-kubectl describe pod <pod-name> -n kahoot-clone
-
-# Kiểm tra image có tồn tại
+# Kiểm tra image có tồn tại trên Docker Hub
 docker pull 22521284/kahoot-clone-gateway:latest
 
-# Kiểm tra ConfigMap/Secrets
-kubectl get configmap -n kahoot-clone
-kubectl get secrets -n kahoot-clone
+# Kiểm tra deployment YAML
+kubectl describe deployment gateway -n kahoot-clone | grep Image
+
+# Expected: 22521284/kahoot-clone-gateway:latest
+# NOT: docker.io/kahoot-clone-gateway:latest
 ```
 
-### **Vấn đề 4: Jenkins bị lag/slow**
-**Nguyên nhân**: EC2 instance thiếu resource
+### **Vấn đề 2: Pods CrashLoopBackOff**
+### **Vấn đề 2: Pods CrashLoopBackOff**
+**Lỗi**: Container restarts continuously
 
 **Giải pháp**:
-```hcl
-# terraform/terraform.tfvars
-jenkins_instance_type = "c7i-flex.xlarge"  # Nâng từ large lên xlarge
+```bash
+# Check logs
+kubectl logs -f <pod-name> -n kahoot-clone
+
+# Common causes:
+# - Missing env vars: Check ConfigMap and Secrets
+# - Wrong MongoDB URI: Verify k8s/secrets.yaml
+# - Invalid JWT secret
+# - Service dependency issues
+```
+
+### **Vấn đề 3: Không push được images lên Docker Hub**
+**Lỗi**: `unauthorized` khi push lên Docker Hub
+
+**Giải pháp**:
+1. Kiểm tra credential `dockerhub-credentials` trong Jenkins
+2. Đảm bảo Docker Hub token còn valid
+3. Kiểm tra username: `22521284` (KHÔNG phải docker.io)
+
+### **Vấn đề 4: Environment variables không match**
+**Lỗi**: Services không connect được với MongoDB
+
+**Giải pháp**:
+```bash
+# Run validation script
+./scripts/validate-env-vars.sh
+k8s_instance_type = "c7i-flex.xlarge"
 ```
 
 Sau đó:
@@ -337,6 +383,43 @@ terraform apply
 
 ##  **Checklist hoàn thành**
 
+### **Infrastructure**
+- [ ] Terraform apply thành công (10 resources created)
+- [ ] **KHÔNG có App Server** (đã comment out)
+- [ ] Jenkins accessible tại http://<jenkins_ip>:8080
+- [ ] K8s cluster ready (kubectl get nodes)
+
+### **Jenkins Configuration**
+- [ ] Pipeline job được tạo: `kahoot-clone-pipeline`
+- [ ] Credentials đã cấu hình:
+  - [ ] dockerhub-credentials (username: 22521284)
+  - [ ] github-credentials
+  - [ ] kubeconfig
+- [ ] **KHÔNG CẦN SonarQube token** (đã loại bỏ)
+- [ ] GitHub webhook đã được cấu hình
+- [ ] Webhook test thành công (status 200)
+
+### **Pipeline Execution**  
+- [ ] Build đầu tiên chạy thành công
+- [ ] Docker images được build (7 images)
+- [ ] **KHÔNG có SonarQube analysis** (skipped)
+- [ ] **KHÔNG có Trivy scans** (skipped)
+- [ ] Images được push lên Docker Hub (22521284)
+- [ ] Application được deploy lên K8s
+
+### **Kubernetes Deployment**
+- [ ] Namespace kahoot-clone created
+- [ ] ConfigMap và Secrets applied
+- [ ] 7 microservices pods running (2 replicas each)
+- [ ] Prometheus deployed (namespace: monitoring)
+- [ ] Grafana deployed (namespace: monitoring)
+- [ ] Frontend accessible từ browser
+
+### **Verification**
+- [ ] `kubectl get pods --all-namespaces` shows all pods running
+- [ ] Frontend: http://<k8s_ip>:30006
+- [ ] Prometheus: http://<k8s_ip>:30090
+- [ ] Grafana: http://<k8s_ip>:30300
 - [ ] Jenkins accessible tại http://<ip>:8080
 - [ ] SonarQube accessible tại http://<ip>:9000
 - [ ] Pipeline job được tạo
@@ -344,25 +427,24 @@ terraform apply
 - [ ] **GitHub webhook đã được cấu hình** ✅
 - [ ] **Webhook test thành công (status 200)** ✅
 - [ ] Build đầu tiên chạy thành công
-- [ ] Docker images được build thành công
-- [ ] SonarQube analysis hoàn thành
-- [ ] Trivy security scans pass
-- [ ] Code được merge vào main branch
-- [ ] Images được push lên Docker Hub
+- [ ] Docker images được build thành công (7 services)
+- [ ] **❌ KHÔNG CÓ** SonarQube analysis (đã loại bỏ)
+- [ ] **❌ KHÔNG CÓ** Trivy security scans (đã loại bỏ)
+- [ ] Images được push lên Docker Hub (registry 22521284)
 - [ ] Application được deploy lên K8s
-- [ ] Pods đang running healthy
+- [ ] Pods đang running healthy (14 pods total)
 - [ ] Frontend accessible từ browser
 
 ---
 
-##  **Bước 11: Cấu hình GitHub Webhook** (Bắt buộc)
+##  **Bước 10: Cấu hình GitHub Webhook** (Bắt buộc)
 
-### **11.1. Truy cập GitHub Repository**
+### **10.1. Truy cập GitHub Repository**
 ```
 https://github.com/Thang141104/DevOps-Kahoot-Clone
 ```
 
-### **11.2. Thêm Webhook**
+### **10.2. Thêm Webhook**
 1. **Settings** → **Webhooks** → **Add webhook**
 2. Cấu hình:
    - **Payload URL**: `http://<jenkins_public_ip>:8080/github-webhook/`
@@ -373,21 +455,21 @@ https://github.com/Thang141104/DevOps-Kahoot-Clone
 
 3. Click **Add webhook**
 
-### **11.3. Test Webhook**
+### **10.3. Test Webhook**
 ```bash
 # Push test commit
 git commit --allow-empty -m "Test webhook trigger"
-git push origin main
+git push origin fix/auth-routing-issues
 ```
 
 Jenkins pipeline sẽ tự động chạy sau vài giây!
 
-### **11.4. Xem Webhook Status**
+### **10.4. Xem Webhook Status**
 - GitHub → Webhooks → Click vào webhook
 - Tab **Recent Deliveries** → Xem response từ Jenkins
 - Status 200 = Success ✅
 
-### **11.5. Troubleshooting Webhook**
+### **10.5. Troubleshooting Webhook**
 
 **Lỗi: Connection timeout**
 - Kiểm tra Security Group của Jenkins EC2
@@ -405,29 +487,62 @@ Jenkins pipeline sẽ tự động chạy sau vài giây!
 
 ## **Next Steps**
 
-1. **Monitoring tự động với webhook**:
-   - Mỗi push sẽ trigger build ngay lập tức
-   - Không cần Poll SCM (tiết kiệm resource)
+### **1. Infrastructure Summary**
+```
+✅ Jenkins Server (c7i-flex.large)
+   - Port 8080: Web UI
+   - Docker: Build images
+   - No SonarQube
+   
+✅ Kubernetes Cluster (c7i-flex.large)  
+   - 7 microservices (2 replicas each)
+   - Prometheus monitoring
+   - Grafana dashboards
+   
+❌ App Server (REMOVED)
+   - No Docker Compose deployment
+   - All apps run on Kubernetes
+```
 
-2. **Cấu hình monitoring**:
-   - Prometheus + Grafana cho K8s
-   - Jenkins monitoring plugins
+### **2. Deployment Flow**
+```
+GitHub Push
+    ↓
+GitHub Webhook
+    ↓
+Jenkins Pipeline
+    ↓
+├─ Build 7 Docker images
+├─ Push to Docker Hub (22521284)
+├─ Deploy to Kubernetes
+└─ Health check pods
+```
 
-3. **Setup backup**:
-   - Jenkins configuration backup
-   - Kubernetes ETCD backup
-   - Database backups
+### **3. Monitoring Setup**
 
-4. **Security hardening**:
-   - Đổi tất cả default passwords
-   - Enable HTTPS với Let's Encrypt
-   - Cấu hình firewall rules
-   - Restrict SSH access
+### **3. Monitoring Setup**
+- **Prometheus**: Scrape metrics từ tất cả 7 services
+- **Grafana**: Visualize dashboards
+- **Documentation**: KUBERNETES_MONITORING_GUIDE.md
 
-5. **Performance tuning**:
-   - Optimize Docker image sizes
-   - Configure K8s resource limits
-   - Enable caching trong pipeline
+### **4. Environment Variables**
+- **Single Source of Truth**: terraform.tfvars
+- **Auto-generated**: k8s/secrets.yaml from Terraform
+- **Validation**: scripts/validate-env-vars.sh
+- **Documentation**: ENVIRONMENT_VARIABLES_GUIDE.md
+
+### **5. Security**
+- ✅ Secrets stored in K8s Secrets (base64 encoded)
+- ✅ ConfigMap for non-sensitive data
+- ❌ No SonarQube code analysis (removed for performance)
+- ❌ No Trivy security scanning (removed for performance)
+
+### **6. References**
+- **Setup**: INSTALLATION.md
+- **Monitoring**: KUBERNETES_MONITORING_GUIDE.md
+- **Metrics**: METRICS_IMPLEMENTATION.md
+- **Env Vars**: ENVIRONMENT_VARIABLES_GUIDE.md
+- **Jenkins**: JENKINS_SETUP_COMPLETE.md
 
 ---
 
@@ -435,11 +550,18 @@ Jenkins pipeline sẽ tự động chạy sau vài giây!
 
 Nếu gặp vấn đề:
 1. Kiểm tra Jenkins console output
-2. Xem SonarQube analysis logs
-3. Kiểm tra K8s pod logs: `kubectl logs -f <pod> -n kahoot-clone`
-4. Review Trivy security reports
-5. Tham khảo các file README trong project
+2. Xem K8s pod logs: `kubectl logs -f <pod> -n kahoot-clone`
+3. Validate env vars: `./scripts/validate-env-vars.sh`
+4. Check pod status: `kubectl describe pod <pod> -n kahoot-clone`
+5. Verify images: `docker pull 22521284/kahoot-clone-gateway:latest`
 
 ---
 
-** Chúc mừng! CI/CD pipeline đã sẵn sàng!**
+** Chúc mừng! CI/CD pipeline (Kubernetes-based) đã sẵn sàng!**
+
+**Architecture Summary:**
+- 🔧 Jenkins: CI/CD automation
+- ☸️ Kubernetes: Container orchestration
+- 📊 Prometheus + Grafana: Monitoring
+- 🐳 Docker Hub (22521284): Image registry
+- ❌ No App Server, No SonarQube, No Trivy

@@ -3,8 +3,10 @@
 ## 🎯 Mục Tiêu
 
 Đảm bảo environment variables **GIỐNG HỆT NHAU** giữa:
-- Docker Compose deployment (App Server)
-- Kubernetes deployment (K8s Cluster)
+- ~~Docker Compose deployment (App Server)~~ **REMOVED**
+- Kubernetes deployment (K8s Cluster) - **ONLY deployment method**
+
+**NOTE:** App Server đã bị loại bỏ. Tất cả deployments chỉ dùng Kubernetes.
 
 ## 🔄 Luồng Tự Động
 
@@ -21,22 +23,18 @@ email_password  = "your-app-password"
 ### 2. **Auto-Generation Flow**
 
 ```
-Terraform Variables
+Terraform Variables (terraform.tfvars)
         ↓
-    [user-data.sh]
+    [user-data.sh on K8s Master]
         ↓
-   ├─→ Docker Compose .env files (7 services)
-   │   ├─ gateway/.env
-   │   ├─ services/auth-service/.env
-   │   ├─ services/quiz-service/.env
-   │   ├─ services/game-service/.env
-   │   ├─ services/user-service/.env
-   │   ├─ services/analytics-service/.env
-   │   └─ frontend/.env
-   │
-   └─→ Kubernetes secrets.yaml
-       └─ k8s/secrets.yaml (auto-generated)
+   Kubernetes ConfigMap & Secrets
+   ├─ k8s/configmap.yaml (non-sensitive)
+   └─ k8s/secrets.yaml (sensitive - auto-generated)
 ```
+
+**❌ REMOVED:**
+- Docker Compose .env files generation (App Server removed)
+- No more 7 separate .env files
 
 ## 📋 Environment Variables Mapping
 
@@ -227,18 +225,17 @@ cd terraform
 terraform apply
 
 # This automatically:
-# 1. Creates EC2 instances
-# 2. Runs user-data.sh
-# 3. Generates .env files for Docker Compose
-# 4. Generates k8s/secrets.yaml
-# 5. Starts Docker Compose on App Server
+# 1. Creates EC2 instances (Jenkins + K8s only)
+# 2. Runs user-data.sh on K8s master
+# 3. Generates k8s/secrets.yaml from Terraform variables
+# 4. NO App Server, NO Docker Compose deployment
 ```
 
 ### Jenkins Pipeline
 ```bash
 # Pipeline automatically:
 # 1. Builds Docker images
-# 2. Pushes to Docker Hub
+# 2. Pushes to Docker Hub (registry: 22521284)
 # 3. Applies k8s/configmap.yaml
 # 4. Applies k8s/secrets.yaml (generated from Terraform)
 # 5. Deploys to K8s cluster
