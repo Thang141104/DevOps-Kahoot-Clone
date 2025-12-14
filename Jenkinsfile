@@ -286,9 +286,9 @@ pipeline {
         }
         
         stage('Push Docker Images') {
-            when {
-                branch 'main'
-            }
+            // when {
+            //     branch 'main'
+            // }
             steps {
                 script {
                     echo " Pushing Docker images to registry..."
@@ -306,9 +306,9 @@ pipeline {
         }
         
         stage('Deploy to Kubernetes') {
-            when {
-                branch 'main'
-            }
+            // when {
+            //     branch 'main'
+            // }
             steps {
                 script {
                     echo " Deploying to Kubernetes..."
@@ -349,9 +349,9 @@ pipeline {
         }
         
         stage('Health Check') {
-            when {
-                branch 'main'
-            }
+            // when {
+            //     branch 'main'
+            // }
             steps {
                 script {
                     echo " Running health checks..."
