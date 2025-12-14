@@ -11,9 +11,9 @@ pipeline {
         SONAR_HOST_URL = 'http://sonarqube:9000'
         SONAR_TOKEN = credentials('sonarqube-token')
         
-        // AWS Credentials
-        AWS_CREDENTIALS = credentials('aws-credentials')
-        AWS_REGION = 'us-east-1'
+        // AWS Credentials (not used in this pipeline)
+        // AWS_CREDENTIALS = credentials('aws-credentials')
+        // AWS_REGION = 'us-east-1'
         
         // Snyk Token
         // SNYK_TOKEN = credentials('snyk-token')
@@ -380,32 +380,11 @@ pipeline {
     }
     
     post {
-        always {
-            script {
-                echo " Collecting artifacts and reports..."
-                // Archive test results
-                junit allowEmptyResults: true, testResults: '**/test-results/*.xml'
-                
-                // Publish HTML reports
-                publishHTML([
-                    allowMissing: true,
-                    alwaysLinkToLastBuild: true,
-                    keepAll: true,
-                    reportDir: 'coverage',
-                    reportFiles: 'index.html',
-                    reportName: 'Coverage Report'
-                ])
-            }
-        }
         success {
             echo " Pipeline completed successfully!"
         }
         failure {
             echo " Pipeline failed!"
-        }
-        cleanup {
-            echo " Cleaning up workspace..."
-            cleanWs()
         }
     }
 }
