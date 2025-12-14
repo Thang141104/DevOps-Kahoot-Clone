@@ -103,15 +103,6 @@ resource "aws_security_group" "app_server" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # SonarQube
-  ingress {
-    description = "SonarQube"
-    from_port   = 9000
-    to_port     = 9000
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
   # Kubernetes API
   ingress {
     description = "Kubernetes API"

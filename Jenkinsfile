@@ -7,10 +7,6 @@ pipeline {
         DOCKER_USERNAME = '22521284'
         DOCKER_CREDENTIALS = credentials('dockerhub-credentials')
         
-        // SonarQube
-        SONAR_HOST_URL = 'http://sonarqube:9000'
-        SONAR_TOKEN = credentials('sonarqube-token')
-        
         // AWS Credentials (commented out - not needed for Docker Hub + K8s deployment)
         // AWS_CREDENTIALS = credentials('aws-credentials')
         // AWS_REGION = 'us-east-1'
@@ -116,49 +112,7 @@ pipeline {
             }
         }
         
-        stage('Code Quality - SonarQube Analysis') {
-            environment {
-                SCANNER_HOME = tool 'SonarQube Scanner'
-            }
-            steps {
-                script {
-                    echo " Running SonarQube analysis..."
-                    catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
-                        sh '''
-                            ${SCANNER_HOME}/bin/sonar-scanner \
-                                -Dsonar.host.url=${SONAR_HOST_URL} \
-                                -Dsonar.login=${SONAR_TOKEN} \
-                                -Dsonar.projectKey=${PROJECT_NAME} \
-                                -Dsonar.projectName=${PROJECT_NAME} \
-                                -Dsonar.projectVersion=${BUILD_VERSION} \
-                                -Dsonar.sources=. \
-                                -Dsonar.exclusions=**/node_modules/**,**/test/**,**/tests/**,**/*.test.js,**/*.spec.js \
-                                -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
-                        '''
-                    }
-                }
-            }
-        }
-        
-        stage('Quality Gate') {
-            steps {
-                script {
-                    echo " Waiting for SonarQube Quality Gate..."
-                    catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
-                        timeout(time: 5, unit: 'MINUTES') {
-                            try {
-                                def qg = waitForQualityGate()
-                                if (qg.status != 'OK') {
-                                    unstable "Quality gate failure: ${qg.status}"
-                                }
-                            } catch (Exception e) {
-                                echo "Quality gate check skipped: ${e.message}"
-                            }
-                        }
-                    }
-                }
-            }
-        }
+
         
         stage('Security Scanning') {
             steps {

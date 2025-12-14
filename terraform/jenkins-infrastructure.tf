@@ -1,8 +1,8 @@
-# Jenkins & SonarQube Infrastructure
+# Jenkins Infrastructure
 
 resource "aws_security_group" "jenkins_sg" {
   name        = "${var.environment}-jenkins-sg"
-  description = "Security group for Jenkins and SonarQube server"
+  description = "Security group for Jenkins server"
   vpc_id      = aws_vpc.main.id
 
   # SSH
@@ -30,15 +30,6 @@ resource "aws_security_group" "jenkins_sg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
     description = "Jenkins Agent"
-  }
-
-  # SonarQube
-  ingress {
-    from_port   = 9000
-    to_port     = 9000
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    description = "SonarQube Web UI"
   }
 
   # Docker Registry
@@ -80,7 +71,7 @@ resource "aws_security_group" "jenkins_sg" {
   tags = {
     Name        = "${var.environment}-jenkins-sg"
     Environment = var.environment
-    Service     = "Jenkins-SonarQube"
+    Service     = "Jenkins"
   }
 }
 
@@ -169,11 +160,6 @@ output "jenkins_public_ip" {
 output "jenkins_url" {
   value       = "http://${var.use_elastic_ip ? aws_eip.jenkins_eip[0].public_ip : aws_instance.jenkins_server.public_ip}:8080"
   description = "Jenkins Web UI URL"
-}
-
-output "sonarqube_url" {
-  value       = "http://${var.use_elastic_ip ? aws_eip.jenkins_eip[0].public_ip : aws_instance.jenkins_server.public_ip}:9000"
-  description = "SonarQube Web UI URL"
 }
 
 output "k8s_master_ip" {
