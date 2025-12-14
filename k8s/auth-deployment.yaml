@@ -52,6 +52,31 @@ spec:
             secretKeyRef:
               name: app-secrets
               key: EMAIL_PASSWORD
+        - name: JWT_EXPIRES_IN
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: JWT_EXPIRES_IN
+        - name: EMAIL_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: EMAIL_HOST
+        - name: EMAIL_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: EMAIL_PORT
+        - name: OTP_EXPIRES_IN
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: OTP_EXPIRES_IN
+        - name: NODE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: NODE_ENV
         resources:
           requests:
             memory: "256Mi"

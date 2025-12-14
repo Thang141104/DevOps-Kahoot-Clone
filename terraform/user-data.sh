@@ -42,8 +42,36 @@ cd /home/ubuntu/app
 echo "=== Cloning repository ==="
 git clone -b ${github_branch} ${github_repo} .
 
-# Create .env files for services
-echo "=== Creating environment files ==="
+# Generate Kubernetes secrets from Terraform variables
+echo "=== Generating Kubernetes secrets and configmap ==="
+export mongodb_uri="${mongodb_uri}"
+export jwt_secret="${jwt_secret}"
+export email_user="${email_user}"
+export email_password="${email_password}"
+
+# Create k8s secrets.yaml
+cat > /home/ubuntu/app/k8s/secrets.yaml << EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: app-secrets
+  namespace: kahoot-clone
+type: Opaque
+stringData:
+  MONGODB_URI: "${mongodb_uri}"
+  JWT_SECRET: "${jwt_secret}"
+  EMAIL_USER: "${email_user}"
+  EMAIL_PASSWORD: "${email_password}"
+  EMAIL_HOST: "smtp.gmail.com"
+  EMAIL_PORT: "587"
+  SESSION_SECRET: "${jwt_secret}"
+  OTP_EXPIRES_IN: "10"
+EOF
+
+echo "✅ K8s secrets generated at /home/ubuntu/app/k8s/secrets.yaml"
+
+# Create .env files for services (Docker Compose)
+echo "=== Creating environment files for Docker Compose ==="
 
 # Gateway .env
 cat > /home/ubuntu/app/gateway/.env << 'EOF'

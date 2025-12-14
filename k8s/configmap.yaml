@@ -16,8 +16,23 @@ data:
   USER_SERVICE_URL: "http://user-service:3004"
   ANALYTICS_SERVICE_URL: "http://analytics-service:3005"
   
+  # Service Ports
+  AUTH_PORT: "3001"
+  QUIZ_PORT: "3002"
+  GAME_PORT: "3003"
+  USER_PORT: "3004"
+  ANALYTICS_PORT: "3005"
+  FRONTEND_PORT: "3006"
+  
   # CORS
   CORS_ORIGIN: "*"
   
-  # Session
-  SESSION_SECRET: "change-this-in-production"
+  # JWT
+  JWT_EXPIRES_IN: "7d"
+  
+  # Email Server (non-sensitive)
+  EMAIL_HOST: "smtp.gmail.com"
+  EMAIL_PORT: "587"
+  
+  # OTP
+  OTP_EXPIRES_IN: "10"
