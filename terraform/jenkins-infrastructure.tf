@@ -132,6 +132,7 @@ resource "aws_instance" "k8s_master" {
 
   # FIXED: Use user-data.sh instead of k8s-user-data.sh
   # user-data.sh includes Prometheus + Grafana deployment
+  # NOTE: Docker images must be pre-built and pushed to Docker Hub
   user_data = templatefile("${path.module}/user-data.sh", {
     github_repo    = var.github_repo
     github_branch  = var.github_branch

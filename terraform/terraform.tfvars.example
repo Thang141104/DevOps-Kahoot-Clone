@@ -30,3 +30,7 @@ use_elastic_ip = true
 # GitHub Repository
 github_repo   = "https://github.com/YOUR_USERNAME/YOUR_REPO.git"
 github_branch = "main" 
+
+# Docker Hub Credentials (for auto-building and pushing images)
+dockerhub_username = "your-dockerhub-username"
+dockerhub_password = "your-dockerhub-password-or-access-token"

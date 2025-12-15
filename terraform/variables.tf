@@ -119,3 +119,17 @@ variable "k8s_instance_type" {
   type        = string
   default     = "t3.medium"
 }
+
+# Docker Hub Configuration (for building and pushing images)
+variable "dockerhub_username" {
+  description = "Docker Hub username for pushing images"
+  type        = string
+  default     = "22521284"
+}
+
+variable "dockerhub_password" {
+  description = "Docker Hub password or access token"
+  type        = string
+  sensitive   = true
+  default     = ""
+}

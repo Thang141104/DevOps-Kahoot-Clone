@@ -53,6 +53,10 @@ cd /home/ubuntu/app
 echo "=== Cloning repository ==="
 git clone -b ${github_branch} ${github_repo} .
 
+# NOTE: Docker images are pre-built and pushed to Docker Hub
+# Build them once using: docker build + docker push from local or Jenkins
+# K8s will pull images from Docker Hub (no build needed here)
+
 # Generate Kubernetes secrets from Terraform variables
 echo "=== Generating Kubernetes secrets ==="
 cat > /home/ubuntu/app/k8s/secrets.yaml << EOF
