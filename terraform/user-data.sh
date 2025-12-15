@@ -1,4 +1,12 @@
 #!/bin/bash
+set -e
+
+# Log all output
+exec > >(tee /var/log/k8s-setup.log|logger -t k8s-setup -s 2>/dev/console) 2>&1
+
+echo "=========================================="
+echo "Starting Kubernetes (k3s) Setup"
+echo "=========================================="
 
 # Update system
 echo "=== Updating system packages ==="
@@ -16,22 +24,25 @@ apt-get install -y \
     git \
     software-properties-common
 
-# Install Docker
-echo "=== Installing Docker ==="
-curl -fsSL https://get.docker.com -o get-docker.sh
-sh get-docker.sh
+# Install k3s (lightweight Kubernetes)
+echo "=== Installing k3s ==="
+curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server --write-kubeconfig-mode=644" sh -
 
-# Start and enable Docker
-systemctl start docker
-systemctl enable docker
+# Wait for k3s to be ready
+echo "Waiting for k3s to be ready..."
+sleep 30
 
-# Install Docker Compose
-echo "=== Installing Docker Compose ==="
-curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-chmod +x /usr/local/bin/docker-compose
+# Export kubeconfig
+export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
-# Create docker group and add ubuntu user
-usermod -aG docker ubuntu
+# Install Helm
+echo "=== Installing Helm ==="
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+# Create namespaces
+echo "=== Creating namespaces ==="
+kubectl create namespace kahoot-clone
+kubectl create namespace monitoring
 
 # Create application directory
 echo "=== Setting up application directory ==="
@@ -43,13 +54,7 @@ echo "=== Cloning repository ==="
 git clone -b ${github_branch} ${github_repo} .
 
 # Generate Kubernetes secrets from Terraform variables
-echo "=== Generating Kubernetes secrets and configmap ==="
-export mongodb_uri="${mongodb_uri}"
-export jwt_secret="${jwt_secret}"
-export email_user="${email_user}"
-export email_password="${email_password}"
-
-# Create k8s secrets.yaml
+echo "=== Generating Kubernetes secrets ==="
 cat > /home/ubuntu/app/k8s/secrets.yaml << EOF
 apiVersion: v1
 kind: Secret
@@ -68,192 +73,255 @@ stringData:
   OTP_EXPIRES_IN: "10"
 EOF
 
-echo "✅ K8s secrets generated at /home/ubuntu/app/k8s/secrets.yaml"
+# Apply secrets to cluster
+kubectl apply -f /home/ubuntu/app/k8s/secrets.yaml
 
-# Create .env files for services (Docker Compose)
-echo "=== Creating environment files for Docker Compose ==="
+# Deploy Prometheus
+echo "=== Deploying Prometheus ==="
+cat > /home/ubuntu/prometheus-deployment.yaml << 'PROM_EOF'
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: monitoring
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+    
+    scrape_configs:
+      - job_name: 'kubernetes-pods'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - kahoot-clone
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
 
-# Gateway .env
-cat > /home/ubuntu/app/gateway/.env << 'EOF'
-PORT=3000
-NODE_ENV=production
-AUTH_SERVICE_URL=http://auth-service:3001
-QUIZ_SERVICE_URL=http://quiz-service:3002
-GAME_SERVICE_URL=http://game-service:3003
-USER_SERVICE_URL=http://user-service:3004
-ANALYTICS_SERVICE_URL=http://analytics-service:3005
-EOF
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      serviceAccountName: prometheus
+      containers:
+      - name: prometheus
+        image: prom/prometheus:latest
+        args:
+          - '--config.file=/etc/prometheus/prometheus.yml'
+          - '--storage.tsdb.path=/prometheus'
+          - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+          - '--web.console.templates=/usr/share/prometheus/consoles'
+        ports:
+        - containerPort: 9090
+        volumeMounts:
+        - name: config
+          mountPath: /etc/prometheus
+        - name: storage
+          mountPath: /prometheus
+      volumes:
+      - name: config
+        configMap:
+          name: prometheus-config
+      - name: storage
+        emptyDir: {}
 
-# Auth Service .env
-cat > /home/ubuntu/app/services/auth-service/.env << 'EOF'
-PORT=3001
-NODE_ENV=production
-MONGODB_URI=${mongodb_uri}
-JWT_SECRET=${jwt_secret}
-JWT_EXPIRES_IN=7d
-EMAIL_USER=${email_user}
-EMAIL_PASSWORD=${email_password}
-EMAIL_HOST=smtp.gmail.com
-EMAIL_PORT=587
-OTP_EXPIRES_IN=10
-EOF
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: monitoring
+spec:
+  type: NodePort
+  selector:
+    app: prometheus
+  ports:
+    - protocol: TCP
+      port: 9090
+      targetPort: 9090
+      nodePort: 30090
 
-# Quiz Service .env
-cat > /home/ubuntu/app/services/quiz-service/.env << 'EOF'
-PORT=3002
-NODE_ENV=production
-MONGODB_URI=${mongodb_uri}
-JWT_SECRET=${jwt_secret}
-EOF
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus
+  namespace: monitoring
 
-# Game Service .env
-cat > /home/ubuntu/app/services/game-service/.env << 'EOF'
-PORT=3003
-NODE_ENV=production
-MONGODB_URI=${mongodb_uri}
-ANALYTICS_SERVICE_URL=http://analytics-service:3005
-EOF
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: prometheus
+rules:
+- apiGroups: [""]
+  resources:
+  - nodes
+  - nodes/proxy
+  - services
+  - endpoints
+  - pods
+  verbs: ["get", "list", "watch"]
+- apiGroups:
+  - extensions
+  resources:
+  - ingresses
+  verbs: ["get", "list", "watch"]
 
-# User Service .env
-cat > /home/ubuntu/app/services/user-service/.env << 'EOF'
-PORT=3004
-NODE_ENV=production
-MONGODB_URI=${mongodb_uri}
-JWT_SECRET=${jwt_secret}
-EOF
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: prometheus
+subjects:
+- kind: ServiceAccount
+  name: prometheus
+  namespace: monitoring
+PROM_EOF
 
-# Analytics Service .env
-cat > /home/ubuntu/app/services/analytics-service/.env << 'EOF'
-PORT=3005
-NODE_ENV=production
-MONGODB_URI=${mongodb_uri}
-EOF
+kubectl apply -f /home/ubuntu/prometheus-deployment.yaml
 
-# Frontend .env
-cat > /home/ubuntu/app/frontend/.env << EOF
-PORT=3006
-REACT_APP_API_URL=http://$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4):3000
-REACT_APP_SOCKET_URL=http://$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4):3003
-EOF
+# Deploy Grafana
+echo "=== Deploying Grafana ==="
+cat > /home/ubuntu/grafana-deployment.yaml << 'GRAF_EOF'
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+      - name: grafana
+        image: grafana/grafana:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: GF_SECURITY_ADMIN_USER
+          value: "admin"
+        - name: GF_SECURITY_ADMIN_PASSWORD
+          value: "admin"
+        volumeMounts:
+        - name: grafana-storage
+          mountPath: /var/lib/grafana
+      volumes:
+      - name: grafana-storage
+        emptyDir: {}
 
-# Create Docker Compose file
-echo "=== Creating Docker Compose file ==="
-cat > /home/ubuntu/app/docker-compose.yml << 'COMPOSE_EOF'
-version: '3.8'
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: monitoring
+spec:
+  type: NodePort
+  selector:
+    app: grafana
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000
+      nodePort: 30300
+GRAF_EOF
 
-services:
-  gateway:
-    build: ./gateway
-    container_name: kahoot-gateway
-    ports:
-      - "3000:3000"
-    env_file:
-      - ./gateway/.env
-    restart: unless-stopped
-    networks:
-      - kahoot-network
-    depends_on:
-      - auth-service
-      - quiz-service
-      - game-service
-      - user-service
-      - analytics-service
+kubectl apply -f /home/ubuntu/grafana-deployment.yaml
 
-  auth-service:
-    build: ./services/auth-service
-    container_name: kahoot-auth-service
-    ports:
-      - "3001:3001"
-    env_file:
-      - ./services/auth-service/.env
-    restart: unless-stopped
-    networks:
-      - kahoot-network
+# Wait for monitoring pods to start
+echo "=== Waiting for monitoring pods ==="
+sleep 60
 
-  quiz-service:
-    build: ./services/quiz-service
-    container_name: kahoot-quiz-service
-    ports:
-      - "3002:3002"
-    env_file:
-      - ./services/quiz-service/.env
-    restart: unless-stopped
-    networks:
-      - kahoot-network
+# Deploy application to K8s
+echo "=== Deploying application to Kubernetes ==="
+cd /home/ubuntu/app/k8s
+kubectl apply -f namespace.yaml 2>/dev/null || true
+kubectl apply -f configmap.yaml 2>/dev/null || true
+kubectl apply -f secrets.yaml
+kubectl apply -f auth-deployment.yaml 2>/dev/null || true
+kubectl apply -f user-deployment.yaml 2>/dev/null || true
+kubectl apply -f quiz-deployment.yaml 2>/dev/null || true
+kubectl apply -f game-deployment.yaml 2>/dev/null || true
+kubectl apply -f analytics-deployment.yaml 2>/dev/null || true
+kubectl apply -f gateway-deployment.yaml 2>/dev/null || true
+kubectl apply -f frontend-deployment.yaml 2>/dev/null || true
 
-  game-service:
-    build: ./services/game-service
-    container_name: kahoot-game-service
-    ports:
-      - "3003:3003"
-    env_file:
-      - ./services/game-service/.env
-    restart: unless-stopped
-    networks:
-      - kahoot-network
+# Copy kubeconfig to ubuntu user
+mkdir -p /home/ubuntu/.kube
+cp /etc/rancher/k3s/k3s.yaml /home/ubuntu/.kube/config
+chown -R ubuntu:ubuntu /home/ubuntu/.kube
 
-  user-service:
-    build: ./services/user-service
-    container_name: kahoot-user-service
-    ports:
-      - "3004:3004"
-    env_file:
-      - ./services/user-service/.env
-    restart: unless-stopped
-    networks:
-      - kahoot-network
+# Create helper scripts
+cat > /home/ubuntu/show-monitoring.sh << 'MONITORING'
+#!/bin/bash
+PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+echo "=========================================="
+echo "Monitoring Stack URLs"
+echo "=========================================="
+echo "Prometheus: http://$PUBLIC_IP:30090"
+echo "Grafana:    http://$PUBLIC_IP:30300"
+echo "  Username: admin"
+echo "  Password: admin"
+echo ""
+echo "Monitoring Pods Status:"
+kubectl get pods -n monitoring
+echo ""
+echo "Application Pods Status:"
+kubectl get pods -n kahoot-clone
+echo "=========================================="
+MONITORING
 
-  analytics-service:
-    build: ./services/analytics-service
-    container_name: kahoot-analytics-service
-    ports:
-      - "3005:3005"
-    env_file:
-      - ./services/analytics-service/.env
-    restart: unless-stopped
-    networks:
-      - kahoot-network
+chmod +x /home/ubuntu/show-monitoring.sh
+chown ubuntu:ubuntu /home/ubuntu/show-monitoring.sh
 
-  frontend:
-    build: ./frontend
-    container_name: kahoot-frontend
-    ports:
-      - "3006:3006"
-      - "80:3006"
-    env_file:
-      - ./frontend/.env
-    restart: unless-stopped
-    networks:
-      - kahoot-network
-    depends_on:
-      - gateway
+# Display access information
+PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+echo "=========================================="
+echo "=== Kubernetes cluster ready! ==="
+echo "=========================================="
+echo "Prometheus: http://$PUBLIC_IP:30090"
+echo "Grafana:    http://$PUBLIC_IP:30300 (admin/admin)"
+echo ""
+echo "Run: /home/ubuntu/show-monitoring.sh to see status"
+echo "=========================================="
 
-networks:
-  kahoot-network:
-    driver: bridge
-COMPOSE_EOF
-
-# Set proper ownership
-chown -R ubuntu:ubuntu /home/ubuntu/app
-
-# Build and start services
-echo "=== Building and starting Docker containers ==="
-cd /home/ubuntu/app
-docker-compose up -d --build
-
-# Wait for services to be ready
-echo "=== Waiting for services to start ==="
-sleep 30
-
-# Show status
-echo "=== Docker container status ==="
-docker-compose ps
-
-# Show logs
-echo "=== Recent logs ==="
-docker-compose logs --tail=50
-
-echo "=== Deployment completed successfully ==="
-echo "=== Application is running on: ==="
-echo "    - Frontend: http://$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4):3006"
-echo "    - API Gateway: http://$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4):3000"
+# Show final status
+kubectl get nodes
+kubectl get pods -n monitoring
+kubectl get pods -n kahoot-clone 2>/dev/null || true
