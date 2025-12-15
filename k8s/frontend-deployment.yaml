@@ -23,15 +23,14 @@ spec:
       containers:
       - name: frontend
         image: 22521284/kahoot-clone-frontend:latest
-        imagePullPolicy: Always
+        imagePullPolicy: Always  # Always check Docker Hub for latest image (for CI/CD updates)
         ports:
         - containerPort: 3006
           name: http
         env:
         - name: REACT_APP_API_URL
-          value: "http://gateway:3000"
-        # NOTE: This works ONLY inside K8s cluster
-        # For browser access, update via: kubectl set env deployment/frontend REACT_APP_API_URL=http://<K8S_IP>:30000
+          value: "http://PLACEHOLDER_IP:30000"
+          # This value will be auto-updated by entrypoint.sh at runtime
         resources:
           requests:
             memory: "256Mi"

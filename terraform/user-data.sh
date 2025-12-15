@@ -68,9 +68,15 @@ PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
 echo "=== Building frontend with API URL: http://$PUBLIC_IP:30000 ==="
 docker build -t 22521284/kahoot-clone-frontend:latest ./frontend
 
-# NOTE: Other Docker images are pre-built and pushed to Docker Hub
-# Build them once using: docker build + docker push from local or Jenkins
-# K8s will pull images from Docker Hub (no build needed here)
+# NOTE: To push to Docker Hub, add credentials to terraform.tfvars:
+# dockerhub_username = "22521284"
+# dockerhub_password = "your_password"
+# Then uncomment:
+# echo "$DOCKERHUB_PASSWORD" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+# docker push 22521284/kahoot-clone-frontend:latest
+
+# For now, K8s will use other pre-built images from Docker Hub
+# Frontend uses local built image with runtime config
 
 # Generate Kubernetes secrets from Terraform variables
 echo "=== Generating Kubernetes secrets ==="
@@ -239,6 +245,13 @@ cd /home/ubuntu/app
 docker build -t 22521284/kahoot-clone-frontend:latest ./frontend
 echo "✅ Frontend image built successfully"
 
+# Import Docker image into k3s containerd
+# This allows K8s to use the local image immediately
+# Later, Jenkins can push updated images to Docker Hub
+echo "=== Importing image to k3s ==="
+docker save 22521284/kahoot-clone-frontend:latest | k3s ctr images import -
+echo "✅ Image imported to k3s"
+
 # Deploy Grafana
 echo "=== Deploying Grafana ==="
 cat > /home/ubuntu/grafana-deployment.yaml << 'GRAF_EOF'
@@ -300,6 +313,13 @@ sleep 60
 # Deploy application to K8s
 echo "=== Deploying application to Kubernetes ==="
 cd /home/ubuntu/app/k8s
+
+# Get public IP for frontend env
+PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+
+# Update frontend deployment with public IP
+sed -i "s|PLACEHOLDER_IP|$PUBLIC_IP|g" frontend-deployment.yaml
+
 kubectl apply -f namespace.yaml 2>/dev/null || true
 kubectl apply -f configmap.yaml 2>/dev/null || true
 kubectl apply -f secrets.yaml
