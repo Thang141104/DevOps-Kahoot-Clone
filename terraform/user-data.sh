@@ -325,6 +325,12 @@ echo ""
 echo "Run: /home/ubuntu/show-monitoring.sh to see status"
 echo "=========================================="
 
+# Fix frontend API URL to use public IP (for browser access)
+echo "=== Updating frontend API URL ==="
+sleep 60  # Wait for frontend pods to be ready
+kubectl set env deployment/frontend REACT_APP_API_URL=http://$PUBLIC_IP:30000 -n kahoot-clone
+echo "Frontend API URL updated to: http://$PUBLIC_IP:30000"
+
 # Show final status
 kubectl get nodes
 kubectl get pods -n monitoring
