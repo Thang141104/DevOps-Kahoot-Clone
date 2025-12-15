@@ -44,6 +44,14 @@ echo "=== Creating namespaces ==="
 kubectl create namespace kahoot-clone
 kubectl create namespace monitoring
 
+# Install Docker for building frontend image with dynamic API URL
+echo "=== Installing Docker ==="
+curl -fsSL https://get.docker.com -o get-docker.sh
+sh get-docker.sh
+usermod -aG docker ubuntu
+systemctl enable docker
+systemctl start docker
+
 # Create application directory
 echo "=== Setting up application directory ==="
 mkdir -p /home/ubuntu/app
@@ -53,7 +61,14 @@ cd /home/ubuntu/app
 echo "=== Cloning repository ==="
 git clone -b ${github_branch} ${github_repo} .
 
-# NOTE: Docker images are pre-built and pushed to Docker Hub
+# Get public IP for frontend API URL
+PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+
+# Build frontend with runtime API URL configuration
+echo "=== Building frontend with API URL: http://$PUBLIC_IP:30000 ==="
+docker build -t 22521284/kahoot-clone-frontend:latest ./frontend
+
+# NOTE: Other Docker images are pre-built and pushed to Docker Hub
 # Build them once using: docker build + docker push from local or Jenkins
 # K8s will pull images from Docker Hub (no build needed here)
 
@@ -214,6 +229,16 @@ PROM_EOF
 
 kubectl apply -f /home/ubuntu/prometheus-deployment.yaml
 
+# Wait for Docker to be ready
+echo "=== Waiting for Docker service ==="
+sleep 10
+
+# Build frontend with runtime config support
+echo "=== Building frontend Docker image ==="
+cd /home/ubuntu/app
+docker build -t 22521284/kahoot-clone-frontend:latest ./frontend
+echo "✅ Frontend image built successfully"
+
 # Deploy Grafana
 echo "=== Deploying Grafana ==="
 cat > /home/ubuntu/grafana-deployment.yaml << 'GRAF_EOF'
@@ -321,15 +346,11 @@ echo "=== Kubernetes cluster ready! ==="
 echo "=========================================="
 echo "Prometheus: http://$PUBLIC_IP:30090"
 echo "Grafana:    http://$PUBLIC_IP:30300 (admin/admin)"
+echo "Frontend:   http://$PUBLIC_IP:30006"
+echo "Gateway:    http://$PUBLIC_IP:30000"
 echo ""
 echo "Run: /home/ubuntu/show-monitoring.sh to see status"
 echo "=========================================="
-
-# Fix frontend API URL to use public IP (for browser access)
-echo "=== Updating frontend API URL ==="
-sleep 60  # Wait for frontend pods to be ready
-kubectl set env deployment/frontend REACT_APP_API_URL=http://$PUBLIC_IP:30000 -n kahoot-clone
-echo "Frontend API URL updated to: http://$PUBLIC_IP:30000"
 
 # Show final status
 kubectl get nodes

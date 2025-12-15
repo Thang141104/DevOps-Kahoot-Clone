@@ -1,8 +1,11 @@
 // API Configuration
-// Sử dụng environment variables từ .env file
-// Nếu không có trong .env, fallback về localhost
+// Sử dụng runtime config từ window._env_ (generated at container startup)
+// Nếu không có, fallback về process.env (build time)
+// Cuối cùng fallback về localhost
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+const API_BASE_URL = (window._env_ && window._env_.REACT_APP_API_URL) 
+  || process.env.REACT_APP_API_URL 
+  || 'http://localhost:3000';
 const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || 'http://localhost:3003';
 
 export const API_URLS = {

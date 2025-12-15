@@ -8,7 +8,7 @@ metadata:
     app: game-service
     tier: backend
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: game-service
