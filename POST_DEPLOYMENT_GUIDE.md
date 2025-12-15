@@ -58,7 +58,7 @@ Vào: **Manage Jenkins** → **Plugins** → **Installed plugins**
 Vào: **Manage Jenkins** → **Tools**
 
 #### **NodeJS Installation:**
-- Name: `NodeJS 18`
+- Name: `Node JS 18`
 - Version: NodeJS 18.20.8
 
 #### **Docker:**

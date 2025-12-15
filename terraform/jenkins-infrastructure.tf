@@ -130,8 +130,15 @@ resource "aws_instance" "k8s_master" {
     volume_type = "gp2"
   }
 
-  user_data = templatefile("${path.module}/k8s-user-data.sh", {
-    cluster_name = "${var.environment}-k8s-cluster"
+  # FIXED: Use user-data.sh instead of k8s-user-data.sh
+  # user-data.sh includes Prometheus + Grafana deployment
+  user_data = templatefile("${path.module}/user-data.sh", {
+    github_repo    = var.github_repo
+    github_branch  = var.github_branch
+    mongodb_uri    = var.mongodb_uri
+    email_user     = var.email_user
+    email_password = var.email_password
+    jwt_secret     = var.jwt_secret
   })
 
   tags = {
