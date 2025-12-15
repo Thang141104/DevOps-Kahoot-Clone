@@ -47,6 +47,3 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 
 # Use entrypoint to generate config at runtime
 ENTRYPOINT ["/docker-entrypoint.sh"]
-
-# Start application
-CMD ["serve", "-s", "build", "-l", "3006"]
