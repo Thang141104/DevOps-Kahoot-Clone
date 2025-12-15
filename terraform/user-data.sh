@@ -235,22 +235,26 @@ PROM_EOF
 
 kubectl apply -f /home/ubuntu/prometheus-deployment.yaml
 
-# Wait for Docker to be ready
+# NOTE: Frontend image is now on Docker Hub
+# K8s will pull image with imagePullPolicy: Always
+# Local build is optional (for testing or when Docker Hub is unavailable)
+
+# Wait for Docker to be ready (optional if skipping local build)
 echo "=== Waiting for Docker service ==="
 sleep 10
 
-# Build frontend with runtime config support
-echo "=== Building frontend Docker image ==="
-cd /home/ubuntu/app
-docker build -t 22521284/kahoot-clone-frontend:latest ./frontend
-echo "✅ Frontend image built successfully"
+# OPTIONAL: Build frontend locally (can comment out to save time)
+# Uncomment if you want to build fresh image on every terraform apply
+# echo "=== Building frontend Docker image ==="
+# cd /home/ubuntu/app
+# docker build -t 22521284/kahoot-clone-frontend:latest ./frontend
+# echo "✅ Frontend image built successfully"
 
-# Import Docker image into k3s containerd
-# This allows K8s to use the local image immediately
-# Later, Jenkins can push updated images to Docker Hub
-echo "=== Importing image to k3s ==="
-docker save 22521284/kahoot-clone-frontend:latest | k3s ctr images import -
-echo "✅ Image imported to k3s"
+# OPTIONAL: Import Docker image into k3s containerd
+# Only needed if building locally and using imagePullPolicy: IfNotPresent
+# echo "=== Importing image to k3s ==="
+# docker save 22521284/kahoot-clone-frontend:latest | k3s ctr images import -
+# echo "✅ Image imported to k3s"
 
 # Deploy Grafana
 echo "=== Deploying Grafana ==="
