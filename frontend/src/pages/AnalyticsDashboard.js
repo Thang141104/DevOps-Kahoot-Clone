@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './AnalyticsDashboard.css';
+import { API_URLS } from '../config/api';
 
 const AnalyticsDashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -19,14 +20,12 @@ const AnalyticsDashboard = () => {
     try {
       setLoading(true);
       
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
-      
       // Fetch dashboard summary
-      const dashboardResponse = await fetch(`${API_URL}/api/analytics/stats/dashboard`);
+      const dashboardResponse = await fetch(API_URLS.analytics.stats.dashboard);
       const dashboardJson = await dashboardResponse.json();
       
       // Fetch global stats
-      const statsResponse = await fetch(`${API_URL}/api/analytics/stats/global`);
+      const statsResponse = await fetch(API_URLS.analytics.stats.global);
       const statsJson = await statsResponse.json();
       
       setDashboardData(dashboardJson);
