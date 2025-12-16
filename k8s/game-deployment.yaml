@@ -47,6 +47,21 @@ spec:
             configMapKeyRef:
               name: app-config
               key: NODE_ENV
+        - name: USER_SERVICE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: USER_SERVICE_URL
+        - name: ANALYTICS_SERVICE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: ANALYTICS_SERVICE_URL
+        - name: QUIZ_SERVICE_URL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: QUIZ_SERVICE_URL
         resources:
           requests:
             memory: "256Mi"
