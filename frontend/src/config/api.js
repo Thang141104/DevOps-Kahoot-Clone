@@ -6,7 +6,10 @@
 const API_BASE_URL = (window._env_ && window._env_.REACT_APP_API_URL) 
   || process.env.REACT_APP_API_URL 
   || 'http://localhost:3000';
-const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || 'http://localhost:3003';
+
+// Socket.IO uses gateway service (same as API_BASE_URL but different port)
+// Gateway proxies to game-service port 3003
+const SOCKET_URL = API_BASE_URL; // Gateway handles socket.io routing
 
 export const API_URLS = {
   // Auth Service
