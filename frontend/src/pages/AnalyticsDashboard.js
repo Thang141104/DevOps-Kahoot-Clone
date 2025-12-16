@@ -21,11 +21,11 @@ const AnalyticsDashboard = () => {
       setLoading(true);
       
       // Fetch dashboard summary
-      const dashboardResponse = await fetch(API_URLS.analytics.stats.dashboard);
+      const dashboardResponse = await fetch(API_URLS.ANALYTICS_DASHBOARD);
       const dashboardJson = await dashboardResponse.json();
       
       // Fetch global stats
-      const statsResponse = await fetch(API_URLS.analytics.stats.global);
+      const statsResponse = await fetch(API_URLS.ANALYTICS_GLOBAL);
       const statsJson = await statsResponse.json();
       
       setDashboardData(dashboardJson);

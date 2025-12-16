@@ -41,6 +41,10 @@ export const API_URLS = {
   USER_PREFERENCES: (userId) => `${API_BASE_URL}/api/user/users/${userId}/preferences`,
   USER_SEARCH: (query) => `${API_BASE_URL}/api/user/users/search?q=${query}`,
   USER_LEADERBOARD: `${API_BASE_URL}/api/user/users/leaderboard`,
+  
+  // Analytics Service
+  ANALYTICS_DASHBOARD: `${API_BASE_URL}/api/analytics/stats/dashboard`,
+  ANALYTICS_GLOBAL: `${API_BASE_URL}/api/analytics/stats/global`,
 };
 
 export const SOCKET_CONFIG = {
