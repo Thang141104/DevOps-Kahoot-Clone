@@ -29,15 +29,15 @@ spec:
           name: http
         env:
         - name: REACT_APP_API_URL
-          value: "http://PLACEHOLDER_IP:30000"
-          # This value will be auto-updated by entrypoint.sh at runtime
+          value: "http://gateway:3000"
+          # Will be auto-updated by master setup script to http://PUBLIC_IP:30000
         resources:
           requests:
-            memory: "256Mi"
-            cpu: "100m"
+            memory: "128Mi"  # Reduced from 256Mi
+            cpu: "50m"       # Reduced from 100m
           limits:
-            memory: "512Mi"
-            cpu: "300m"
+            memory: "256Mi"  # Reduced from 512Mi
+            cpu: "200m"      # Reduced from 300m
         livenessProbe:
           httpGet:
             path: /

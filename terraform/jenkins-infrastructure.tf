@@ -116,49 +116,48 @@ resource "aws_eip" "jenkins_eip" {
   }
 }
 
-# Kubernetes cluster (using k3s for simplicity)
-resource "aws_instance" "k8s_master" {
-  ami           = data.aws_ami.ubuntu.id
-  instance_type = var.k8s_instance_type
-  key_name      = var.key_name
-  
-  vpc_security_group_ids = [aws_security_group.jenkins_sg.id]
-  subnet_id              = aws_subnet.public.id
-  
-  root_block_device {
-    volume_size = 30
-    volume_type = "gp2"
-  }
-
-  # FIXED: Use user-data.sh instead of k8s-user-data.sh
-  # user-data.sh includes Prometheus + Grafana deployment
-  # NOTE: Docker images must be pre-built and pushed to Docker Hub
-  user_data = templatefile("${path.module}/user-data.sh", {
-    github_repo    = var.github_repo
-    github_branch  = var.github_branch
-    mongodb_uri    = var.mongodb_uri
-    email_user     = var.email_user
-    email_password = var.email_password
-    jwt_secret     = var.jwt_secret
-  })
-
-  tags = {
-    Name        = "${var.environment}-k8s-master"
-    Environment = var.environment
-    Service     = "Kubernetes"
-  }
-}
-
-resource "aws_eip" "k8s_eip" {
-  count    = var.use_elastic_ip ? 1 : 0
-  instance = aws_instance.k8s_master.id
-  domain   = "vpc"
-
-  tags = {
-    Name        = "${var.environment}-k8s-eip"
-    Environment = var.environment
-  }
-}
+# OLD: Single-node k3s cluster (DISABLED - Use k8s-cluster.tf instead for 3-node cluster)
+# Uncomment this section if you want Jenkins + single k3s node instead of 3-node cluster
+# 
+# resource "aws_instance" "k8s_single_node" {
+#   ami           = data.aws_ami.ubuntu.id
+#   instance_type = var.k8s_instance_type
+#   key_name      = var.key_name
+#   
+#   vpc_security_group_ids = [aws_security_group.jenkins_sg.id]
+#   subnet_id              = aws_subnet.public.id
+#   
+#   root_block_device {
+#     volume_size = 30
+#     volume_type = "gp2"
+#   }
+#
+#   user_data = templatefile("${path.module}/user-data.sh", {
+#     github_repo    = var.github_repo
+#     github_branch  = var.github_branch
+#     mongodb_uri    = var.mongodb_uri
+#     email_user     = var.email_user
+#     email_password = var.email_password
+#     jwt_secret     = var.jwt_secret
+#   })
+#
+#   tags = {
+#     Name        = "${var.environment}-k8s-single-node"
+#     Environment = var.environment
+#     Service     = "Kubernetes"
+#   }
+# }
+#
+# resource "aws_eip" "k8s_single_eip" {
+#   count    = var.use_elastic_ip ? 1 : 0
+#   instance = aws_instance.k8s_single_node.id
+#   domain   = "vpc"
+#
+#   tags = {
+#     Name        = "${var.environment}-k8s-single-eip"
+#     Environment = var.environment
+#   }
+# }
 
 output "jenkins_public_ip" {
   value       = var.use_elastic_ip ? aws_eip.jenkins_eip[0].public_ip : aws_instance.jenkins_server.public_ip
@@ -170,12 +169,13 @@ output "jenkins_url" {
   description = "Jenkins Web UI URL"
 }
 
-output "k8s_master_ip" {
-  value       = var.use_elastic_ip ? aws_eip.k8s_eip[0].public_ip : aws_instance.k8s_master.public_ip
-  description = "Public IP of Kubernetes master node"
-}
-
-output "k8s_api_endpoint" {
-  value       = "https://${var.use_elastic_ip ? aws_eip.k8s_eip[0].public_ip : aws_instance.k8s_master.public_ip}:6443"
-  description = "Kubernetes API endpoint"
-}
+# OLD outputs - disabled
+# output "k8s_single_node_ip" {
+#   value       = var.use_elastic_ip ? aws_eip.k8s_single_eip[0].public_ip : aws_instance.k8s_single_node.public_ip
+#   description = "Public IP of single-node Kubernetes cluster"
+# }
+#
+# output "k8s_api_endpoint" {
+#   value       = "https://${var.use_elastic_ip ? aws_eip.k8s_single_eip[0].public_ip : aws_instance.k8s_single_node.public_ip}:6443"
+#   description = "Kubernetes API endpoint"
+# }

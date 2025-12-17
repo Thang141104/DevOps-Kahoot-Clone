@@ -59,11 +59,11 @@ spec:
               key: GAME_SERVICE_URL
         resources:
           requests:
-            memory: "256Mi"
-            cpu: "100m"
+            memory: "128Mi"  # Reduced from 256Mi
+            cpu: "50m"       # Reduced from 100m
           limits:
-            memory: "512Mi"
-            cpu: "300m"
+            memory: "256Mi"  # Reduced from 512Mi
+            cpu: "200m"      # Reduced from 300m
         livenessProbe:
           httpGet:
             path: /health

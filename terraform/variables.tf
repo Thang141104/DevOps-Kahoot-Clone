@@ -40,9 +40,34 @@ variable "public_subnet_cidr" {
 
 # EC2 Configuration
 variable "instance_type" {
-  description = "EC2 instance type"
+  description = "EC2 instance type (deprecated - use master/worker specific)"
   type        = string
   default     = "t3.small" 
+}
+
+# Kubernetes Cluster Configuration
+variable "master_instance_type" {
+  description = "EC2 instance type for Kubernetes master node"
+  type        = string
+  default     = "c7i-flex.large"  # 2 vCPU, 4GB RAM - Free Tier eligible
+}
+
+variable "worker_instance_type" {
+  description = "EC2 instance type for Kubernetes worker nodes"
+  type        = string
+  default     = "c7i-flex.large"  # 2 vCPU, 4GB RAM - Free Tier eligible
+}
+
+variable "worker_count" {
+  description = "Number of worker nodes"
+  type        = number
+  default     = 2
+}
+
+variable "pod_network_cidr" {
+  description = "CIDR block for pod network (Calico)"
+  type        = string
+  default     = "192.168.0.0/16"
 }
 
 variable "key_name" {

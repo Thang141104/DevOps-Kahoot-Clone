@@ -50,6 +50,37 @@ output "public_subnet_id" {
 #   value       = var.key_name != "" ? "ssh -i ${var.key_name}.pem ubuntu@${var.use_elastic_ip ? aws_eip.app_server[0].public_ip : aws_instance.app_server.public_ip}" : "No SSH key configured"
 # }
 
+# Kubernetes Cluster Outputs
+output "k8s_master_public_ip" {
+  description = "Public IP of the Kubernetes master node"
+  value       = aws_eip.k8s_master.public_ip
+}
+
+output "k8s_master_private_ip" {
+  description = "Private IP of the Kubernetes master node"
+  value       = aws_instance.k8s_master.private_ip
+}
+
+output "k8s_workers_private_ips" {
+  description = "Private IPs of the Kubernetes worker nodes"
+  value       = aws_instance.k8s_workers[*].private_ip
+}
+
+output "k8s_master_ssh_command" {
+  description = "SSH command to connect to the master node"
+  value       = "ssh -i ~/.ssh/${var.key_name}.pem ubuntu@${aws_eip.k8s_master.public_ip}"
+}
+
+output "application_urls" {
+  description = "URLs to access the application"
+  value = {
+    frontend   = "http://${aws_eip.k8s_master.public_ip}:30006"
+    gateway    = "http://${aws_eip.k8s_master.public_ip}:30000"
+    prometheus = "http://${aws_eip.k8s_master.public_ip}:30090"
+    grafana    = "http://${aws_eip.k8s_master.public_ip}:30300"
+  }
+}
+
 output "deployment_info" {
   description = "Deployment information"
   value = {
