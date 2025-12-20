@@ -1,5 +1,6 @@
+
 # ============================================
-# Jenkins Role - Install Node.js
+# Jenkins Role - Install Node.js 18 (LTS)
 # ============================================
 ---
 - name: Create keyrings directory
@@ -25,9 +26,9 @@
     creates: /etc/apt/keyrings/nodesource.gpg
   become: yes
 
-- name: Add Node.js 20 repository
+- name: Add Node.js 18 repository
   apt_repository:
-    repo: "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x {{ ansible_distribution_release }} main"
+    repo: "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_18.x {{ ansible_distribution_release }} main"
     state: present
   become: yes
 

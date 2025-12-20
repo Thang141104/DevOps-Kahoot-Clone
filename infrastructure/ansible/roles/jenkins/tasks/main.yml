@@ -2,6 +2,13 @@
 # Jenkins Role - Main Tasks
 # ============================================
 ---
+- name: Remove duplicate Docker repo lines
+  lineinfile:
+    path: /etc/apt/sources.list.d/download_docker_com_linux_ubuntu.list
+    regexp: '^deb .*$'
+    state: absent
+  become: yes
+  ignore_errors: yes
 - name: Install Java {{ java_version }}
   apt:
     name: "openjdk-{{ java_version }}-jdk"
