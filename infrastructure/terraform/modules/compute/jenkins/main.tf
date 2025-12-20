@@ -63,7 +63,9 @@ resource "aws_iam_role_policy" "jenkins_ecr" {
           "ecr:PutImage",
           "ecr:InitiateLayerUpload",
           "ecr:UploadLayerPart",
-          "ecr:CompleteLayerUpload"
+          "ecr:CompleteLayerUpload",
+          "ecr:StartImageScan",
+          "ecr:DescribeImageScanFindings"
         ]
         Resource = "*"
       }

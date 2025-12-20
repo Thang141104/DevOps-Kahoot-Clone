@@ -44,6 +44,24 @@ resource "aws_iam_role_policy_attachment" "jenkins_ecr" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser"
 }
 
+# Additional ECR scan permissions
+resource "aws_iam_role_policy" "jenkins_ecr_scan" {
+  name = "${var.project_name}-jenkins-ecr-scan"
+  role = aws_iam_role.jenkins.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = [
+        "ecr:StartImageScan",
+        "ecr:DescribeImageScanFindings"
+      ]
+      Resource = "*"
+    }]
+  })
+}
+
 resource "aws_iam_instance_profile" "jenkins" {
   name = "${var.project_name}-jenkins-profile"
   role = aws_iam_role.jenkins.name
