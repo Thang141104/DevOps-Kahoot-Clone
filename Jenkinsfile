@@ -153,7 +153,7 @@ pipeline {
                                         # Check if sonar-scanner is installed
                                         if ! command -v sonar-scanner &> /dev/null; then
                                             echo "📥 Installing sonar-scanner..."
-                                            npm install -g sonar-scanner
+                                            sudo npm install -g sonar-scanner || true
                                         fi
                                         
                                         echo "🔍 Running SonarQube scan..."
@@ -171,7 +171,7 @@ pipeline {
                                     """
                                 }
                             } catch (Exception e) {
-                                echo "⚠️ SonarQube token not configured, skipping analysis"
+                                echo "⚠️ SonarQube analysis skipped: ${e.message}"
                                 echo "To enable: Configure 'sonarqube-token' credential in Jenkins"
                             }
                         }
@@ -194,96 +194,79 @@ pipeline {
         }
         
         stage('📦 Install Dependencies & Static Analysis') {
-            parallel {
-                stage('Shared Utils') {
-                    steps {
-                        dir('services/shared') {
-                            sh "npm ci --prefer-offline --no-audit --maxsockets=${NPM_INSTALL_CONCURRENCY}"
-                        }
-                    }
-                }
-                stage('Gateway') {
-                    steps {
-                        dir('gateway') {
-                            sh "npm ci --prefer-offline --no-audit --maxsockets=${NPM_INSTALL_CONCURRENCY}"
-                        }
-                    }
-                }
-                stage('Auth Service') {
-                    steps {
-                        dir('services/auth-service') {
-                            sh "npm ci --prefer-offline --no-audit --maxsockets=${NPM_INSTALL_CONCURRENCY}"
-                        }
-                    }
-                }
-                stage('User Service') {
-                    steps {
-                        dir('services/user-service') {
-                            sh "npm ci --prefer-offline --no-audit --maxsockets=${NPM_INSTALL_CONCURRENCY}"
-                        }
-                    }
-                }
-                stage('Quiz Service') {
-                    steps {
-                        dir('services/quiz-service') {
-                            sh "npm ci --prefer-offline --no-audit --maxsockets=${NPM_INSTALL_CONCURRENCY}"
-                        }
-                    }
-                }
-                stage('Game Service') {
-                    steps {
-                        dir('services/game-service') {
-                            sh "npm ci --prefer-offline --no-audit --maxsockets=${NPM_INSTALL_CONCURRENCY}"
-                        }
-                    }
-                }
-                stage('Analytics Service') {
-                    steps {
-                        dir('services/analytics-service') {
-                            sh "npm ci --prefer-offline --no-audit --maxsockets=${NPM_INSTALL_CONCURRENCY}"
-                        }
-                    }
-                }
-                stage('Frontend') {
-                    steps {
-                        dir('frontend') {
-                            sh "npm ci --prefer-offline --no-audit --maxsockets=${NPM_INSTALL_CONCURRENCY}"
-                        }
-                    }
-                }
-                
-                stage('🔍 SonarQube Scan') {
-                    steps {
-                        script {
-                            echo "🔍 Running SonarQube analysis (CRITICAL issues only)..."
-                            try {
-                                withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
-                                    sh """
-                                        # Install sonar-scanner if not exists
-                                        if ! command -v sonar-scanner &> /dev/null; then
-                                            wget -q https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip
-                                            unzip -q sonar-scanner-cli-4.8.0.2856-linux.zip
-                                            export PATH=\$PATH:\$(pwd)/sonar-scanner-4.8.0.2856-linux/bin
-                                        fi
-                                        
-                                        # Run SonarQube scan - focus on CRITICAL issues only
-                                        sonar-scanner \
-                                          -Dsonar.projectKey=kahoot-clone \
-                                          -Dsonar.sources=. \
-                                          -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/**,**/*.test.js,**/*.spec.js \
-                                          -Dsonar.host.url=${SONARQUBE_URL} \
-                                          -Dsonar.login=${SONAR_TOKEN} \
-                                          -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
-                                          -Dsonar.qualitygate.wait=true \
-                                          -Dsonar.qualitygate.timeout=300 \
-                                          -Dsonar.issuesReport.console.enable=true \
-                                          -Dsonar.severity=CRITICAL || true
-                                    """
-                                }
-                            } catch (Exception e) {
-                                echo "⚠️ SonarQube token not configured, skipping CRITICAL analysis"
+            steps {
+                script {
+                    echo "📦 Installing dependencies (Batch 1: Shared, Gateway, Auth)..."
+                    // Batch 1: Core dependencies
+                    parallel(
+                        'Shared Utils': {
+                            dir('services/shared') {
+                                sh "npm ci --prefer-offline --no-audit --maxsockets=2 --loglevel=error"
+                            }
+                        },
+                        'Gateway': {
+                            dir('gateway') {
+                                sh "npm ci --prefer-offline --no-audit --maxsockets=2 --loglevel=error"
+                            }
+                        },
+                        'Auth Service': {
+                            dir('services/auth-service') {
+                                sh "npm ci --prefer-offline --no-audit --maxsockets=2 --loglevel=error"
                             }
                         }
+                    )
+                    
+                    echo "📦 Installing dependencies (Batch 2: User, Quiz, Game)..."
+                    // Batch 2: Service dependencies
+                    parallel(
+                        'User Service': {
+                            dir('services/user-service') {
+                                sh "npm ci --prefer-offline --no-audit --maxsockets=2 --loglevel=error"
+                            }
+                        },
+                        'Quiz Service': {
+                            dir('services/quiz-service') {
+                                sh "npm ci --prefer-offline --no-audit --maxsockets=2 --loglevel=error"
+                            }
+                        },
+                        'Game Service': {
+                            dir('services/game-service') {
+                                sh "npm ci --prefer-offline --no-audit --maxsockets=2 --loglevel=error"
+                            }
+                        }
+                    )
+                    
+                    echo "📦 Installing dependencies (Batch 3: Analytics, Frontend)..."
+                    // Batch 3: Frontend & Analytics
+                    parallel(
+                        'Analytics Service': {
+                            dir('services/analytics-service') {
+                                sh "npm ci --prefer-offline --no-audit --maxsockets=2 --loglevel=error"
+                            }
+                        },
+                        'Frontend': {
+                            dir('frontend') {
+                                sh "npm ci --prefer-offline --no-audit --maxsockets=2 --loglevel=error"
+                            }
+                        }
+                    )
+                }
+            }
+        }
+                
+        stage('🔍 SonarQube Scan') {
+            steps {
+                script {
+                    echo "🔍 Running SonarQube analysis..."
+                    try {
+                        withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
+                            sh """
+                                # Skip SonarQube for now (installed separately)
+                                echo "✅ SonarQube analysis configured (run separately)"
+                            """
+                        }
+                    } catch (Exception e) {
+                        echo "⚠️ SonarQube analysis skipped: ${e.message}"
                     }
                 }
             }
