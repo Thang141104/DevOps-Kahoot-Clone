@@ -514,8 +514,27 @@ pipeline {
             steps {
                 script {
                     echo "🚀 Deploying to Kubernetes via SSH..."
+                    
+                    // Create ECR secret locally first (Jenkins has AWS CLI)
+                    echo "🔐 Creating ECR pull secret YAML..."
+                    sh """
+                        # Get ECR login token
+                        ECR_TOKEN=\$(aws ecr get-login-password --region ${AWS_REGION})
+                        
+                        # Create secret YAML file
+                        kubectl create secret docker-registry ecr-registry-secret \
+                          --docker-server=${ECR_REGISTRY} \
+                          --docker-username=AWS \
+                          --docker-password="\${ECR_TOKEN}" \
+                          --namespace=kahoot-clone \
+                          --dry-run=client -o yaml > /tmp/ecr-secret.yaml
+                    """
+                    
                     withCredentials([sshUserPrivateKey(credentialsId: 'k8s-master-ssh-key', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')]) {
                         sh """
+                            # Copy secret to K8s master
+                            scp -i \${SSH_KEY} -o StrictHostKeyChecking=no /tmp/ecr-secret.yaml ubuntu@98.84.105.168:/tmp/
+                            
                             # Deploy via SSH to K8s master node
                             ssh -i \${SSH_KEY} -o StrictHostKeyChecking=no ubuntu@98.84.105.168 << 'ENDSSH'
                                 # Setup Git repo on master node if not exists
@@ -532,18 +551,11 @@ pipeline {
                                 
                                 cd ~/kahoot-repo
                                 
-                                echo "� Creating/Updating ECR pull secret..."
-                                # Get ECR login token and create secret
-                                ECR_TOKEN=\$(aws ecr get-login-password --region ${AWS_REGION})
-                                kubectl create secret docker-registry ecr-registry-secret \
-                                  --docker-server=${ECR_REGISTRY} \
-                                  --docker-username=AWS \
-                                  --docker-password="\${ECR_TOKEN}" \
-                                  --namespace=kahoot-clone \
-                                  --dry-run=client -o yaml | kubectl apply -f -
+                                echo "🔐 Applying ECR pull secret..."
+                                kubectl apply -f /tmp/ecr-secret.yaml
                                 echo "✅ ECR secret updated"
                                 
-                                echo "�📋 Checking deployments..."
+                                echo "📋 Checking deployments..."
                                 DEPLOY_COUNT=\$(kubectl get deployments -n kahoot-clone --no-headers 2>/dev/null | wc -l)
                                 
                                 if [ "\$DEPLOY_COUNT" -eq 0 ]; then
