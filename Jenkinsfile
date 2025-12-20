@@ -30,7 +30,7 @@ pipeline {
         TRIVY_EXIT_CODE = '0'  // Don't fail build, just report
         
         // Nx Configuration
-        NX_BRANCH = env.BRANCH_NAME ?: 'main'
+        NX_BRANCH = 'main'
         NX_CACHE_BUCKET = "kahoot-nx-cache-${AWS_ACCOUNT_ID}"
     }
     
@@ -43,7 +43,7 @@ pipeline {
     }
     
     tools {
-        nodejs 'Node JS 18'
+        git 'Default'
     }
     
     stages {
