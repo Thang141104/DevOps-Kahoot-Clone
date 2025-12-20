@@ -516,9 +516,35 @@ pipeline {
                     echo "🚀 Deploying to Kubernetes via SSH..."
                     withCredentials([sshUserPrivateKey(credentialsId: 'k8s-master-ssh-key', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')]) {
                         sh """
+                            # Copy K8s manifests to master node
+                            scp -i \${SSH_KEY} -o StrictHostKeyChecking=no k8s/*.yaml ubuntu@98.84.105.168:~/k8s-manifests/
+                            
                             # Deploy via SSH to K8s master node
                             ssh -i \${SSH_KEY} -o StrictHostKeyChecking=no ubuntu@98.84.105.168 << 'ENDSSH'
-                                echo "📋 Current deployments:"
+                                echo "📋 Checking deployments..."
+                                DEPLOY_COUNT=\$(kubectl get deployments -n default --no-headers 2>/dev/null | wc -l)
+                                
+                                if [ "\$DEPLOY_COUNT" -eq 0 ]; then
+                                    echo "🆕 No deployments found. Creating initial deployments..."
+                                    
+                                    # Apply namespace and configmap first
+                                    kubectl apply -f ~/k8s-manifests/namespace.yaml || true
+                                    kubectl apply -f ~/k8s-manifests/configmap.yaml || true
+                                    kubectl apply -f ~/k8s-manifests/secrets.yaml || true
+                                    
+                                    # Apply all service deployments
+                                    kubectl apply -f ~/k8s-manifests/gateway-deployment.yaml
+                                    kubectl apply -f ~/k8s-manifests/auth-deployment.yaml
+                                    kubectl apply -f ~/k8s-manifests/user-deployment.yaml
+                                    kubectl apply -f ~/k8s-manifests/quiz-deployment.yaml
+                                    kubectl apply -f ~/k8s-manifests/game-deployment.yaml
+                                    kubectl apply -f ~/k8s-manifests/analytics-deployment.yaml
+                                    kubectl apply -f ~/k8s-manifests/frontend-deployment.yaml
+                                    
+                                    echo "✅ Initial deployments created!"
+                                fi
+                                
+                                echo "\n📋 Current deployments:"
                                 kubectl get deployments -n default
                                 
                                 echo "\n🔄 Updating image tags to build ${BUILD_VERSION}..."
