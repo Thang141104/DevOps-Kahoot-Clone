@@ -516,14 +516,22 @@ pipeline {
                     echo "🚀 Deploying to Kubernetes via SSH..."
                     withCredentials([sshUserPrivateKey(credentialsId: 'k8s-master-ssh-key', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')]) {
                         sh """
-                            # Create k8s-manifests directory on master node
-                            ssh -i \${SSH_KEY} -o StrictHostKeyChecking=no ubuntu@98.84.105.168 'mkdir -p ~/k8s-manifests'
-                            
-                            # Copy K8s manifests to master node
-                            scp -i \${SSH_KEY} -o StrictHostKeyChecking=no k8s/*.yaml ubuntu@98.84.105.168:~/k8s-manifests/
-                            
                             # Deploy via SSH to K8s master node
                             ssh -i \${SSH_KEY} -o StrictHostKeyChecking=no ubuntu@98.84.105.168 << 'ENDSSH'
+                                # Setup Git repo on master node if not exists
+                                if [ ! -d ~/kahoot-repo ]; then
+                                    echo "📦 Cloning repository for the first time..."
+                                    git clone https://github.com/Thang141104/DevOps-Kahoot-Clone.git ~/kahoot-repo
+                                else
+                                    echo "🔄 Updating repository..."
+                                    cd ~/kahoot-repo
+                                    git fetch origin
+                                    git checkout fix/auth-routing-issues
+                                    git pull origin fix/auth-routing-issues
+                                fi
+                                
+                                cd ~/kahoot-repo
+                                
                                 echo "📋 Checking deployments..."
                                 DEPLOY_COUNT=\$(kubectl get deployments -n default --no-headers 2>/dev/null | wc -l)
                                 
@@ -531,18 +539,18 @@ pipeline {
                                     echo "🆕 No deployments found. Creating initial deployments..."
                                     
                                     # Apply namespace and configmap first
-                                    kubectl apply -f ~/k8s-manifests/namespace.yaml || true
-                                    kubectl apply -f ~/k8s-manifests/configmap.yaml || true
-                                    kubectl apply -f ~/k8s-manifests/secrets.yaml || true
+                                    kubectl apply -f k8s/namespace.yaml || true
+                                    kubectl apply -f k8s/configmap.yaml || true
+                                    kubectl apply -f k8s/secrets.yaml || true
                                     
                                     # Apply all service deployments
-                                    kubectl apply -f ~/k8s-manifests/gateway-deployment.yaml
-                                    kubectl apply -f ~/k8s-manifests/auth-deployment.yaml
-                                    kubectl apply -f ~/k8s-manifests/user-deployment.yaml
-                                    kubectl apply -f ~/k8s-manifests/quiz-deployment.yaml
-                                    kubectl apply -f ~/k8s-manifests/game-deployment.yaml
-                                    kubectl apply -f ~/k8s-manifests/analytics-deployment.yaml
-                                    kubectl apply -f ~/k8s-manifests/frontend-deployment.yaml
+                                    kubectl apply -f k8s/gateway-deployment.yaml
+                                    kubectl apply -f k8s/auth-deployment.yaml
+                                    kubectl apply -f k8s/user-deployment.yaml
+                                    kubectl apply -f k8s/quiz-deployment.yaml
+                                    kubectl apply -f k8s/game-deployment.yaml
+                                    kubectl apply -f k8s/analytics-deployment.yaml
+                                    kubectl apply -f k8s/frontend-deployment.yaml
                                     
                                     echo "✅ Initial deployments created!"
                                 fi
