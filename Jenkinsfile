@@ -541,7 +541,7 @@ pipeline {
                                 
                                 # Download secrets from S3
                                 echo "📦 Downloading secrets from S3..."
-                                aws s3 cp s3://kahoot-clone-secrets-802346121373/secrets.yaml k8s/secrets.yaml
+                                aws s3 cp s3://kahoot-clone-secrets-802346121373/secrets.yaml k8s-manifests/secrets.yaml
                                 
                                 if [ "\$DEPLOY_COUNT" -eq 0 ]; then
                                     echo "🆕 No deployments found. Creating initial deployments..."
