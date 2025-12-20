@@ -143,7 +143,7 @@ pipeline {
                 }
                 
                 stage('SonarQube Analysis') {
-                    steps {
+                    steps { 
                         script {
                             try {
                                 echo "🔍 Running SonarQube analysis..."
@@ -555,11 +555,7 @@ pipeline {
                                 
                                 cd ~/kahoot-repo
                                 
-                                echo "🔐 Applying ECR pull secret..."
-                                kubectl apply -f /tmp/ecr-secret.yaml
-                                echo "✅ ECR secret updated"
-                                
-                                echo "📋 Checking deployments..."
+                                echo "� Checking deployments..."
                                 DEPLOY_COUNT=\$(kubectl get deployments -n kahoot-clone --no-headers 2>/dev/null | wc -l)
                                 
                                 if [ "\$DEPLOY_COUNT" -eq 0 ]; then
@@ -568,6 +564,11 @@ pipeline {
                                     # Apply namespace and configmap first
                                     kubectl apply -f k8s/namespace.yaml
                                     kubectl apply -f k8s/configmap.yaml
+                                    
+                                    # Apply ECR secret after namespace created
+                                    echo "🔐 Applying ECR pull secret..."
+                                    kubectl apply -f /tmp/ecr-secret.yaml
+                                    echo "✅ ECR secret updated"
                                     
                                     # Skip secrets if not exists
                                     if [ -f k8s/secrets.yaml ]; then
@@ -596,6 +597,11 @@ pipeline {
                                     kubectl apply -f k8s/analytics-deployment.yaml
                                     kubectl apply -f k8s/frontend-deployment.yaml
                                     echo "✅ Deployments re-applied!"
+                                else
+                                    # Update ECR secret for existing namespace
+                                    echo "🔐 Updating ECR pull secret..."
+                                    kubectl apply -f /tmp/ecr-secret.yaml
+                                    echo "✅ ECR secret updated"
                                 fi
                                 
                                 echo "\n📋 Current deployments:"
