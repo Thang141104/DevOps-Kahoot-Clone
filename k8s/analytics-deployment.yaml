@@ -22,6 +22,8 @@ spec:
         prometheus.io/port: "3005"
         prometheus.io/path: "/metrics"
     spec:
+      imagePullSecrets:
+      - name: ecr-registry-secret
       containers:
       - name: analytics-service
         image: 802346121373.dkr.ecr.ap-southeast-1.amazonaws.com/kahoot-clone-analytics:latest

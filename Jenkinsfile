@@ -532,7 +532,18 @@ pipeline {
                                 
                                 cd ~/kahoot-repo
                                 
-                                echo "📋 Checking deployments..."
+                                echo "� Creating/Updating ECR pull secret..."
+                                # Get ECR login token and create secret
+                                ECR_TOKEN=\$(aws ecr get-login-password --region ${AWS_REGION})
+                                kubectl create secret docker-registry ecr-registry-secret \
+                                  --docker-server=${ECR_REGISTRY} \
+                                  --docker-username=AWS \
+                                  --docker-password="\${ECR_TOKEN}" \
+                                  --namespace=kahoot-clone \
+                                  --dry-run=client -o yaml | kubectl apply -f -
+                                echo "✅ ECR secret updated"
+                                
+                                echo "�📋 Checking deployments..."
                                 DEPLOY_COUNT=\$(kubectl get deployments -n kahoot-clone --no-headers 2>/dev/null | wc -l)
                                 
                                 if [ "\$DEPLOY_COUNT" -eq 0 ]; then

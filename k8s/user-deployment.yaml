@@ -21,8 +21,8 @@ spec:
         prometheus.io/scrape: "true"
         prometheus.io/port: "3004"
         prometheus.io/path: "/metrics"
-    spec:
-      containers:
+    spec:      imagePullSecrets:
+      - name: ecr-registry-secret      containers:
       - name: user-service
         image: 802346121373.dkr.ecr.ap-southeast-1.amazonaws.com/kahoot-clone-user:latest
         imagePullPolicy: Always

@@ -20,6 +20,8 @@ spec:
       annotations:
         prometheus.io/scrape: "false"
     spec:
+      imagePullSecrets:
+      - name: ecr-registry-secret
       containers:
       - name: frontend
         image: 802346121373.dkr.ecr.ap-southeast-1.amazonaws.com/kahoot-clone-frontend:latest
