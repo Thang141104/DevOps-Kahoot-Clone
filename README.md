@@ -1,9 +1,10 @@
 # 🎮 Kahoot Clone - Production-Ready Microservices Platform
 
-> **🏗️ Professional Modular Infrastructure**
+> **🏗️ Professional Modular Infrastructure - DEPLOYED** ✅
 > - **Infrastructure**: `infrastructure/` - Modular Terraform + Role-based Ansible
-> - **Region**: AWS us-east-1
+> - **Region**: AWS us-east-1  
 > - **Deploy**: `.\infrastructure\deploy.ps1 -Action all`
+> - **Status**: Jenkins Pipeline Active with GitHub Webhook Integration
 
 [![Production Ready](https://img.shields.io/badge/Production-Ready-green.svg)](https://github.com/yourusername/kahoot-clone)
 [![K8s](https://img.shields.io/badge/K8s-3%20Nodes-blue.svg)](https://kubernetes.io/)
@@ -492,5 +493,6 @@ DevOps & Full-Stack Development
 
 **Built with ❤️ using Node.js, React, Kubernetes, and Production-Grade DevOps**
 
-#   U p d a t e d :   1 2 / 2 0 / 2 0 2 5   2 3 : 4 6 : 5 6  
+#   U p d a t e d :   1 2 / 2 0 / 2 0 2 5   2 3 : 4 6 : 5 6 
+ 
  
