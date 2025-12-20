@@ -614,6 +614,19 @@ pipeline {
                                   frontend=${ECR_REGISTRY}/${PROJECT_NAME}-frontend:${BUILD_VERSION} \
                                   -n kahoot-clone || echo "⚠️  Warning: Failed to update frontend"
                                 
+                                echo "\n🧹 Cleaning up failed/old pods..."
+                                # Delete pods with ImagePullBackOff or ErrImagePull
+                                kubectl get pods -n kahoot-clone --field-selector=status.phase!=Running,status.phase!=Pending | grep -E 'ImagePullBackOff|ErrImagePull|Error|Terminating' | awk '{print \$1}' | xargs -r kubectl delete pod -n kahoot-clone || true
+                                
+                                # Alternative: Force rollout restart to recreate all pods
+                                echo "\n🔄 Forcing rollout restart..."
+                                for deployment in gateway auth-service user-service quiz-service game-service analytics-service frontend; do
+                                    kubectl rollout restart deployment/\${deployment} -n kahoot-clone
+                                done
+                                
+                                echo "\n⏳ Waiting for rollout to complete (60s)..."
+                                sleep 60
+                                
                                 echo "\n✅ Deployment updated:"
                                 kubectl get deployments -n kahoot-clone
                                 echo "\n📊 Pods status:"
