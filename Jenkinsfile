@@ -566,12 +566,42 @@ pipeline {
                                 
                                 echo "\n🔄 Updating image tags to build ${BUILD_VERSION}..."
                                 # Update image tags in K8s deployments
-                                for service in gateway auth user quiz game analytics frontend; do
-                                    echo "Updating \${service}..."
-                                    kubectl set image deployment/\${service} \
-                                      \${service}=${ECR_REGISTRY}/${PROJECT_NAME}-\${service}:${BUILD_VERSION} \
-                                      -n kahoot-clone || echo "⚠️  Warning: Failed to update \${service}"
-                                done
+                                # Format: deployment-name/container-name=image
+                                
+                                echo "Updating gateway..."
+                                kubectl set image deployment/gateway \
+                                  gateway=${ECR_REGISTRY}/${PROJECT_NAME}-gateway:${BUILD_VERSION} \
+                                  -n kahoot-clone || echo "⚠️  Warning: Failed to update gateway"
+                                
+                                echo "Updating auth-service..."
+                                kubectl set image deployment/auth-service \
+                                  auth-service=${ECR_REGISTRY}/${PROJECT_NAME}-auth:${BUILD_VERSION} \
+                                  -n kahoot-clone || echo "⚠️  Warning: Failed to update auth-service"
+                                
+                                echo "Updating user-service..."
+                                kubectl set image deployment/user-service \
+                                  user-service=${ECR_REGISTRY}/${PROJECT_NAME}-user:${BUILD_VERSION} \
+                                  -n kahoot-clone || echo "⚠️  Warning: Failed to update user-service"
+                                
+                                echo "Updating quiz-service..."
+                                kubectl set image deployment/quiz-service \
+                                  quiz-service=${ECR_REGISTRY}/${PROJECT_NAME}-quiz:${BUILD_VERSION} \
+                                  -n kahoot-clone || echo "⚠️  Warning: Failed to update quiz-service"
+                                
+                                echo "Updating game-service..."
+                                kubectl set image deployment/game-service \
+                                  game-service=${ECR_REGISTRY}/${PROJECT_NAME}-game:${BUILD_VERSION} \
+                                  -n kahoot-clone || echo "⚠️  Warning: Failed to update game-service"
+                                
+                                echo "Updating analytics-service..."
+                                kubectl set image deployment/analytics-service \
+                                  analytics-service=${ECR_REGISTRY}/${PROJECT_NAME}-analytics:${BUILD_VERSION} \
+                                  -n kahoot-clone || echo "⚠️  Warning: Failed to update analytics-service"
+                                
+                                echo "Updating frontend..."
+                                kubectl set image deployment/frontend \
+                                  frontend=${ECR_REGISTRY}/${PROJECT_NAME}-frontend:${BUILD_VERSION} \
+                                  -n kahoot-clone || echo "⚠️  Warning: Failed to update frontend"
                                 
                                 echo "\n✅ Deployment updated:"
                                 kubectl get deployments -n kahoot-clone
