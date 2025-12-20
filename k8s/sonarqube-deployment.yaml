@@ -65,7 +65,7 @@ spec:
           mountPath: /opt/sonarqube/logs
       containers:
       - name: sonarqube
-        image: sonarqube:11-community
+        image: sonarqube:community
         ports:
         - containerPort: 9000
         env:
@@ -82,10 +82,10 @@ spec:
           value: "true"
         resources:
           requests:
-            memory: "2Gi"
+            memory: "1Gi"
             cpu: "500m"
           limits:
-            memory: "3Gi"
+            memory: "2Gi"
             cpu: "1000m"
         livenessProbe:
           httpGet:
