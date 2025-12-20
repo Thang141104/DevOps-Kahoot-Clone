@@ -533,15 +533,21 @@ pipeline {
                                 cd ~/kahoot-repo
                                 
                                 echo "📋 Checking deployments..."
-                                DEPLOY_COUNT=\$(kubectl get deployments -n default --no-headers 2>/dev/null | wc -l)
+                                DEPLOY_COUNT=\$(kubectl get deployments -n kahoot-clone --no-headers 2>/dev/null | wc -l)
                                 
                                 if [ "\$DEPLOY_COUNT" -eq 0 ]; then
                                     echo "🆕 No deployments found. Creating initial deployments..."
                                     
                                     # Apply namespace and configmap first
-                                    kubectl apply -f k8s/namespace.yaml || true
-                                    kubectl apply -f k8s/configmap.yaml || true
-                                    kubectl apply -f k8s/secrets.yaml || true
+                                    kubectl apply -f k8s/namespace.yaml
+                                    kubectl apply -f k8s/configmap.yaml
+                                    
+                                    # Skip secrets if not exists
+                                    if [ -f k8s/secrets.yaml ]; then
+                                        kubectl apply -f k8s/secrets.yaml
+                                    else
+                                        echo "⚠️  secrets.yaml not found, skipping..."
+                                    fi
                                     
                                     # Apply all service deployments
                                     kubectl apply -f k8s/gateway-deployment.yaml
@@ -556,7 +562,7 @@ pipeline {
                                 fi
                                 
                                 echo "\n📋 Current deployments:"
-                                kubectl get deployments -n default
+                                kubectl get deployments -n kahoot-clone
                                 
                                 echo "\n🔄 Updating image tags to build ${BUILD_VERSION}..."
                                 # Update image tags in K8s deployments
@@ -564,13 +570,13 @@ pipeline {
                                     echo "Updating \${service}..."
                                     kubectl set image deployment/\${service} \
                                       \${service}=${ECR_REGISTRY}/${PROJECT_NAME}-\${service}:${BUILD_VERSION} \
-                                      -n default || echo "⚠️  Warning: Failed to update \${service}"
+                                      -n kahoot-clone || echo "⚠️  Warning: Failed to update \${service}"
                                 done
                                 
                                 echo "\n✅ Deployment updated:"
-                                kubectl get deployments -n default
+                                kubectl get deployments -n kahoot-clone
                                 echo "\n📊 Pods status:"
-                                kubectl get pods -n default
+                                kubectl get pods -n kahoot-clone
 ENDSSH
                         """
                     }
