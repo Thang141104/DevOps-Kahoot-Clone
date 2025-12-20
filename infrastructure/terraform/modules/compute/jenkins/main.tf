@@ -73,6 +73,34 @@ resource "aws_iam_role_policy" "jenkins_ecr" {
   })
 }
 
+# IAM Policy for S3 Secrets Access
+resource "aws_iam_role_policy" "jenkins_s3_secrets" {
+  name = "${var.project_name}-jenkins-s3-secrets-policy"
+  role = aws_iam_role.jenkins.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:GetObjectVersion"
+        ]
+        Resource = "arn:aws:s3:::kahoot-clone-secrets-802346121373/*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:ListBucket",
+          "s3:GetBucketVersioning"
+        ]
+        Resource = "arn:aws:s3:::kahoot-clone-secrets-802346121373"
+      }
+    ]
+  })
+}
+
 # IAM Instance Profile
 resource "aws_iam_instance_profile" "jenkins" {
   name = "${var.project_name}-jenkins-profile"

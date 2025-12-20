@@ -539,6 +539,10 @@ pipeline {
                                 echo "� Checking deployments..."
                                 DEPLOY_COUNT=\$(kubectl get deployments -n kahoot-clone --no-headers 2>/dev/null | wc -l)
                                 
+                                # Download secrets from S3
+                                echo "📦 Downloading secrets from S3..."
+                                aws s3 cp s3://kahoot-clone-secrets-802346121373/secrets.yaml k8s/secrets.yaml
+                                
                                 if [ "\$DEPLOY_COUNT" -eq 0 ]; then
                                     echo "🆕 No deployments found. Creating initial deployments..."
                                     
@@ -551,12 +555,10 @@ pipeline {
                                     kubectl apply -f /tmp/ecr-secret.yaml
                                     echo "✅ ECR secret updated"
                                     
-                                    # Skip secrets if not exists
-                                    if [ -f k8s/secrets.yaml ]; then
-                                        kubectl apply -f k8s/secrets.yaml
-                                    else
-                                        echo "⚠️  secrets.yaml not found, skipping..."
-                                    fi
+                                    # Apply app secrets from S3
+                                    echo "🔐 Applying application secrets..."
+                                    kubectl apply -f k8s/secrets.yaml
+
                                     
                                     # Apply all service deployments
                                     kubectl apply -f k8s/gateway-deployment.yaml
@@ -569,12 +571,16 @@ pipeline {
                                     
                                     echo "✅ Initial deployments created!"
                                 else
-                                    echo "🔄 Deployments already exist. Updating ECR secret and re-applying..."
+                                    echo "🔄 Deployments already exist. Updating secrets and re-applying..."
                                     
                                     # Update ECR secret for existing namespace
                                     echo "🔐 Updating ECR pull secret..."
                                     kubectl apply -f /tmp/ecr-secret.yaml
                                     echo "✅ ECR secret updated"
+                                    
+                                    # Update app secrets from S3
+                                    echo "🔐 Updating application secrets..."
+                                    kubectl apply -f k8s/secrets.yaml
                                     
                                     # Re-apply deployments with updated imagePullSecrets
                                     kubectl apply -f k8s/gateway-deployment.yaml
