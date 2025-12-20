@@ -253,24 +253,6 @@ pipeline {
                 }
             }
         }
-                
-        stage('🔍 SonarQube Scan') {
-            steps {
-                script {
-                    echo "🔍 Running SonarQube analysis..."
-                    try {
-                        withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
-                            sh """
-                                # Skip SonarQube for now (installed separately)
-                                echo "✅ SonarQube analysis configured (run separately)"
-                            """
-                        }
-                    } catch (Exception e) {
-                        echo "⚠️ SonarQube analysis skipped: ${e.message}"
-                    }
-                }
-            }
-        }
         
         stage('🐳 Build & Push Images - Batch 1') {
             parallel {
@@ -530,8 +512,8 @@ pipeline {
                     steps {
                         script {
                             sh """
-                                kubectl cluster-info --kubeconfig=${KUBECONFIG} || echo "Warning: K8s cluster not accessible"
-                                kubectl get nodes --kubeconfig=${KUBECONFIG} || true
+                                kubectl cluster-info || echo "Warning: K8s cluster not accessible"
+                                kubectl get nodes || true
                             """
                         }
                     }
@@ -547,12 +529,11 @@ pipeline {
                         # Update image tags in K8s deployments
                         for service in gateway auth user quiz game analytics frontend; do
                             kubectl set image deployment/\${service} \
-                              \${service}=${ECR_REGISTRY}/${PROJECT_NAME}-\${service}:${BUILD_VERSION} \
-                              --kubeconfig=${KUBECONFIG} || true
+                              \${service}=${ECR_REGISTRY}/${PROJECT_NAME}-\${service}:${BUILD_VERSION} || true
                         done
                         
                         # Wait for rollout
-                        kubectl rollout status deployment --all --timeout=5m --kubeconfig=${KUBECONFIG}
+                        kubectl rollout status deployment --all --timeout=5m
                     """
                 }
             }
