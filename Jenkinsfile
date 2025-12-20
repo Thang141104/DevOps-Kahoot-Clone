@@ -143,9 +143,6 @@ pipeline {
                 }
                 
                 stage('SonarQube Analysis') {
-                    when {
-                        expression { false } // Disabled: Requires Java 17+
-                    }
                     steps {
                         script {
                             try {
@@ -473,6 +470,9 @@ pipeline {
                     }
                 }
                 
+                // ECR Image Scan disabled: Does not support multi-platform images (OCI image index)
+                // Use Trivy scan results instead
+                /*
                 stage('ECR Image Scan') {
                     steps {
                         script {
@@ -487,6 +487,7 @@ pipeline {
                         }
                     }
                 }
+                */
             }
         }
         
