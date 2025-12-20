@@ -516,6 +516,9 @@ pipeline {
                     echo "🚀 Deploying to Kubernetes via SSH..."
                     withCredentials([sshUserPrivateKey(credentialsId: 'k8s-master-ssh-key', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')]) {
                         sh """
+                            # Create k8s-manifests directory on master node
+                            ssh -i \${SSH_KEY} -o StrictHostKeyChecking=no ubuntu@98.84.105.168 'mkdir -p ~/k8s-manifests'
+                            
                             # Copy K8s manifests to master node
                             scp -i \${SSH_KEY} -o StrictHostKeyChecking=no k8s/*.yaml ubuntu@98.84.105.168:~/k8s-manifests/
                             
