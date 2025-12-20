@@ -24,7 +24,7 @@ spec:
     spec:
       containers:
       - name: game-service
-        image: 22521284/kahoot-clone-game:latest
+        image: 802346121373.dkr.ecr.ap-southeast-1.amazonaws.com/kahoot-clone-game:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 3003

@@ -1,0 +1,237 @@
+---
+- name: Configure Jenkins Server
+  hosts: jenkins
+  become: yes
+  
+  vars:
+    jenkins_admin_user: admin
+    jenkins_admin_password: "{{ lookup('env', 'JENKINS_ADMIN_PASSWORD') | default('admin123', true) }}"
+    jenkins_plugins:
+      - git
+      - workflow-aggregator
+      - docker-workflow
+      - kubernetes
+      - blueocean
+      - nodejs
+      - sonar
+      - aws-credentials
+      - amazon-ecr
+    
+    nodejs_version: "18.x"
+    docker_version: "24.0"
+    
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+    
+    - name: Install required packages
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+          - software-properties-common
+          - python3-pip
+          - git
+          - unzip
+        state: present
+    
+    # Docker Installation
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+    
+    - name: Add Docker repository
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+    
+    - name: Install Docker
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+        state: present
+        update_cache: yes
+    
+    - name: Start and enable Docker
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+    
+    - name: Add ubuntu user to docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+    
+    # Jenkins Installation
+    - name: Add Jenkins GPG key
+      apt_key:
+        url: https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+        state: present
+    
+    - name: Add Jenkins repository
+      apt_repository:
+        repo: "deb https://pkg.jenkins.io/debian-stable binary/"
+        state: present
+    
+    - name: Install Java (OpenJDK 11)
+      apt:
+        name: openjdk-11-jdk
+        state: present
+    
+    - name: Install Jenkins
+      apt:
+        name: jenkins
+        state: present
+        update_cache: yes
+    
+    - name: Start and enable Jenkins
+      systemd:
+        name: jenkins
+        state: started
+        enabled: yes
+    
+    - name: Add jenkins user to docker group
+      user:
+        name: jenkins
+        groups: docker
+        append: yes
+    
+    # NodeJS Installation
+    - name: Add NodeJS GPG key
+      apt_key:
+        url: https://deb.nodesource.com/gpgkey/nodesource.gpg.key
+        state: present
+    
+    - name: Add NodeJS repository
+      apt_repository:
+        repo: "deb https://deb.nodesource.com/node_{{ nodejs_version }} {{ ansible_distribution_release }} main"
+        state: present
+    
+    - name: Install NodeJS
+      apt:
+        name: nodejs
+        state: present
+        update_cache: yes
+    
+    # AWS CLI Installation
+    - name: Download AWS CLI v2
+      get_url:
+        url: https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+        dest: /tmp/awscliv2.zip
+    
+    - name: Unzip AWS CLI
+      unarchive:
+        src: /tmp/awscliv2.zip
+        dest: /tmp
+        remote_src: yes
+    
+    - name: Install AWS CLI
+      command: /tmp/aws/install
+      args:
+        creates: /usr/local/bin/aws
+    
+    # Kubectl Installation
+    - name: Download kubectl
+      get_url:
+        url: https://dl.k8s.io/release/v1.28.0/bin/linux/amd64/kubectl
+        dest: /usr/local/bin/kubectl
+        mode: '0755'
+    
+    # Trivy Installation
+    - name: Add Trivy GPG key
+      apt_key:
+        url: https://aquasecurity.github.io/trivy-repo/deb/public.key
+        state: present
+    
+    - name: Add Trivy repository
+      apt_repository:
+        repo: "deb https://aquasecurity.github.io/trivy-repo/deb {{ ansible_distribution_release }} main"
+        state: present
+    
+    - name: Install Trivy
+      apt:
+        name: trivy
+        state: present
+        update_cache: yes
+    
+    # SonarQube Scanner Installation
+    - name: Download SonarQube Scanner
+      get_url:
+        url: https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip
+        dest: /tmp/sonar-scanner.zip
+    
+    - name: Unzip SonarQube Scanner
+      unarchive:
+        src: /tmp/sonar-scanner.zip
+        dest: /opt
+        remote_src: yes
+    
+    - name: Create sonar-scanner symlink
+      file:
+        src: /opt/sonar-scanner-4.8.0.2856-linux/bin/sonar-scanner
+        dest: /usr/local/bin/sonar-scanner
+        state: link
+    
+    # Configure Jenkins
+    - name: Wait for Jenkins to start
+      wait_for:
+        port: 8080
+        delay: 10
+        timeout: 300
+    
+    - name: Get Jenkins initial admin password
+      slurp:
+        src: /var/lib/jenkins/secrets/initialAdminPassword
+      register: jenkins_initial_password
+      ignore_errors: yes
+    
+    - name: Display Jenkins initial password
+      debug:
+        msg: "Jenkins initial password: {{ jenkins_initial_password.content | b64decode }}"
+      when: jenkins_initial_password is succeeded
+    
+    # Docker Buildx Setup
+    - name: Create buildx builder
+      command: docker buildx create --name mybuilder --use
+      become_user: jenkins
+      ignore_errors: yes
+    
+    - name: Bootstrap buildx builder
+      command: docker buildx inspect --bootstrap
+      become_user: jenkins
+      ignore_errors: yes
+    
+    # Restart services
+    - name: Restart Docker
+      systemd:
+        name: docker
+        state: restarted
+    
+    - name: Restart Jenkins
+      systemd:
+        name: jenkins
+        state: restarted
+    
+    - name: Display Jenkins URL
+      debug:
+        msg: "Jenkins is available at: http://{{ ansible_host }}:8080"
+    
+    - name: Display next steps
+      debug:
+        msg:
+          - "1. Access Jenkins at http://{{ ansible_host }}:8080"
+          - "2. Login with initial password (see above)"
+          - "3. Install suggested plugins"
+          - "4. Create admin user"
+          - "5. Configure Jenkins credentials (AWS, SonarQube, GitHub)"

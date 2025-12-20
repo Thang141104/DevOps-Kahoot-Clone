@@ -1,399 +1,233 @@
+/**
+ * Updated Auth Routes with Production Standards
+ * Includes validation, error handling, and logging
+ */
+
 const express = require('express');
 const router = express.Router();
-const axios = require('axios');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const { generateToken } = require('../utils/jwt');
-const { sendOTPEmail, sendWelcomeEmail } = require('../utils/email');
+const { asyncHandler, UnauthorizedError, ConflictError, ValidationError } = require('../../shared/middleware/errorHandler');
+const { validateRegistration, sanitizeString } = require('../../shared/middleware/validator');
+const { logger } = require('../../shared/utils/logger');
 
-// User Service URL
-const USER_SERVICE_URL = process.env.USER_SERVICE_URL || 'http://localhost:3004';
+// JWT Secret
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
 
-// @route   POST /register
-// @desc    Register new user and send OTP
-// @access  Public
-router.post('/register', async (req, res) => {
+/**
+ * @route   POST /api/auth/register
+ * @desc    Register a new user
+ * @access  Public
+ */
+router.post('/register', validateRegistration, asyncHandler(async (req, res) => {
+  const { username, email, password } = req.body;
+
+  // Check if user already exists
+  const existingUser = await User.findOne({ 
+    $or: [{ email: email.toLowerCase() }, { username }] 
+  }).lean();
+
+  if (existingUser) {
+    if (existingUser.email === email.toLowerCase()) {
+      throw new ConflictError('Email already registered');
+    }
+    if (existingUser.username === username) {
+      throw new ConflictError('Username already taken');
+    }
+  }
+
+  // Hash password
+  const salt = await bcrypt.genSalt(12);
+  const hashedPassword = await bcrypt.hash(password, salt);
+
+  // Create user
+  const user = await User.create({
+    username,
+    email: email.toLowerCase(),
+    password: hashedPassword
+  });
+
+  // Generate JWT
+  const token = jwt.sign(
+    { 
+      userId: user._id,
+      email: user.email,
+      username: user.username
+    },
+    JWT_SECRET,
+    { expiresIn: JWT_EXPIRES_IN }
+  );
+
+  logger.info('User registered successfully', {
+    userId: user._id,
+    username: user.username,
+    email: user.email
+  });
+
+  res.status(201).json({
+    success: true,
+    message: 'User registered successfully',
+    token,
+    user: {
+      id: user._id,
+      username: user.username,
+      email: user.email,
+      createdAt: user.createdAt
+    }
+  });
+}));
+
+/**
+ * @route   POST /api/auth/login
+ * @desc    Login user
+ * @access  Public
+ */
+router.post('/login', asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
+
+  // Validate input
+  if (!email || !password) {
+    throw new ValidationError('Email and password are required');
+  }
+
+  // Find user
+  const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+
+  if (!user) {
+    logger.warn('Login attempt with non-existent email', { email });
+    throw new UnauthorizedError('Invalid credentials');
+  }
+
+  // Verify password
+  const isPasswordValid = await bcrypt.compare(password, user.password);
+
+  if (!isPasswordValid) {
+    logger.warn('Failed login attempt', { 
+      userId: user._id,
+      email: user.email 
+    });
+    throw new UnauthorizedError('Invalid credentials');
+  }
+
+  // Generate JWT
+  const token = jwt.sign(
+    { 
+      userId: user._id,
+      email: user.email,
+      username: user.username
+    },
+    JWT_SECRET,
+    { expiresIn: JWT_EXPIRES_IN }
+  );
+
+  logger.info('User logged in successfully', {
+    userId: user._id,
+    username: user.username
+  });
+
+  res.json({
+    success: true,
+    message: 'Login successful',
+    token,
+    user: {
+      id: user._id,
+      username: user.username,
+      email: user.email
+    }
+  });
+}));
+
+/**
+ * @route   POST /api/auth/verify
+ * @desc    Verify JWT token
+ * @access  Public
+ */
+router.post('/verify', asyncHandler(async (req, res) => {
+  const { token } = req.body;
+
+  if (!token) {
+    throw new ValidationError('Token is required');
+  }
+
   try {
-    console.log('📝 Registration request received:', { username: req.body.username, email: req.body.email });
-    const { username, email, password } = req.body;
+    const decoded = jwt.verify(token, JWT_SECRET);
 
-    // Validate input
-    if (!username || !email || !password) {
-      return res.status(400).json({ 
-        success: false,
-        message: 'Please provide username, email and password' 
-      });
+    // Check if user still exists
+    const user = await User.findById(decoded.userId).lean();
+
+    if (!user) {
+      throw new UnauthorizedError('User no longer exists');
     }
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ 
-      $or: [{ email }, { username }] 
+    res.json({
+      success: true,
+      valid: true,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email
+      }
     });
+  } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      throw new UnauthorizedError('Token has expired');
+    }
+    if (error.name === 'JsonWebTokenError') {
+      throw new UnauthorizedError('Invalid token');
+    }
+    throw error;
+  }
+}));
 
-    if (existingUser) {
-      if (existingUser.email === email) {
-        return res.status(400).json({ 
-          success: false,
-          message: 'Email already registered' 
-        });
-      }
-      if (existingUser.username === username) {
-        return res.status(400).json({ 
-          success: false,
-          message: 'Username already taken' 
-        });
-      }
+/**
+ * @route   POST /api/auth/refresh
+ * @desc    Refresh JWT token
+ * @access  Public
+ */
+router.post('/refresh', asyncHandler(async (req, res) => {
+  const { token } = req.body;
+
+  if (!token) {
+    throw new ValidationError('Token is required');
+  }
+
+  try {
+    // Verify old token (even if expired)
+    const decoded = jwt.verify(token, JWT_SECRET, { ignoreExpiration: true });
+
+    // Check if user still exists
+    const user = await User.findById(decoded.userId).lean();
+
+    if (!user) {
+      throw new UnauthorizedError('User no longer exists');
     }
 
-    // Create new user
-    const user = new User({
-      username,
-      email,
-      password
-    });
-
-    // Generate OTP
-    const otp = user.generateOTP();
-
-    // Save user
-    await user.save();
-
-    // Send OTP email
-    try {
-      console.log(`📧 Sending OTP email to ${email}...`);
-      await sendOTPEmail(email, otp, username);
-      console.log(`✅ OTP email sent successfully to ${email}`);
-    } catch (emailError) {
-      // If email fails, still return success but with warning
-      console.error('❌ Email sending failed:', emailError);
-      return res.status(201).json({
-        success: true,
-        message: 'User registered but email sending failed. Please contact support.',
+    // Generate new token
+    const newToken = jwt.sign(
+      { 
         userId: user._id,
-        warning: 'Email service unavailable'
-      });
-    }
-
-    console.log(`✅ User ${username} registered successfully with ID: ${user._id}`);
-    res.status(201).json({
-      success: true,
-      message: 'Registration successful! Please check your email for OTP verification code.',
-      userId: user._id
-    });
-
-  } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ 
-      success: false,
-      message: 'Server error during registration',
-      error: error.message 
-    });
-  }
-});
-
-// @route   POST /auth/verify-otp
-// @desc    Verify OTP and complete registration
-// @access  Public
-router.post('/verify-otp', async (req, res) => {
-  try {
-    const { userId, otp } = req.body;
-
-    if (!userId || !otp) {
-      return res.status(400).json({ 
-        success: false,
-        message: 'Please provide userId and OTP' 
-      });
-    }
-
-    // Find user
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ 
-        success: false,
-        message: 'User not found' 
-      });
-    }
-
-    // Check if already verified
-    if (user.isVerified) {
-      return res.status(400).json({ 
-        success: false,
-        message: 'User already verified' 
-      });
-    }
-
-    // Verify OTP
-    if (!user.verifyOTP(otp)) {
-      return res.status(400).json({ 
-        success: false,
-        message: 'Invalid or expired OTP' 
-      });
-    }
-
-    // Mark user as verified
-    user.isVerified = true;
-    user.otp = undefined; // Clear OTP
-    await user.save();
-
-    // Send welcome email
-    try {
-      await sendWelcomeEmail(user.email, user.username);
-    } catch (emailError) {
-      console.error('Welcome email failed:', emailError);
-    }
-
-    // Create user profile in User Service
-    try {
-      console.log(`👤 Creating profile for user ${user._id}...`);
-      const profileResponse = await axios.post(
-        `${USER_SERVICE_URL}/users/${user._id}/profile`,
-        {
-          username: user.username,
-          email: user.email,
-          displayName: user.username,
-          bio: ''
-        }
-      );
-      console.log(`✅ Profile created successfully for user ${user._id}`);
-    } catch (profileError) {
-      console.error('❌ Profile creation failed:', profileError.message);
-      console.error('Full error:', profileError.response?.data || profileError);
-      // Don't fail the registration if profile creation fails
-    }
-
-    // Track user registration analytics
-    try {
-      const ANALYTICS_SERVICE_URL = process.env.ANALYTICS_SERVICE_URL || 'http://localhost:3005';
-      await axios.post(`${ANALYTICS_SERVICE_URL}/events`, {
-        eventType: 'user_registered',
-        userId: user._id.toString(),
-        relatedEntityType: 'user',
-        relatedEntityId: user._id.toString(),
-        metadata: {
-          username: user.username,
-          email: user.email,
-          registrationDate: new Date().toISOString()
-        }
-      });
-      console.log(`📊 Analytics: Tracked user_registered for ${user._id}`);
-    } catch (analyticsError) {
-      console.error('❌ Failed to track analytics:', analyticsError.message);
-      // Don't fail registration if analytics fails
-    }
-
-    // Generate token
-    const token = generateToken(user._id, user.username, user.email, user.role);
-
-    res.json({
-      success: true,
-      message: 'Email verified successfully!',
-      token,
-      user: {
-        id: user._id,
-        username: user.username,
         email: user.email,
-        role: user.role
-      }
-    });
+        username: user.username
+      },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN }
+    );
 
-  } catch (error) {
-    console.error('OTP verification error:', error);
-    res.status(500).json({ 
-      success: false,
-      message: 'Server error during verification',
-      error: error.message 
-    });
-  }
-});
-
-// @route   POST /auth/resend-otp
-// @desc    Resend OTP
-// @access  Public
-router.post('/resend-otp', async (req, res) => {
-  try {
-    const { userId } = req.body;
-
-    if (!userId) {
-      return res.status(400).json({ 
-        success: false,
-        message: 'Please provide userId' 
-      });
-    }
-
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ 
-        success: false,
-        message: 'User not found' 
-      });
-    }
-
-    if (user.isVerified) {
-      return res.status(400).json({ 
-        success: false,
-        message: 'User already verified' 
-      });
-    }
-
-    // Generate new OTP
-    const otp = user.generateOTP();
-    await user.save();
-
-    // Send OTP email
-    await sendOTPEmail(user.email, otp, user.username);
+    logger.info('Token refreshed', { userId: user._id });
 
     res.json({
       success: true,
-      message: 'OTP resent successfully! Please check your email.'
+      message: 'Token refreshed successfully',
+      token: newToken
     });
-
   } catch (error) {
-    console.error('Resend OTP error:', error);
-    res.status(500).json({ 
-      success: false,
-      message: 'Server error during OTP resend',
-      error: error.message 
-    });
+    if (error.name === 'JsonWebTokenError') {
+      throw new UnauthorizedError('Invalid token');
+    }
+    throw error;
   }
-});
-
-// @route   POST /auth/login
-// @desc    Login user
-// @access  Public
-router.post('/login', async (req, res) => {
-  try {
-    const { emailOrUsername, password } = req.body;
-
-    // Validate input
-    if (!emailOrUsername || !password) {
-      return res.status(400).json({ 
-        success: false,
-        message: 'Please provide email/username and password' 
-      });
-    }
-
-    // Find user (by email or username)
-    const user = await User.findOne({
-      $or: [
-        { email: emailOrUsername.toLowerCase() },
-        { username: emailOrUsername }
-      ]
-    }).select('+password');
-
-    if (!user) {
-      return res.status(401).json({ 
-        success: false,
-        message: 'Invalid credentials' 
-      });
-    }
-
-    // Check if verified
-    if (!user.isVerified) {
-      return res.status(401).json({ 
-        success: false,
-        message: 'Please verify your email first',
-        userId: user._id,
-        requiresVerification: true
-      });
-    }
-
-    // Check password
-    const isPasswordValid = await user.comparePassword(password);
-    if (!isPasswordValid) {
-      return res.status(401).json({ 
-        success: false,
-        message: 'Invalid credentials' 
-      });
-    }
-
-    // Generate token
-    const token = generateToken(user._id, user.username, user.email, user.role);
-
-    // Track user login analytics
-    try {
-      const ANALYTICS_SERVICE_URL = process.env.ANALYTICS_SERVICE_URL || 'http://localhost:3005';
-      await axios.post(`${ANALYTICS_SERVICE_URL}/events`, {
-        eventType: 'user_login',
-        userId: user._id.toString(),
-        relatedEntityType: 'user',
-        relatedEntityId: user._id.toString(),
-        metadata: {
-          username: user.username,
-          loginTime: new Date().toISOString()
-        }
-      });
-      console.log(`📊 Analytics: Tracked user_login for ${user._id}`);
-    } catch (analyticsError) {
-      console.error('❌ Failed to track analytics:', analyticsError.message);
-      // Don't fail login if analytics fails
-    }
-
-    res.json({
-      success: true,
-      message: 'Login successful!',
-      token,
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        role: user.role
-      }
-    });
-
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ 
-      success: false,
-      message: 'Server error during login',
-      error: error.message 
-    });
-  }
-});
-
-// @route   GET /auth/me
-// @desc    Get current user
-// @access  Private
-router.get('/me', async (req, res) => {
-  try {
-    // This will be used with auth middleware
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) {
-      return res.status(401).json({ 
-        success: false,
-        message: 'No token provided' 
-      });
-    }
-
-    const { verifyToken } = require('../utils/jwt');
-    const decoded = verifyToken(token);
-    
-    const user = await User.findById(decoded.id).select('-password');
-    if (!user) {
-      return res.status(404).json({ 
-        success: false,
-        message: 'User not found' 
-      });
-    }
-
-    res.json({
-      success: true,
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        isVerified: user.isVerified,
-        createdAt: user.createdAt
-      }
-    });
-
-  } catch (error) {
-    console.error('Get user error:', error);
-    res.status(401).json({ 
-      success: false,
-      message: 'Invalid token',
-      error: error.message 
-    });
-  }
-});
+}));
 
 module.exports = router;

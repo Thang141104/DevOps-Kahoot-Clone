@@ -1,0 +1,17 @@
+[all:vars]
+ansible_user=ubuntu
+ansible_ssh_private_key_file=../terraform/jenkins-key.pem
+ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+
+[jenkins]
+# Will be populated by Terraform
+
+[k8s_master]
+# Will be populated by Terraform
+
+[k8s_workers]
+# Will be populated by Terraform
+
+[k8s:children]
+k8s_master
+k8s_workers

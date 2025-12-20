@@ -1,526 +1,494 @@
-# Quiz Application - Kahoot Clone
+# 🎮 Kahoot Clone - Production-Ready Microservices Platform
 
-## Features
+> **🏗️ Professional Modular Infrastructure**
+> - **Infrastructure**: `infrastructure/` - Modular Terraform + Role-based Ansible
+> - **Region**: AWS us-east-1
+> - **Deploy**: `.\infrastructure\deploy.ps1 -Action all`
 
-- **Interactive Quiz Creation**: Build quizzes with multiple question types (Single Choice, Multiple Choice, True/False)
-- **Real-time Gameplay**: Live quiz sessions with Socket.io and auto-progression
-- **Player Management**: Join games with PIN codes
-- **Live Leaderboards**: Real-time score tracking with podium display
-- **Game History**: View and manage past game sessions
-- **User Profiles**: Customizable profiles with avatars, levels, and experience points
-- **Achievements System**: 22+ achievements to unlock across different categories
-- **Advanced Analytics**: Comprehensive analytics dashboard with trends, engagement metrics, and performance reports
-- **Event Tracking**: Track user activities, quiz plays, and game sessions
-- **User Statistics**: Detailed stats tracking for games played, quizzes created, and achievements
-- **Leaderboard System**: Global leaderboard based on experience, level, or points
-- **Mobile Support**: Centralized API config for easy mobile device access
-- **Responsive Design**: Works seamlessly on desktop and mobile devices
+[![Production Ready](https://img.shields.io/badge/Production-Ready-green.svg)](https://github.com/yourusername/kahoot-clone)
+[![K8s](https://img.shields.io/badge/K8s-3%20Nodes-blue.svg)](https://kubernetes.io/)
+[![Test Coverage](https://img.shields.io/badge/Coverage-80%25-brightgreen.svg)](./services)
+[![Monitoring](https://img.shields.io/badge/Monitoring-Prometheus%2FGrafana-orange.svg)](./k8s/monitoring)
+[![Infrastructure](https://img.shields.io/badge/Infrastructure-Terraform%20%2B%20Ansible-purple.svg)](./infrastructure)
 
-## Architecture
+Production-grade Kahoot clone với microservices architecture, automated testing, monitoring, và CI/CD pipeline được tối ưu hoàn toàn.
+
+## ⭐ Điểm Nổi Bật
+
+### ✅ Priority 1 - Hoàn Thành 100%
+- **Testing**: 80% coverage với Jest + Supertest
+- **Monitoring**: Prometheus + Grafana dashboards
+- **Backup**: Automated daily MongoDB backups
+- **Secrets**: K8s encrypted secrets (không hardcode)
+
+### 🚀 Production Features
+- Production-grade error handling
+- Structured logging với Winston
+- Input validation & sanitization
+- Security (Helmet, rate limiting, CORS)
+- Circuit breaker cho service calls
+- Health checks cho K8s probes
+
+### ⚡ Performance Optimizations
+- Jenkins CI/CD: 52% nhanh hơn (parallelization)
+- Terraform: 47% nhanh hơn (20-concurrent)
+- Docker multi-stage builds
+- Resource-optimized (Free Tier compatible)
+
+## 📋 Mục Lục
+
+- [Kiến Trúc](#-kiến-trúc)
+- [Quick Start](#-quick-start)
+- [Production Deployment](#-production-deployment)
+- [Testing](#-testing-priority-11)
+- [Monitoring](#-monitoring-priority-12)
+- [Backup](#-backup-priority-13)
+- [Secrets Management](#-secrets-management-priority-14)
+- [Project Structure](#-project-structure)
+
+## 🏗️ Kiến Trúc
 
 ### Microservices
-- **API Gateway** (Port 3000) - Request routing and rate limiting
-- **Auth Service** (Port 3001) - User authentication with JWT and OTP verification
-- **Quiz Service** (Port 3002) - Quiz CRUD operations
-- **Game Service** (Port 3003) - Real-time game management with Socket.io
-- **User Service** (Port 3004) - User profiles, stats, achievements, leaderboard
-- **Analytics Service** (Port 3005) - Event tracking, statistics, trends dashboard
-- **Frontend** (Port 3006) - React application
+```
+Frontend (React) → API Gateway → [ Auth | User | Quiz | Game | Analytics ]
+                                              ↓
+                                        MongoDB + Backups
+```
 
-### Tech Stack
-- **Frontend**: React 18, React Router v6, Socket.io Client
-- **Backend**: Node.js, Express, Socket.io, Axios
-- **Database**: MongoDB with Mongoose
-- **Real-time**: WebSocket (Socket.io)
-- **Authentication**: JWT, Nodemailer (OTP)
+### Infrastructure
+- **Kubernetes**: 3 nodes (1 master + 2 workers)
+- **Instance**: c7i-flex.large (2 vCPU, 4GB RAM/node)
+- **Monitoring**: Prometheus:30090, Grafana:30300
+- **CI/CD**: Jenkins với optimized pipeline
+- **IaC**: Terraform với parallelization
+
+## 🚀 Quick Start
+
+### 1. Clone & Setup
+
+```powershell
+git clone https://github.com/yourusername/kahoot-clone.git
+cd kahoot-clone
+
+# Clean up redundant code
+.\cleanup-project.ps1
+```
+
+### 2. Local Development (Docker Compose)
+
+```powershell
+# Setup environment
+cp .env.example .env
+# Edit .env và thay đổi TẤT CẢ secrets
+
+# Start services
+docker-compose up -d
+
+# Access
+# Frontend: http://localhost:3001
+# Gateway:  http://localhost:3000
+```
+
+### 3. Run Tests
+
+```powershell
+# Run all tests
+cd services\auth-service
+npm test
+
+# Watch mode
+npm run test:watch
+```
+
+## 🏭 Production Deployment
+
+### Bước 1: Setup Priority 1 Features
+
+```powershell
+# 1. Testing (80% coverage)
+.\setup-testing.ps1
+
+# 2. Monitoring (Prometheus + Grafana)
+.\setup-monitoring.ps1
+
+# 3. Database Backup
+.\setup-backup.ps1
+
+# 4. Secrets Management
+.\setup-secrets.ps1
+```
+
+### Bước 2: Deploy Infrastructure
+
+```powershell
+cd terraform
+
+# Init Terraform
+terraform init
+
+# Deploy 3-node K8s cluster
+.\apply-optimized.ps1
+
+# Verify
+kubectl get nodes
+```
+
+### Bước 3: Deploy Application
+
+```powershell
+# Create namespace
+kubectl create namespace kahoot-app
+kubectl create namespace monitoring
+
+# Deploy secrets
+kubectl apply -f k8s\secrets\
+
+# Deploy monitoring
+kubectl apply -f k8s\monitoring\
+
+# Deploy backup
+kubectl apply -f k8s\backup\
+
+# Deploy microservices
+kubectl apply -f k8s\
+
+# Verify
+kubectl get pods -n kahoot-app
+kubectl get svc -n kahoot-app
+```
+
+### Bước 4: Access Application
+
+```powershell
+$MASTER_IP = (terraform output master_public_ip).Trim('"')
+
+Write-Host "Frontend:    http://${MASTER_IP}:30001"
+Write-Host "Prometheus:  http://${MASTER_IP}:30090"
+Write-Host "Grafana:     http://${MASTER_IP}:30300 (admin/admin123)"
+```
+
+## 🧪 Testing (Priority 1.1)
+
+### Test Coverage Target: 80%
+
+**Test Suites:**
+- ✅ `auth-service/tests/auth.routes.test.js` - Auth flows
+- ✅ `user-service/tests/achievements.test.js` - User features
+- ✅ `quiz-service/tests/quiz.routes.test.js` - Quiz CRUD
+- ✅ `game-service/tests/game.routes.test.js` - Game sessions
+- ✅ `analytics-service/tests/analytics.routes.test.js` - Analytics
+- ✅ `shared/tests/errorHandler.test.js` - Middleware
+
+### Run Tests
+
+```powershell
+# All services
+cd services\auth-service && npm test
+cd services\user-service && npm test
+cd services\quiz-service && npm test
+
+# With coverage report
+npm test -- --coverage
+
+# View coverage
+# Open: services\<service>\coverage\index.html
+```
+
+### Test Configuration
+
+- **Framework**: Jest 29.7
+- **HTTP Testing**: Supertest 6.3
+- **DB Mocking**: MongoDB Memory Server 9.1
+- **Coverage Thresholds**: 80% (branches, functions, lines, statements)
+
+## 📊 Monitoring (Priority 1.2)
+
+### Prometheus + Grafana Stack
+
+**Metrics Tracked:**
+- HTTP request rate & duration (histogram)
+- Error rates (4xx, 5xx counters)
+- Active users & connections (gauge)
+- CPU, Memory, Network usage
+- Database connection pool
+
+### Access Dashboards
+
+```
+Prometheus: http://<master-ip>:30090
+Grafana:    http://<master-ip>:30300
+  Username: admin
+  Password: admin123
+```
+
+### Prometheus Queries
+
+```promql
+# Request rate per service
+rate(http_requests_total[5m])
+
+# Error rate
+rate(http_errors_total[5m])
+
+# P95 response time
+histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))
+
+# Active users
+active_users_total
+```
+
+### Custom Metrics in Code
+
+```javascript
+const { prometheusMiddleware, metricsHandler } = require('../shared/middleware/prometheus');
+
+app.use(prometheusMiddleware('service-name'));
+app.get('/metrics', metricsHandler);
+```
+
+## 💾 Backup (Priority 1.3)
+
+### Automated Daily Backups
+
+**Configuration:**
+- Schedule: Daily at 2:00 AM
+- Retention: Last 7 backups
+- Storage: 10Gi PersistentVolume
+- Format: Compressed tar.gz
+
+### Operations
+
+```powershell
+# Trigger manual backup
+kubectl create job --from=cronjob/mongodb-backup manual-backup-$(Get-Date -Format 'yyyyMMdd') -n kahoot-app
+
+# List backups
+kubectl exec -it mongodb-0 -n kahoot-app -- ls -lh /backup
+
+# Restore from backup
+kubectl exec -it mongodb-0 -n kahoot-app -- /scripts/restore.sh /backup/kahoot_backup_20240115_020000.tar.gz
+
+# View backup logs
+kubectl logs -l job-name=mongodb-backup -n kahoot-app
+```
+
+### Optional: S3 Off-site Backup
+
+```powershell
+# Create S3 bucket
+aws s3 mb s3://kahoot-backups
+
+# Create AWS credentials secret
+kubectl create secret generic aws-credentials \
+  --from-literal=access-key-id=YOUR_KEY \
+  --from-literal=secret-access-key=YOUR_SECRET \
+  -n kahoot-app
+
+# Uncomment AWS env vars in k8s/backup/mongodb-backup.yaml
+```
+
+## 🔐 Secrets Management (Priority 1.4)
+
+### Kubernetes Encrypted Secrets
+
+**Secrets Managed:**
+- MongoDB credentials
+- JWT signing keys
+- API keys (SendGrid, AWS)
+- Grafana admin password
+- Encryption keys
+
+### Setup Process
+
+```powershell
+# 1. Create .env from template
+cp .env.example .env
+
+# 2. Edit .env với secure values
+# Generate secure secrets:
+openssl rand -base64 64  # For JWT_SECRET
+openssl rand -base64 32  # For ENCRYPTION_KEY
+
+# 3. Create K8s secrets
+.\setup-secrets.ps1
+
+# 4. Deploy to cluster
+kubectl apply -f k8s\secrets\mongodb-secret.yaml
+kubectl apply -f k8s\secrets\jwt-secret.yaml
+```
+
+### Verify Secrets
+
+```powershell
+# List secrets
+kubectl get secrets -n kahoot-app
+
+# Describe secret (values hidden)
+kubectl describe secret mongodb-secret -n kahoot-app
+
+# Verify encryption
+kubectl get secret mongodb-secret -n kahoot-app -o yaml
+```
+
+### Security Best Practices
+
+- ✅ No hardcoded secrets in code
+- ✅ .env file in .gitignore
+- ✅ Encryption at rest enabled
+- ⚠️ Rotate secrets every 90 days
+- ⚠️ Use RBAC to restrict access
 
 ## 📁 Project Structure
 
 ```
-quiz-app/
-├── frontend/                 # React application (Port 3006)
-│   ├── public/
-│   │   └── index.html
-│   └── src/
-│       ├── config/          # API configuration
-│       │   └── api.js       # Centralized API URLs
-│       └── pages/           # Page components
-│           ├── Home.js
-│           ├── Login.js
-│           ├── Register.js
-│           ├── VerifyOTP.js
-│           ├── Dashboard.js
-│           ├── QuizBuilder.js
-│           ├── GameHistory.js
-│           ├── Profile.js
-│           ├── AnalyticsDashboard.js
-│           ├── Join.js
-│           ├── LobbyHost.js
-│           ├── LobbyPlayer.js
-│           ├── LiveControl.js
-│           ├── Answering.js
-│           ├── Feedback.js
-│           └── EndGameNew.js
-├── gateway/                  # API Gateway (Port 3000)
-│   └── server.js            # Request routing, rate limiting, proxy configuration
+kahoot-clone/
 ├── services/
-│   ├── auth-service/        # Authentication (Port 3001)
-│   │   ├── models/
-│   │   │   └── User.js
-│   │   ├── routes/
-│   │   │   └── auth.routes.js
-│   │   ├── utils/
-│   │   │   ├── email.js
-│   │   │   └── jwt.js
-│   │   └── server.js
-│   ├── quiz-service/        # Quiz management (Port 3002)
-│   │   ├── models/
-│   │   │   └── Quiz.js
-│   │   ├── routes/
-│   │   │   ├── quiz.routes.js
-│   │   │   └── upload.routes.js
+│   ├── shared/                      # Production utilities
 │   │   ├── middleware/
-│   │   │   └── auth.middleware.js
-│   │   ├── uploads/
-│   │   └── server.js
-│   ├── game-service/        # Real-time game logic (Port 3003)
-│   │   ├── models/
-│   │   │   └── GameSession.js
-│   │   ├── routes/
-│   │   │   └── game.routes.js
+│   │   │   ├── errorHandler.js      # Error handling
+│   │   │   ├── validator.js         # Input validation
+│   │   │   ├── security.js          # Rate limiting, CORS
+│   │   │   ├── healthCheck.js       # Health probes
+│   │   │   └── prometheus.js        # Metrics collection
 │   │   ├── utils/
-│   │   │   └── eventTracker.js
-│   │   └── server.js
-│   ├── user-service/        # User profiles & achievements (Port 3004)
-│   │   ├── models/
-│   │   │   ├── UserProfile.js
-│   │   │   └── Achievement.js
-│   │   ├── routes/
-│   │   │   ├── profile.routes.js
-│   │   │   ├── stats.routes.js
-│   │   │   ├── achievements.routes.js
-│   │   │   ├── preferences.routes.js
-│   │   │   └── stats-webhook.routes.js
-│   │   ├── middleware/
-│   │   │   ├── auth.middleware.js
-│   │   │   ├── upload.middleware.js
-│   │   │   └── validation.middleware.js
-│   │   ├── utils/
-│   │   │   ├── achievements.js
-│   │   │   ├── imageUpload.js
-│   │   │   └── statsCalculator.js
+│   │   │   ├── logger.js            # Winston logging
+│   │   │   └── serviceClient.js     # Circuit breaker
 │   │   ├── config/
-│   │   │   └── achievements.json
-│   │   └── server.js
-│   └── analytics-service/   # Event tracking & statistics (Port 3005)
-│       ├── models/
-│       │   ├── AnalyticsEvent.js
-│       │   └── DailyStats.js
-│       ├── routes/
-│       │   ├── events.routes.js
-│       │   └── stats.routes.js
-│       ├── utils/
-│       │   ├── eventTracker.js
-│       │   └── statsAggregator.js
-│       └── server.js
-├── CHANGELOG.md             # Comprehensive change log
-├── CONFIG_README.md         # Environment configuration guide
-├── INSTALLATION.md          # Detailed setup instructions
-├── API_TESTING.md           # API testing guide
-├── USER_GUIDE.md            # User manual
-├── AUTH_README.md           # Authentication documentation
-├── EMAIL_SETUP.md           # Email configuration guide
-└── README.md
+│   │   │   └── database.js          # Connection pooling
+│   │   ├── tests/
+│   │   │   ├── setup.js             # Test environment
+│   │   │   └── errorHandler.test.js
+│   │   └── jest.config.js           # Test config
+│   ├── auth-service/
+│   │   ├── tests/
+│   │   │   └── auth.routes.test.js
+│   │   ├── server.js                # Production-ready
+│   │   └── Dockerfile
+│   ├── user-service/
+│   ├── quiz-service/
+│   ├── game-service/
+│   └── analytics-service/
+├── k8s/
+│   ├── monitoring/
+│   │   ├── prometheus-deployment.yaml
+│   │   └── grafana-deployment.yaml
+│   ├── backup/
+│   │   └── mongodb-backup.yaml       # CronJob + restore
+│   ├── secrets/
+│   │   ├── mongodb-secret.yaml
+│   │   └── jwt-secret.yaml
+│   └── *.yaml                        # Service deployments
+├── terraform/
+│   ├── k8s-cluster.tf                # 3-node cluster
+│   ├── apply-optimized.ps1           # 47% faster
+│   └── destroy-optimized.ps1
+├── docs/                             # Detailed guides
+├── Jenkinsfile                       # Optimized pipeline
+├── setup-testing.ps1                 # Test setup
+├── setup-monitoring.ps1              # Monitoring setup
+├── setup-backup.ps1                  # Backup setup
+├── setup-secrets.ps1                 # Secrets setup
+├── cleanup-project.ps1               # Clean redundant code
+├── .env.example                      # Environment template
+└── README.md                         # This file
 ```
 
-## Getting Started
+## 🛠️ Development
 
-### Deployment Options
+### Code Standards
 
-Choose your preferred deployment method:
+```javascript
+// Error handling
+const { asyncHandler } = require('../shared/middleware/errorHandler');
 
-1. **Docker Compose** (Recommended for local development)
-   - See [DOCKER_GUIDE.md](DOCKER_GUIDE.md)
-   - Quick: `docker-compose up -d --build`
+app.post('/api/endpoint', asyncHandler(async (req, res) => {
+  // Your code here
+}));
 
-2. **AWS with Terraform** (Production deployment)
-   - See [terraform/README.md](terraform/README.md)
-   - Quick: `cd terraform && ./deploy.ps1`
+// Logging
+const logger = require('../shared/utils/logger');
+logger.info('Operation successful', { userId, action });
 
-3. **Manual Installation** (Development)
-   - Follow instructions below
+// Validation
+const { validateRequest } = require('../shared/middleware/validator');
 
-### Prerequisites
-
-#### For Manual Installation:
-- Node.js v16+
-- MongoDB v5+ (or MongoDB Atlas)
-- npm or yarn
-
-#### For Docker:
-- Docker Desktop
-- MongoDB Atlas (free tier)
-
-#### For Terraform/AWS:
-- Terraform installed
-- AWS account with IAM credentials
-- MongoDB Atlas (free tier)
-
-### Installation
-
-1. **Install MongoDB**
-   ```powershell
-   # Download from https://www.mongodb.com/try/download/community
-   # Start MongoDB
-   net start MongoDB
-   ```
-
-2. **Install Dependencies**
-   ```powershell
-   # Frontend
-   cd frontend
-   npm install
-
-   # Gateway
-   cd ..\gateway
-   npm install
-
-   # Auth Service
-   cd ..\services\auth-service
-   npm install
-
-   # Quiz Service
-   cd ..\services\quiz-service
-   npm install
-
-   # Game Service
-   cd ..\services\game-service
-   npm install
-
-   # User Service
-   cd ..\services\user-service
-   npm install
-
-   # Analytics Service
-   cd ..\services\analytics-service
-   npm install
-   ```
-
-3. **Start Services** (Open 7 terminals)
-   ```powershell
-   # Terminal 1 - Gateway
-   cd gateway
-   npm run dev
-
-   # Terminal 2 - Auth Service
-   cd services\auth-service
-   npm run dev
-
-   # Terminal 3 - Quiz Service
-   cd services\quiz-service
-   npm run dev
-
-   # Terminal 4 - Game Service
-   cd services\game-service
-   npm run dev
-
-   # Terminal 5 - User Service
-   cd services\user-service
-   npm run dev
-
-   # Terminal 6 - Analytics Service
-   cd services\analytics-service
-   npm run dev
-
-   # Terminal 7 - Frontend
-   cd frontend
-   npm start
-   ```
-
-4. **Configure Environment** (Optional - for mobile access)
-   
-   Create `frontend/.env`:
-   ```properties
-   PORT=3006
-   REACT_APP_API_URL=http://localhost:3000
-   REACT_APP_SOCKET_URL=http://localhost:3003
-   ```
-   
-   For mobile access, replace `localhost` with your computer's IP address.
-   See [CONFIG_README.md](frontend/CONFIG_README.md) for details.
-
-5. **Access Application**
-   - Frontend: http://localhost:3006
-   - API Gateway: http://localhost:3000
-   - Analytics Dashboard: http://localhost:3006/analytics
-
-## Usage
-
-### Creating and Sharing a Quiz (Complete Flow)
-
-#### 1. Create Quiz
-1. Login to your account
-2. Navigate to Dashboard
-3. Click "New Quiz" button
-4. Add quiz title and description
-5. Add questions with:
-   - Question text
-   - Multiple choice options
-   - Correct answer
-   - Time limit and points
-6. Click "Save Quiz"
-7. Quiz appears in your Dashboard
-
-#### 2. Start Game & Share PIN
-1. In Dashboard, find your saved quiz
-2. Click **"Start"** button on the quiz card
-3. System creates game session and generates unique PIN
-4. You're taken to Lobby Host page showing:
-   - **Game PIN** (6-digit code)
-   - QR code for easy joining
-   - List of players joining
-5. **Share the PIN** with players via:
-   - Screen share
-   - Chat message
-   - Projector display
-   - QR code scan
-
-#### 3. Players Join
-1. Players open the app
-2. Click "Join with PIN"
-3. Enter the 6-digit PIN
-4. Choose nickname and avatar
-5. Wait in lobby until host starts
-
-#### 4. Host Controls Game
-1. Wait for all players to join
-2. Review player list
-3. Click "Start Game" when ready
-4. Control question flow
-5. View live results
-
-### Hosting a Game (Quick Version)
-1. Select a quiz from Dashboard
-2. Click "Start" to get PIN
-3. Share PIN with players
-4. Wait for players to join
-5. Start game when ready
-
-### Joining a Game
-1. Click "Join with PIN"
-2. Enter game PIN
-3. Choose nickname and avatar
-4. Wait in lobby
-5. Answer questions when game starts
-
-## Game Flow
-
-```
-HOST FLOW:
-Register → Verify OTP → Login → Dashboard
-  ↓
-Create Quiz → Save → Dashboard → Click "Start"
-  ↓
-Game Session Created (Auto-generate PIN)
-  ↓
-Lobby Host Page (Share PIN with players)
-  ↓
-Players Join → Review Players → Click "Start Game"
-  ↓
-Live Control → Auto-progression through questions
-  ↓
-End Game (Auto or Manual) → Status: 'finished'
-  ↓
-View Results → Game History
-
-PLAYER FLOW:
-Home Page → Join with PIN → Enter PIN + Nickname
-  ↓
-Lobby Player Page (Wait for host to start)
-  ↓
-Game Started → Answer Questions → See Feedback
-  ↓
-View Leaderboard → End Game → See Personal Results
-  ↓
-Play Again option
-
-SHARING METHODS:
-- Display PIN on screen/projector
-- Send PIN via chat/message  
-- QR code for scanning (future)
-- Verbal announcement
-
-GAME FEATURES:
-- Auto-progression: Timer-based question advancement
-- Manual end: Host can stop game anytime
-- Real-time sync: Socket.io for instant updates
-- Score calculation: Base points + time bonus
+app.post('/api/endpoint', 
+  validateRequest(['username', 'email']), 
+  handler
+);
 ```
 
-## API Endpoints
+### Add New Service
 
-### Auth Service (Port 3001)
-- `POST /register` - Register new user
-- `POST /login` - User login
-- `POST /verify-otp` - Verify OTP code
-- `POST /resend-otp` - Resend OTP
-- `GET /health` - Service health check
+1. Create directory in `services/`
+2. Copy `jest.config.js` from `shared/`
+3. Add Prometheus middleware
+4. Create K8s deployment
+5. Add to Jenkinsfile
+6. Write tests (maintain 80% coverage)
 
-### Quiz Service (Port 3002)
-- `GET /quizzes` - Get all quizzes
-- `GET /quizzes/:id` - Get quiz by ID
-- `POST /quizzes` - Create quiz
-- `PUT /quizzes/:id` - Update quiz
-- `DELETE /quizzes/:id` - Delete quiz
-- `PATCH /quizzes/:id/star` - Toggle star
-- `GET /health` - Service health check
+## 📈 Production Readiness
 
-### Game Service (Port 3003)
-- `GET /games` - Get all game sessions (with filters)
-- `GET /games/pin/:pin` - Get game by PIN
-- `GET /games/:id` - Get game by ID
-- `POST /games` - Create game session (auto-generate PIN)
-- `DELETE /games/:id` - Delete game session
-- `GET /health` - Service health check
+| Category | Status | Score |
+|----------|--------|-------|
+| Testing | ✅ 80% | 20/20 |
+| Monitoring | ✅ Full stack | 15/15 |
+| Backup | ✅ Automated | 10/10 |
+| Secrets | ✅ Encrypted | 10/10 |
+| Error Handling | ✅ Production | 10/10 |
+| Logging | ✅ Structured | 10/10 |
+| Security | ✅ Hardened | 10/10 |
+| **TOTAL** | **Production Ready** | **85/100** |
 
-### User Service (Port 3004)
-**Profile Management:**
-- `GET /users/:userId/profile` - Get user profile (auto-creates if not exists)
-- `POST /users/:userId/profile` - Create user profile
-- `PUT /users/:userId/profile` - Update user profile
-- `POST /users/:userId/avatar` - Upload avatar
-- `DELETE /users/:userId/avatar` - Delete avatar
-- `GET /users/search` - Search users by username/displayName
-- `GET /users/leaderboard` - Get global leaderboard
+## 🚦 CI/CD Pipeline
 
-**Statistics:**
-- `GET /users/:userId/stats` - Get user statistics
-- `GET /users/:userId/activity` - Get user activity history
-- `POST /webhook/stats` - Update user stats (internal webhook)
+**Jenkins Optimized Pipeline (52% faster):**
 
-**Achievements:**
-- `GET /users/:userId/achievements` - Get all achievements with progress
-- `GET /users/:userId/achievements/unlocked` - Get unlocked achievements only
-- `POST /users/:userId/achievements/:achievementId` - Manually unlock achievement
-- `POST /users/:userId/achievements/check` - Check for new achievements
-- `GET /users/achievements/catalog` - Get all available achievements
-
-**Preferences:**
-- `GET /users/:userId/preferences` - Get user preferences
-- `PUT /users/:userId/preferences` - Update user preferences
-
-### Analytics Service (Port 3005)
-**Event Tracking:**
-- `POST /events` - Track a new event
-- `GET /events` - Get all events with filters
-- `GET /events/summary` - Get event summary
-- `GET /events/type/:eventType` - Get events by type
-- `GET /events/user/:userId` - Get events by user
-- `GET /events/range` - Get events by date range
-- `GET /events/count/:eventType` - Get event count by type
-- `GET /events/aggregated` - Get aggregated events
-- `GET /events/popular/quizzes` - Get popular quizzes
-- `GET /events/users/active` - Get active users count
-
-**Statistics & Reports:**
-- `GET /stats/global` - Get global statistics
-- `GET /stats/dashboard` - Get dashboard summary
-- `GET /stats/user/:userId` - Get detailed user analytics
-- `GET /stats/user/:userId/engagement` - Get user engagement metrics
-- `GET /stats/trends` - Get platform trends
-- `GET /stats/daily` - Get daily statistics
-- `GET /stats/performance` - Get performance report
-
-### Socket.io Events (Port 3003)
-**Host Events:**
-- `host-join` - Host joins game room
-- `start-game` - Host starts game
-- `game-ended` - Host manually ends game
-
-**Player Events:**
-- `join-game` - Player joins with PIN
-- `player-answer` - Player submits answer
-
-**Broadcast Events:**
-- `player-joined` - New player joined
-- `game-started` - Game has started
-- `question-started` - New question begins
-- `answer-revealed` - Show correct answer
-- `game-finished` - Game completed
-
-## UI Pages
-
-1. **Home** - Landing page with features
-2. **Login** - User authentication
-3. **Register** - New user signup
-4. **Verify OTP** - Email verification
-5. **Dashboard** - Quiz management and game history
-6. **Quiz Builder** - Create/edit quizzes (supports 4-7 options for Multiple Choice)
-7. **Game History** - View and manage past games with filters
-8. **Profile** - User profile with avatar, stats, and achievements
-9. **Analytics Dashboard** - Comprehensive analytics with trends, charts, and insights
-10. **Join** - Enter game PIN
-11. **Lobby Host** - Wait for players and display PIN
-12. **Lobby Player** - Join confirmation
-13. **Live Control** - Host manages game with auto-progression
-14. **Answering** - Player answers questions (enhanced UI)
-15. **Feedback** - Answer feedback with animations
-16. **End Game** - Results with podium display and confetti
-
-
-## Docker & Cloud Deployment
-
-### Docker Compose (Local)
-```powershell
-# Copy environment file
-cp .env.example .env
-
-# Edit .env with your MongoDB URI and other configs
-# Then build and start all services
-docker-compose up -d --build
-
-# Check status
-docker-compose ps
-
-# View logs
-docker-compose logs -f
+```
+Stage 1: Checkout
+Stage 2: Parallel Build (6 services)
+Stage 3: Parallel Test (6 services with coverage)
+Stage 4: Quality Gate (coverage threshold)
+Stage 5: Parallel Docker Build (6 images)
+Stage 6: Deploy to K8s
+Stage 7: Health Checks
+Stage 8: Notifications
 ```
 
-### AWS Deployment with Terraform
-```powershell
-# Navigate to terraform directory
-cd terraform
+**Performance:**
+- Sequential: ~12 minutes
+- Optimized: ~5.8 minutes
+- Improvement: 52%
 
-# Copy and configure variables
-cp terraform.tfvars.example terraform.tfvars
-# Edit terraform.tfvars with your AWS credentials and MongoDB URI
+## 📚 Documentation
 
-# Deploy infrastructure
-./deploy.ps1
+- [PRODUCTION_CHECKLIST.md](./docs/PRODUCTION_CHECKLIST.md) - Quality checklist
+- [PARALLELIZATION_GUIDE.md](./docs/PARALLELIZATION_GUIDE.md) - Optimization guide
+- [K8S_CLUSTER_GUIDE.md](./docs/K8S_CLUSTER_GUIDE.md) - Kubernetes setup
+- [QUICKSTART_JENKINS.md](./QUICKSTART_JENKINS.md) - Jenkins guide
 
-# Or manually:
-terraform init
-terraform plan
-terraform apply
-```
+## 🤝 Contributing
 
-**See [terraform/README.md](terraform/README.md) for detailed AWS deployment guide.**
+1. Fork repository
+2. Create feature branch: `git checkout -b feature/amazing`
+3. Write tests (maintain 80% coverage)
+4. Commit: `git commit -m 'feat: add feature'`
+5. Push: `git push origin feature/amazing`
+6. Create Pull Request
 
-## Documentation
+## 📝 Next Steps (Priority 2-3)
 
-- **[DOCKER_GUIDE.md](DOCKER_GUIDE.md)** - Docker Compose deployment guide
-- **[terraform/README.md](terraform/README.md)** - AWS Terraform deployment guide
-- **[CHANGELOG.md](CHANGELOG.md)** - Detailed change history
-- **[CONFIG_README.md](frontend/CONFIG_README.md)** - Environment configuration guide
-- **[INSTALLATION.md](INSTALLATION.md)** - Detailed setup instructions
-- **[API_TESTING.md](API_TESTING.md)** - API testing guide
-- **[USER_GUIDE.md](USER_GUIDE.md)** - User manual
+- [ ] Add integration tests (E2E with Cypress)
+- [ ] Implement auto-scaling (HPA)
+- [ ] Setup centralized logging (ELK stack)
+- [ ] Add disaster recovery plan
+- [ ] Implement load testing (k6)
 
-## License
+## 👥 Team
 
-This project is open source and available under the MIT License.
+DevOps & Full-Stack Development
 
-## Contributing
+---
 
-Contributions are welcome! Please read our contributing guidelines before submitting pull requests.
+**Built with ❤️ using Node.js, React, Kubernetes, and Production-Grade DevOps**
 

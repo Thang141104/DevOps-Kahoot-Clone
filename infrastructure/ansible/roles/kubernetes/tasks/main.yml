@@ -1,0 +1,15 @@
+# ============================================
+# Kubernetes Role - Main Tasks
+# ============================================
+---
+- name: Include common tasks
+  include_tasks: common.yml
+
+- name: Configure master node
+  include_tasks: master.yml
+  when: "'k8s_master' in group_names"
+
+- name: Deploy SonarQube to cluster
+  include_tasks: sonarqube.yml
+  when: "'k8s_master' in group_names"
+

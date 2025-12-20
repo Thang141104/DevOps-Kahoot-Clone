@@ -1,0 +1,21 @@
+# ============================================
+# Jenkins Role - Variables
+# ============================================
+---
+# Jenkins configuration
+jenkins_home: /var/lib/jenkins
+jenkins_port: 8080
+jenkins_java_opts: "-Xmx2048m -Xms1024m"
+
+# SonarQube Scanner
+jenkins_sonar_scanner_version: "4.8.0.2856"
+
+# Jenkins plugins (to be installed via Jenkins CLI if needed)
+jenkins_plugins:
+  - git
+  - workflow-aggregator
+  - docker-workflow
+  - kubernetes
+  - blueocean
+  - sonar
+  - aws-credentials

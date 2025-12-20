@@ -1,77 +1,116 @@
+/**
+ * Production-Ready Auth Service
+ * Implements all best practices: error handling, validation, logging, security
+ */
+
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
-const cors = require('cors');
+
+// Shared utilities (production-grade)
+const { connectDB } = require('../shared/config/database');
+const { logger, httpLogger } = require('../shared/utils/logger');
+const { errorHandler, notFoundHandler, asyncHandler } = require('../shared/middleware/errorHandler');
+const { configureCors, configureHelmet, apiLimiter, authLimiter, sanitizeData, preventPollution } = require('../shared/middleware/security');
+const { livenessProbe, readinessProbe, detailedHealthCheck } = require('../shared/middleware/healthCheck');
 const { metricsMiddleware, register } = require('./utils/metrics');
-require('dotenv').config();
 
+// Initialize Express
 const app = express();
+const PORT = process.env.PORT || 3001;
 
-// Metrics middleware (must be first)
+// Trust proxy (for rate limiting behind load balancer)
+app.set('trust proxy', 1);
+
+// Security middleware (MUST be first)
+app.use(configureHelmet());
+app.use(configureCors());
+
+// Metrics middleware
 app.use(metricsMiddleware);
 
-// Middleware
-app.use(cors());
+// HTTP request logging
+app.use(httpLogger);
 
-// Request logging middleware
-app.use((req, res, next) => {
-  console.log(`📥 ${req.method} ${req.path} - Body size: ${req.headers['content-length'] || 0} bytes`);
-  next();
-});
+// Body parsing with size limits
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// Security middleware
+app.use(sanitizeData()); // Prevent NoSQL injection
+app.use(preventPollution()); // Prevent parameter pollution
 
-// MongoDB Connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/quiz-app';
+// Health check endpoints (no auth required)
+app.get('/health/live', livenessProbe);
+app.get('/health/ready', readinessProbe);
+app.get('/health', detailedHealthCheck);
 
-mongoose.connect(MONGODB_URI)
-  .then(() => console.log('✅ Auth Service: Connected to MongoDB'))
-  .catch((err) => console.error('❌ Auth Service: MongoDB connection error:', err));
-
-// Metrics endpoint
+// Metrics endpoint (for Prometheus)
 app.get('/metrics', async (req, res) => {
   try {
     res.set('Content-Type', register.contentType);
     const metrics = await register.metrics();
     res.end(metrics);
   } catch (err) {
+    logger.error('Metrics endpoint error:', err);
     res.status(500).end(err.message);
   }
 });
 
-// Health check (must be before auth routes to avoid conflicts)
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    service: 'Auth Service',
-    timestamp: new Date().toISOString() 
-  });
-});
+// API routes with rate limiting
+app.use('/api/auth/login', authLimiter); // Strict rate limit for login
+app.use('/api/auth/register', authLimiter); // Strict rate limit for register
+app.use('/api', apiLimiter); // General rate limit for all other API routes
 
-// Routes
-app.use('/', require('./routes/auth.routes'));
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  res.status(err.status || 500).json({
-    success: false,
-    message: err.message || 'Internal server error',
-    error: process.env.NODE_ENV === 'development' ? err : {}
-  });
-});
+// Import routes
+const authRoutes = require('./routes/auth.routes');
+app.use('/api/auth', authRoutes);
 
 // 404 handler
-app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    message: 'Route not found'
+app.use(notFoundHandler);
+
+// Global error handler (MUST be last)
+app.use(errorHandler);
+
+// Database connection
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://admin:admin123@mongodb:27017/quiz-app?authSource=admin';
+
+connectDB(MONGODB_URI)
+  .then(() => {
+    // Start server only after DB connection
+    app.listen(PORT, () => {
+      logger.info(`Auth Service listening on port ${PORT}`, {
+        environment: process.env.NODE_ENV || 'development',
+        mongoUri: MONGODB_URI.replace(/\/\/.*@/, '//***:***@') // Hide credentials in logs
+      });
+    });
+  })
+  .catch((err) => {
+    logger.error('Failed to start Auth Service:', err);
+    process.exit(1);
   });
+
+// Graceful shutdown
+const gracefulShutdown = async (signal) => {
+  logger.info(`${signal} received. Starting graceful shutdown...`);
+  
+  // Stop accepting new connections
+  process.exit(0);
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// Unhandled promise rejection
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('Unhandled Rejection at:', { promise, reason });
+  process.exit(1);
 });
 
-const PORT = process.env.PORT || 3001;
-
-app.listen(PORT, () => {
-  console.log(`🚀 Auth Service running on port ${PORT}`);
-  console.log(`📧 Email configured: ${process.env.EMAIL_USER ? 'Yes' : 'No (emails will fail)'}`);
+// Uncaught exception
+process.on('uncaughtException', (error) => {
+  logger.error('Uncaught Exception:', error);
+  process.exit(1);
 });
+
+module.exports = app;
