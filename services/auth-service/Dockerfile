@@ -4,18 +4,18 @@ FROM node:18-alpine
 WORKDIR /app
 
 # Install dependencies for shared utilities first
-COPY ../shared/package*.json ./shared/
+COPY services/shared/package*.json ./shared/
 RUN cd shared && npm ci --only=production
 
 # Copy shared utilities
-COPY ../shared ./shared/
+COPY services/shared ./shared/
 
 # Install service-specific dependencies
-COPY package*.json ./
+COPY services/auth-service/package*.json ./
 RUN npm ci --only=production
 
 # Copy service code
-COPY . .
+COPY services/auth-service .
 
 # Create logs directory
 RUN mkdir -p logs && chown -R node:node logs
