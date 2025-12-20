@@ -5,6 +5,14 @@
 - name: Include common tasks
   include_tasks: common.yml
 
+- name: Install AWS CLI on master
+  include_tasks: awscli.yml
+  when: "'k8s_master' in group_names"
+
+- name: Install and configure Git on master
+  include_tasks: git.yml
+  when: "'k8s_master' in group_names"
+
 - name: Configure master node
   include_tasks: master.yml
   when: "'k8s_master' in group_names"

@@ -1,6 +1,8 @@
 #!/bin/bash
 # ============================================
 # Kubernetes Master Node Initialization
+# Terraform handles ONLY K8s base setup
+# Ansible will install AWS CLI, Git, and SonarQube
 # ============================================
 
 set -e
@@ -48,6 +50,9 @@ apt-get update
 apt-get install -y kubelet kubeadm kubectl
 apt-mark hold kubelet kubeadm kubectl
 
-# Note: kubeadm init will be run by Ansible for better control
-echo "Kubernetes master base setup complete!"
-echo "Run 'kubeadm init' to initialize the cluster"
+# Install Python for Ansible
+apt-get install -y python3-pip
+pip3 install --upgrade pip
+
+echo "✅ Kubernetes base setup complete!"
+echo "📦 Run Ansible playbook to complete configuration"

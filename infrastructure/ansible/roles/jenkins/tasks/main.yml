@@ -60,6 +60,9 @@
 - name: Install SonarQube Scanner
   include_tasks: sonar-scanner.yml
 
+- name: Install Nx CLI
+  include_tasks: nx.yml
+
 - name: Create Jenkins .kube directory
   file:
     path: /var/lib/jenkins/.kube
