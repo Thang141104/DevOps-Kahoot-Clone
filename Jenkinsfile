@@ -256,27 +256,33 @@ pipeline {
                     steps {
                         script {
                             echo "🔍 Running SonarQube analysis (CRITICAL issues only)..."
-                            sh """
-                                # Install sonar-scanner if not exists
-                                if ! command -v sonar-scanner &> /dev/null; then
-                                    wget -q https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip
-                                    unzip -q sonar-scanner-cli-4.8.0.2856-linux.zip
-                                    export PATH=\$PATH:\$(pwd)/sonar-scanner-4.8.0.2856-linux/bin
-                                fi
-                                
-                                # Run SonarQube scan - focus on CRITICAL issues only
-                                sonar-scanner \
-                                  -Dsonar.projectKey=kahoot-clone \
-                                  -Dsonar.sources=. \
-                                  -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/**,**/*.test.js,**/*.spec.js \
-                                  -Dsonar.host.url=${SONARQUBE_URL} \
-                                  -Dsonar.login=${SONAR_TOKEN} \
-                                  -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
-                                  -Dsonar.qualitygate.wait=true \
-                                  -Dsonar.qualitygate.timeout=300 \
-                                  -Dsonar.issuesReport.console.enable=true \
-                                  -Dsonar.severity=CRITICAL || true
-                            """
+                            try {
+                                withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
+                                    sh """
+                                        # Install sonar-scanner if not exists
+                                        if ! command -v sonar-scanner &> /dev/null; then
+                                            wget -q https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip
+                                            unzip -q sonar-scanner-cli-4.8.0.2856-linux.zip
+                                            export PATH=\$PATH:\$(pwd)/sonar-scanner-4.8.0.2856-linux/bin
+                                        fi
+                                        
+                                        # Run SonarQube scan - focus on CRITICAL issues only
+                                        sonar-scanner \
+                                          -Dsonar.projectKey=kahoot-clone \
+                                          -Dsonar.sources=. \
+                                          -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/**,**/*.test.js,**/*.spec.js \
+                                          -Dsonar.host.url=${SONARQUBE_URL} \
+                                          -Dsonar.login=${SONAR_TOKEN} \
+                                          -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
+                                          -Dsonar.qualitygate.wait=true \
+                                          -Dsonar.qualitygate.timeout=300 \
+                                          -Dsonar.issuesReport.console.enable=true \
+                                          -Dsonar.severity=CRITICAL || true
+                                    """
+                                }
+                            } catch (Exception e) {
+                                echo "⚠️ SonarQube token not configured, skipping CRITICAL analysis"
+                            }
                         }
                     }
                 }
