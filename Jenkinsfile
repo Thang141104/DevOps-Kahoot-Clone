@@ -143,6 +143,9 @@ pipeline {
                 }
                 
                 stage('SonarQube Analysis') {
+                    when {
+                        expression { false } // Disabled: Requires Java 17+
+                    }
                     steps {
                         script {
                             try {
