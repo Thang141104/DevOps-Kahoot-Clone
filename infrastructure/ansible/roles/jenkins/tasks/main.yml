@@ -2,9 +2,9 @@
 # Jenkins Role - Main Tasks
 # ============================================
 ---
-- name: Install Java 17
+- name: Install Java {{ java_version }}
   apt:
-    name: openjdk-17-jdk
+    name: "openjdk-{{ java_version }}-jdk"
     state: present
     update_cache: yes
   become: yes
@@ -99,6 +99,70 @@
     port: 8080
     delay: 10
     timeout: 300
+
+# System Optimizations for t3.medium
+- name: Configure Jenkins JVM settings
+  lineinfile:
+    path: /etc/default/jenkins
+    regexp: '^JAVA_ARGS='
+    line: 'JAVA_ARGS="{{ jenkins_java_opts }}"'
+    state: present
+  become: yes
+  notify: restart jenkins
+
+- name: Configure Jenkins disk space threshold
+  lineinfile:
+    path: /etc/default/jenkins
+    line: 'JENKINS_ARGS="${JENKINS_ARGS} {{ jenkins_args }}"'
+    insertafter: EOF
+    state: present
+  become: yes
+
+- name: Optimize system memory (reduce swappiness)
+  sysctl:
+    name: vm.swappiness
+    value: '10'
+    sysctl_set: yes
+    state: present
+  become: yes
+
+- name: Increase file descriptors for Jenkins (soft)
+  lineinfile:
+    path: /etc/security/limits.conf
+    line: 'jenkins  soft  nofile  65536'
+    insertbefore: '^# End of file'
+    state: present
+  become: yes
+
+- name: Increase file descriptors for Jenkins (hard)
+  lineinfile:
+    path: /etc/security/limits.conf
+    line: 'jenkins  hard  nofile  65536'
+    insertbefore: '^# End of file'
+    state: present
+  become: yes
+
+- name: Optimize npm for builds
+  shell: |
+    npm config set maxsockets 2
+    npm config set fetch-timeout 120000
+    npm config set fetch-retry-mintimeout 20000
+    npm config set fetch-retry-maxtimeout 120000
+  become: yes
+  become_user: jenkins
+  ignore_errors: yes
+
+- name: Create Jenkins workspace cleanup script
+  copy:
+    dest: /etc/cron.daily/jenkins-cleanup
+    mode: '0755'
+    content: |
+      #!/bin/bash
+      # Clean Jenkins workspace older than 7 days
+      find /var/lib/jenkins/workspace -type d -mtime +7 -exec rm -rf {} + 2>/dev/null || true
+      # Clean Jenkins build artifacts older than 30 days
+      find /var/lib/jenkins/jobs/*/builds -type d -mtime +30 -exec rm -rf {} + 2>/dev/null || true
+  become: yes
 
 - name: Get Jenkins initial password
   slurp:

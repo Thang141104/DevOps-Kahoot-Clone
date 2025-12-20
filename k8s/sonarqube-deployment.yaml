@@ -20,7 +20,8 @@ spec:
     spec:
       securityContext:
         fsGroup: 1000
-        fsGroupChangePolicy: "OnRootMismatch"      affinity:
+        fsGroupChangePolicy: "OnRootMismatch"
+      affinity:
         podAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
           - labelSelector:
@@ -29,7 +30,8 @@ spec:
                 operator: In
                 values:
                 - postgres
-            topologyKey: kubernetes.io/hostname      initContainers:
+            topologyKey: kubernetes.io/hostname
+      initContainers:
       - name: init-sysctl
         image: busybox:1.36
         command:
@@ -63,7 +65,7 @@ spec:
           mountPath: /opt/sonarqube/logs
       containers:
       - name: sonarqube
-        image: sonarqube:10-community
+        image: sonarqube:11-community
         ports:
         - containerPort: 9000
         env:
