@@ -585,6 +585,16 @@ pipeline {
                                     kubectl apply -f k8s/frontend-deployment.yaml
                                     
                                     echo "✅ Initial deployments created!"
+                                else
+                                    echo "🔄 Re-applying deployments with new imagePullSecrets..."
+                                    kubectl apply -f k8s/gateway-deployment.yaml
+                                    kubectl apply -f k8s/auth-deployment.yaml
+                                    kubectl apply -f k8s/user-deployment.yaml
+                                    kubectl apply -f k8s/quiz-deployment.yaml
+                                    kubectl apply -f k8s/game-deployment.yaml
+                                    kubectl apply -f k8s/analytics-deployment.yaml
+                                    kubectl apply -f k8s/frontend-deployment.yaml
+                                    echo "✅ Deployments re-applied!"
                                 fi
                                 
                                 echo "\n📋 Current deployments:"
