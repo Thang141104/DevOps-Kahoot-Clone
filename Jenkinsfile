@@ -507,34 +507,36 @@ pipeline {
                         }
                     }
                 }
-                
-                stage('K8s Pre-flight Check') {
-                    steps {
-                        script {
-                            sh """
-                                kubectl cluster-info || echo "Warning: K8s cluster not accessible"
-                                kubectl get nodes || true
-                            """
-                        }
-                    }
-                }
             }
         }
         
         stage('🚀 Deploy to Kubernetes') {
             steps {
                 script {
-                    echo "🚀 Deploying to Kubernetes..."
-                    sh """
-                        # Update image tags in K8s deployments
-                        for service in gateway auth user quiz game analytics frontend; do
-                            kubectl set image deployment/\${service} \
-                              \${service}=${ECR_REGISTRY}/${PROJECT_NAME}-\${service}:${BUILD_VERSION} || true
-                        done
-                        
-                        # Wait for rollout
-                        kubectl rollout status deployment --all --timeout=5m
-                    """
+                    echo "🚀 Deploying to Kubernetes via SSH..."
+                    withCredentials([sshUserPrivateKey(credentialsId: 'k8s-master-ssh-key', keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')]) {
+                        sh """
+                            # Deploy via SSH to K8s master node
+                            ssh -i \${SSH_KEY} -o StrictHostKeyChecking=no ubuntu@98.84.105.168 << 'ENDSSH'
+                                echo "📋 Current deployments:"
+                                kubectl get deployments -n default
+                                
+                                echo "\n🔄 Updating image tags to build ${BUILD_VERSION}..."
+                                # Update image tags in K8s deployments
+                                for service in gateway auth user quiz game analytics frontend; do
+                                    echo "Updating \${service}..."
+                                    kubectl set image deployment/\${service} \
+                                      \${service}=${ECR_REGISTRY}/${PROJECT_NAME}-\${service}:${BUILD_VERSION} \
+                                      -n default || echo "⚠️  Warning: Failed to update \${service}"
+                                done
+                                
+                                echo "\n✅ Deployment updated:"
+                                kubectl get deployments -n default
+                                echo "\n📊 Pods status:"
+                                kubectl get pods -n default
+ENDSSH
+                        """
+                    }
                 }
             }
         }
