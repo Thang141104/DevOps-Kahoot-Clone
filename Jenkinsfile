@@ -469,25 +469,6 @@ pipeline {
                         }
                     }
                 }
-                
-                // ECR Image Scan disabled: Does not support multi-platform images (OCI image index)
-                // Use Trivy scan results instead
-                /*
-                stage('ECR Image Scan') {
-                    steps {
-                        script {
-                            sh """
-                                for service in gateway auth user quiz game analytics frontend; do
-                                    aws ecr start-image-scan \
-                                      --repository-name ${PROJECT_NAME}-\${service} \
-                                      --image-id imageTag=${BUILD_VERSION} \
-                                      --region ${AWS_REGION} || true
-                                done
-                            """
-                        }
-                    }
-                }
-                */
             }
         }
         
@@ -588,7 +569,14 @@ pipeline {
                                     
                                     echo "✅ Initial deployments created!"
                                 else
-                                    echo "🔄 Re-applying deployments with new imagePullSecrets..."
+                                    echo "🔄 Deployments already exist. Updating ECR secret and re-applying..."
+                                    
+                                    # Update ECR secret for existing namespace
+                                    echo "🔐 Updating ECR pull secret..."
+                                    kubectl apply -f /tmp/ecr-secret.yaml
+                                    echo "✅ ECR secret updated"
+                                    
+                                    # Re-apply deployments with updated imagePullSecrets
                                     kubectl apply -f k8s/gateway-deployment.yaml
                                     kubectl apply -f k8s/auth-deployment.yaml
                                     kubectl apply -f k8s/user-deployment.yaml
@@ -597,11 +585,6 @@ pipeline {
                                     kubectl apply -f k8s/analytics-deployment.yaml
                                     kubectl apply -f k8s/frontend-deployment.yaml
                                     echo "✅ Deployments re-applied!"
-                                else
-                                    # Update ECR secret for existing namespace
-                                    echo "🔐 Updating ECR pull secret..."
-                                    kubectl apply -f /tmp/ecr-secret.yaml
-                                    echo "✅ ECR secret updated"
                                 fi
                                 
                                 echo "\n📋 Current deployments:"
