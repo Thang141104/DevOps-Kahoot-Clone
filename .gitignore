@@ -77,7 +77,7 @@ config
 
 # Docker
 docker-compose.override.yml
-.dockerignore
+# .dockerignore  # Allow .dockerignore files for services
 
 # Uploads & User Data
 uploads/
