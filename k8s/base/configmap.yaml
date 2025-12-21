@@ -27,10 +27,10 @@ data:
   # CORS
   CORS_ORIGIN: "*"
   
-  # Frontend Configuration (for browser access)
-  # Using worker node IP where gateway service is accessible
-  REACT_APP_API_URL: "http://44.198.175.214:30000"
-  REACT_APP_SOCKET_URL: "http://44.198.175.214:30004"
+  # # Frontend Configuration (for browser access)
+  # # Replace <master-ip> with your actual master node IP
+  # REACT_APP_API_URL: "http://34.200.233.56:30000"
+  # REACT_APP_SOCKET_URL: "http://34.200.233.56:30004"
   
   # AWS S3 Configuration (for avatar uploads)
   AWS_REGION: "us-east-1"
