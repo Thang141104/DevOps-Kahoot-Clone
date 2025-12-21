@@ -65,7 +65,7 @@ spec:
           mountPath: /opt/sonarqube/logs
       containers:
       - name: sonarqube
-        image: sonarqube:10.9.1-community
+        image: sonarqube:10.9-community
         ports:
         - containerPort: 9000
         env:
