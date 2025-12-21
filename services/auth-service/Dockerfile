@@ -18,10 +18,7 @@ RUN npm ci --only=production
 COPY services/auth-service .
 
 # Create logs directory
-RUN mkdir -p logs && chown -R node:node logs
-
-# Switch to non-root user for security
-USER node
+RUN mkdir -p logs
 
 # Expose port
 EXPOSE 3001
