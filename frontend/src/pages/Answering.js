@@ -85,6 +85,9 @@ const Answering = () => {
       pin, 
       playerId: playerData.id 
     });
+    
+    // Ensure we're in the room (important for page refresh)
+    newSocket.emit('player-join-room', { pin, playerId: playerData.id });
 
     // Listen for question from host
     newSocket.on('question-started', ({ question, questionIndex: qIdx, timeLimit }) => {
