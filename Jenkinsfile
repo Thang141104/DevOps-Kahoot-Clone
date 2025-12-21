@@ -1,6 +1,21 @@
 pipeline {
     agent any
     
+    triggers {
+        GenericTrigger(
+            genericVariables: [
+                [key: 'ref', value: '$.ref'],
+                [key: 'repository', value: '$.repository.full_name']
+            ],
+            causeString: 'Triggered by GitHub push',
+            token: 'kahoot-clone-webhook-token',
+            printContributedVariables: true,
+            printPostContent: true,
+            regexpFilterText: '$ref',
+            regexpFilterExpression: 'refs/heads/(main|master|fix/.*)'
+        )
+    }
+    
     environment {
         // AWS ECR Configuration
         AWS_REGION = 'us-east-1'
