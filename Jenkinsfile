@@ -165,6 +165,10 @@ pipeline {
                                 // Try to load token from credentials
                                 withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
                                     sh """
+                                        # Set JAVA_HOME to Java 17
+                                        export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+                                        export PATH=\$JAVA_HOME/bin:\$PATH
+                                        
                                         # Check if sonar-scanner is installed
                                         if ! command -v sonar-scanner &> /dev/null; then
                                             echo "📥 Installing sonar-scanner..."
