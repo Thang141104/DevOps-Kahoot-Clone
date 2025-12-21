@@ -333,7 +333,7 @@ pipeline {
                                   -t ${ECR_REGISTRY}/${PROJECT_NAME}-quiz:${BUILD_VERSION} \
                                   -t ${ECR_REGISTRY}/${PROJECT_NAME}-quiz:latest \
                                   --push \
-                                  -f services/quiz-service/Dockerfile .
+                                  -f services/quiz-service/Dockerfile services/quiz-service/
                             """
                         }
                     }
@@ -355,7 +355,7 @@ pipeline {
                                   -t ${ECR_REGISTRY}/${PROJECT_NAME}-game:${BUILD_VERSION} \
                                   -t ${ECR_REGISTRY}/${PROJECT_NAME}-game:latest \
                                   --push \
-                                  -f services/game-service/Dockerfile .
+                                  -f services/game-service/Dockerfile services/game-service/
                             """
                         }
                     }
@@ -372,7 +372,7 @@ pipeline {
                                   -t ${ECR_REGISTRY}/${PROJECT_NAME}-analytics:${BUILD_VERSION} \
                                   -t ${ECR_REGISTRY}/${PROJECT_NAME}-analytics:latest \
                                   --push \
-                                  -f services/analytics-service/Dockerfile .
+                                  -f services/analytics-service/Dockerfile services/analytics-service/
                             """
                         }
                     }
