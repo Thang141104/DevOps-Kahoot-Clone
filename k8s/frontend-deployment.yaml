@@ -31,9 +31,9 @@ spec:
           name: http
         env:
         - name: REACT_APP_API_URL
-          value: "http://44.198.175.214:30000"
+          value: "http://98.84.105.168:30000"
         - name: REACT_APP_SOCKET_URL
-          value: "http://44.198.175.214:30003"
+          value: "http://98.84.105.168:30003"
         resources:
           requests:
             memory: "128Mi"  # Reduced from 256Mi

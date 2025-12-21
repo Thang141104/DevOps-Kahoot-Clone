@@ -112,7 +112,7 @@ const sendWelcomeEmail = async (email, username) => {
               </div>
               
               <center>
-                <a href="http://localhost:3000" class="button">Start Creating Quizzes</a>
+                <a href="${process.env.FRONTEND_URL || 'http://localhost:3006'}" class="button">Start Creating Quizzes</a>
               </center>
               
               <p>If you have any questions, feel free to reach out to our support team.</p>
