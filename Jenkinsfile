@@ -215,14 +215,9 @@ pipeline {
         stage('📦 Install Dependencies & Static Analysis') {
             steps {
                 script {
-                    echo "📦 Installing dependencies (Batch 1: Shared, Gateway, Auth)..."
+                    echo "📦 Installing dependencies (Batch 1: Gateway, Auth)..."
                     // Batch 1: Core dependencies
                     parallel(
-                        'Shared Utils': {
-                            dir('services/shared') {
-                                sh "npm ci --prefer-offline --no-audit --maxsockets=2 --loglevel=error"
-                            }
-                        },
                         'Gateway': {
                             dir('gateway') {
                                 sh "npm ci --prefer-offline --no-audit --maxsockets=2 --loglevel=error"
