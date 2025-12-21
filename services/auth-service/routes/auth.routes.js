@@ -8,9 +8,59 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const { asyncHandler, UnauthorizedError, ConflictError, ValidationError } = require('../../shared/middleware/errorHandler');
-const { validateRegistration, sanitizeString } = require('../../shared/middleware/validator');
-const { logger } = require('../../shared/utils/logger');
+
+// Simple error handler
+const asyncHandler = (fn) => (req, res, next) => {
+  Promise.resolve(fn(req, res, next)).catch(next);
+};
+
+// Simple validation middleware
+const validateRegistration = (req, res, next) => {
+  const { username, email, password } = req.body;
+  
+  if (!username || username.length < 3) {
+    return res.status(400).json({ error: 'Username must be at least 3 characters' });
+  }
+  
+  if (!email || !email.includes('@')) {
+    return res.status(400).json({ error: 'Valid email is required' });
+  }
+  
+  if (!password || password.length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters' });
+  }
+  
+  next();
+};
+
+// Simple logger
+const logger = {
+  info: (msg) => console.log(`[INFO] ${new Date().toISOString()}: ${msg}`),
+  error: (msg) => console.error(`[ERROR] ${new Date().toISOString()}: ${msg}`),
+  warn: (msg) => console.warn(`[WARN] ${new Date().toISOString()}: ${msg}`)
+};
+
+// Custom error classes
+class UnauthorizedError extends Error {
+  constructor(message) {
+    super(message);
+    this.statusCode = 401;
+  }
+}
+
+class ConflictError extends Error {
+  constructor(message) {
+    super(message);
+    this.statusCode = 409;
+  }
+}
+
+class ValidationError extends Error {
+  constructor(message) {
+    super(message);
+    this.statusCode = 400;
+  }
+}
 
 // JWT Secret
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';

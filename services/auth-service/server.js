@@ -32,7 +32,7 @@ app.use((err, req, res, next) => {
 });
 
 // Database connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://admin:admin123@mongodb:27017/kahoot-app?authSource=admin';
+const MONGODB_URI = process.env.MONGODB_URI;
 
 mongoose.connect(MONGODB_URI)
   .then(() => {

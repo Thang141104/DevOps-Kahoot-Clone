@@ -157,7 +157,7 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3000;  // Keep at 3000 for gateway
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 API Gateway running on port ${PORT}`);
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔒 Rate limit: 200 requests/minute per IP`);
