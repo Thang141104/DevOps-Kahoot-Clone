@@ -1,14 +1,14 @@
 FROM node:18-alpine
 
 # Set working directory
-WORKDIR /app
+WORKDIR /app/services/auth-service
 
 # Install dependencies for shared utilities first
-COPY services/shared/package*.json ./shared/
-RUN cd shared && npm ci --only=production
+COPY services/shared/package*.json ../shared/
+RUN cd ../shared && npm ci --only=production
 
 # Copy shared utilities
-COPY services/shared ./shared/
+COPY services/shared ../shared/
 
 # Install service-specific dependencies
 COPY services/auth-service/package*.json ./
