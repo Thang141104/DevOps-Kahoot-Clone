@@ -116,6 +116,18 @@ module "nx_cache" {
 }
 
 # ===================================
+# Storage Module (S3 for Avatars)
+# ===================================
+module "storage" {
+  source = "./modules/storage"
+  
+  project_name = var.project_name
+  aws_region   = var.aws_region
+  
+  common_tags = local.common_tags
+}
+
+# ===================================
 # Ansible Integration
 # ===================================
 

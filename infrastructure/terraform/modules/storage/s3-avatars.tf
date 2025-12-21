@@ -73,8 +73,6 @@ resource "aws_s3_bucket_lifecycle_configuration" "user_avatars" {
   }
 }
 
-# Get current AWS account ID
-data "aws_caller_identity" "current" {}
 
 # Output bucket name and URL
 output "user_avatars_bucket_name" {
