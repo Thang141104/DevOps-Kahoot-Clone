@@ -24,7 +24,7 @@ spec:
       - name: ecr-registry-secret
       containers:
       - name: frontend
-        image: 802346121373.dkr.ecr.ap-southeast-1.amazonaws.com/kahoot-clone-frontend:latest
+        image: 802346121373.dkr.ecr.us-east-1.amazonaws.com/kahoot-clone-frontend:latest
         imagePullPolicy: Always  # Always check Docker Hub for latest image (for CI/CD updates)
         ports:
         - containerPort: 3006
