@@ -31,15 +31,9 @@ spec:
           name: http
         env:
         - name: REACT_APP_API_URL
-          valueFrom:
-            configMapKeyRef:
-              name: app-config
-              key: REACT_APP_API_URL
+          value: "http://34.200.233.56:30000"
         - name: REACT_APP_SOCKET_URL
-          valueFrom:
-            configMapKeyRef:
-              name: app-config
-              key: REACT_APP_SOCKET_URL
+          value: "http://34.200.233.56:30000"
         resources:
           requests:
             memory: "128Mi"  # Reduced from 256Mi
@@ -68,11 +62,12 @@ metadata:
   labels:
     app: frontend
 spec:
-  type: LoadBalancer
+  type: NodePort
   ports:
-    - port: 3006
-      targetPort: 3006
-      protocol: TCP
-      name: http
+  - port: 3006
+    targetPort: 3006
+    nodePort: 30006
+    protocol: TCP
+    name: http
   selector:
     app: frontend

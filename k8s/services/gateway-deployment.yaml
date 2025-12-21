@@ -95,11 +95,12 @@ metadata:
   labels:
     app: gateway
 spec:
-  type: LoadBalancer
+  type: NodePort
   ports:
-    - port: 3000
-      targetPort: 3000
-      protocol: TCP
-      name: http
+  - port: 3000
+    targetPort: 3000
+    nodePort: 30000
+    protocol: TCP
+    name: http
   selector:
     app: gateway
