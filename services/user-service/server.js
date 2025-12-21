@@ -130,9 +130,9 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`🚀 User Service running on port ${PORT}`);
+// Start server - bind to 0.0.0.0 for container access
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 User Service running on 0.0.0.0:${PORT}`);
   console.log(`📁 Avatars directory: ${uploadsDir}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
 });

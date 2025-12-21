@@ -77,9 +77,9 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://admin:admin123@mongodb
 mongoose.connect(MONGODB_URI)
   .then(() => {
     logger.info('Connected to MongoDB');
-    // Start server only after DB connection
-    app.listen(PORT, () => {
-      logger.info(`Auth Service listening on port ${PORT}`, {
+    // Start server only after DB connection - bind to 0.0.0.0 for container access
+    app.listen(PORT, '0.0.0.0', () => {
+      logger.info(`Auth Service listening on 0.0.0.0:${PORT}`, {
         environment: process.env.NODE_ENV || 'development',
         mongoUri: MONGODB_URI.replace(/\/\/.*@/, '//***:***@') // Hide credentials in logs
       });

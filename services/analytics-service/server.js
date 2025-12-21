@@ -91,9 +91,9 @@ app.use((error, req, res, next) => {
   });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`🚀 Analytics Service running on port ${PORT}`);
+// Start server - bind to 0.0.0.0 for container access
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Analytics Service running on 0.0.0.0:${PORT}`);
   console.log(`📊 Event tracking enabled`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
