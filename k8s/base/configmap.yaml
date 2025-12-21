@@ -40,4 +40,4 @@ data:
   # Frontend React App Variables
   REACT_APP_API_URL: "http://34.200.233.56:30000"
   REACT_APP_SOCKET_URL: "http://34.200.233.56:30000"
-  FRONTEND_URL: "http://34.200.233.56:30006"
+  FRONTEND_URL: "http://44.198.175.214:30006"
