@@ -31,8 +31,7 @@ spec:
           name: http
         env:
         - name: REACT_APP_API_URL
-          value: "http://gateway:3000"
-          # Will be auto-updated by master setup script to http://PUBLIC_IP:30000
+          value: "http://44.198.175.214:30000"
         resources:
           requests:
             memory: "128Mi"  # Reduced from 256Mi

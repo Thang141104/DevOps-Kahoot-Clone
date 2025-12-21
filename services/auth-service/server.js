@@ -8,7 +8,6 @@ const express = require('express');
 const mongoose = require('mongoose');
 
 // Shared utilities (production-grade)
-const { connectDB } = require('../shared/config/database');
 const { logger, httpLogger } = require('../shared/utils/logger');
 const { errorHandler, notFoundHandler, asyncHandler } = require('../shared/middleware/errorHandler');
 const { configureCors, configureHelmet, apiLimiter, authLimiter, sanitizeData, preventPollution } = require('../shared/middleware/security');
@@ -75,8 +74,9 @@ app.use(errorHandler);
 // Database connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://admin:admin123@mongodb:27017/quiz-app?authSource=admin';
 
-connectDB(MONGODB_URI)
+mongoose.connect(MONGODB_URI)
   .then(() => {
+    logger.info('Connected to MongoDB');
     // Start server only after DB connection
     app.listen(PORT, () => {
       logger.info(`Auth Service listening on port ${PORT}`, {
@@ -86,7 +86,7 @@ connectDB(MONGODB_URI)
     });
   })
   .catch((err) => {
-    logger.error('Failed to start Auth Service:', err);
+    logger.error('Failed to connect to MongoDB:', err);
     process.exit(1);
   });
 
