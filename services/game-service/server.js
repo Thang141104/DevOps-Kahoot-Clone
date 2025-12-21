@@ -177,7 +177,7 @@ const autoProgressQuestion = async (io, pin, questionIndex, timeLimit) => {
               
               // If player won (rank 1), track wins stat specifically
               if (rank === 1 && game.players.length > 1) {
-                console.log(`🏆 Player ${player.userId} won the game! (Tracked in game_completed metadata)`);
+                console.log(` Player ${player.userId} won the game! (Tracked in game_completed metadata)`);
               }
             }
           }
@@ -528,7 +528,7 @@ io.on('connection', (socket) => {
   // PLAYER events
   socket.on('player-ready-for-question', ({ pin, playerId }) => {
     socket.join(pin);
-    console.log(`👤 Player ${playerId} ready in room: ${pin}`);
+    console.log(` Player ${playerId} ready in room: ${pin}`);
   });
 
   socket.on('player-answer', ({ pin, playerId, answer, timeUsed }) => {
@@ -572,5 +572,5 @@ app.get('/health', (req, res) => {
 
 const PORT = process.env.PORT || 3003;
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`🎮 Game Service running on port ${PORT}`);
+  console.log(` Game Service running on port ${PORT}`);
 });

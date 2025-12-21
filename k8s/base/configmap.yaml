@@ -36,3 +36,7 @@ data:
   
   # OTP
   OTP_EXPIRES_IN: "10"
+  
+  # Frontend React App Variables
+  REACT_APP_API_URL: "http://34.200.233.56:30000"
+  REACT_APP_SOCKET_URL: "http://34.200.233.56:30000"
