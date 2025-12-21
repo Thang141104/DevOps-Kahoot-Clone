@@ -304,7 +304,7 @@ pipeline {
                                   -t ${ECR_REGISTRY}/${PROJECT_NAME}-auth:${BUILD_VERSION} \
                                   -t ${ECR_REGISTRY}/${PROJECT_NAME}-auth:latest \
                                   --push \
-                                  -f services/auth-service/Dockerfile .
+                                  -f services/auth-service/Dockerfile services/auth-service/
                             """
                         }
                     }
@@ -321,7 +321,7 @@ pipeline {
                                   -t ${ECR_REGISTRY}/${PROJECT_NAME}-user:${BUILD_VERSION} \
                                   -t ${ECR_REGISTRY}/${PROJECT_NAME}-user:latest \
                                   --push \
-                                  -f services/user-service/Dockerfile .
+                                  -f services/user-service/Dockerfile services/user-service/
                             """
                         }
                     }
