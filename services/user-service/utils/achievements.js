@@ -10,20 +10,20 @@ const checkAchievements = async (userId) => {
   try {
     const profile = await UserProfile.findOne({ userId });
     if (!profile) {
-      console.log(`❌ Profile not found for userId: ${userId}`);
+      console.log(` Profile not found for userId: ${userId}`);
       return [];
     }
     
-    console.log(`🔍 Checking achievements for ${profile.username} (${userId})`);
-    console.log(`📊 Current stats:`, profile.stats);
+    console.log(` Checking achievements for ${profile.username} (${userId})`);
+    console.log(` Current stats:`, profile.stats);
     
     // Get all achievements
     const allAchievements = await Achievement.find();
-    console.log(`📝 Total achievements in DB: ${allAchievements.length}`);
+    console.log(` Total achievements in DB: ${allAchievements.length}`);
     
     // Get already unlocked achievement IDs
     const unlockedIds = profile.achievements.map(a => a.achievementId);
-    console.log(`✅ Already unlocked (${unlockedIds.length}):`, unlockedIds);
+    console.log(` Already unlocked (${unlockedIds.length}):`, unlockedIds);
     
     // Check each achievement
     const newlyUnlocked = [];
@@ -32,7 +32,7 @@ const checkAchievements = async (userId) => {
     for (const achievement of allAchievements) {
       // Skip if already unlocked
       if (unlockedIds.includes(achievement.id)) {
-        console.log(`⏭️  Skipping ${achievement.id} - already unlocked`);
+        console.log(`  Skipping ${achievement.id} - already unlocked`);
         continue;
       }
       
@@ -40,11 +40,11 @@ const checkAchievements = async (userId) => {
       const isMet = checkAchievementCriteria(achievement, profile.stats);
       const currentValue = getCurrentValue(achievement.criteria.type, profile.stats);
       
-      console.log(`🎯 Checking ${achievement.id} (${achievement.name})`);
+      console.log(` Checking ${achievement.id} (${achievement.name})`);
       console.log(`   Type: ${achievement.criteria.type}, Threshold: ${achievement.criteria.threshold}, Current: ${currentValue}, Met: ${isMet}`);
       
       if (isMet) {
-        console.log(`✨ Unlocking ${achievement.id}...`);
+        console.log(` Unlocking ${achievement.id}...`);
         
         // Add to achievements array (don't save yet)
         profile.achievements.push({
@@ -68,7 +68,7 @@ const checkAchievements = async (userId) => {
         newlyUnlocked.push(achievement);
         totalPoints += achievement.points;
         
-        console.log(`🏆 Achievement unlocked for ${profile.username}: ${achievement.name}`);
+        console.log(` Achievement unlocked for ${profile.username}: ${achievement.name}`);
       }
     }
     
@@ -77,10 +77,10 @@ const checkAchievements = async (userId) => {
       profile.experience += totalPoints;
       profile.calculateLevel();
       await profile.save();
-      console.log(`💾 Saved ${newlyUnlocked.length} achievements and ${totalPoints} XP`);
+      console.log(` Saved ${newlyUnlocked.length} achievements and ${totalPoints} XP`);
     }
     
-    console.log(`🎉 Total newly unlocked: ${newlyUnlocked.length}`);
+    console.log(` Total newly unlocked: ${newlyUnlocked.length}`);
     return newlyUnlocked;
   } catch (error) {
     console.error('Error checking achievements:', error);

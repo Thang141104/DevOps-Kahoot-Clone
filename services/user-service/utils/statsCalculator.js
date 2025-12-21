@@ -78,8 +78,8 @@ const syncUserStats = async (profile) => {
   // Stats are updated through webhook/update-stats endpoint when events occur
   // This "sync" just refreshes the data without recalculating
   
-  console.log(`🔄 Stats sync requested for user ${profile.username || profile.userId}`);
-  console.log(`✅ Current stats preserved (stats updated via events only)`);
+  console.log(` Stats sync requested for user ${profile.username || profile.userId}`);
+  console.log(` Current stats preserved (stats updated via events only)`);
   
   return profile;
 };
@@ -91,26 +91,26 @@ const syncUserStats = async (profile) => {
  */
 const recalculateUserStats = async (userId) => {
   try {
-    console.log(`📊 Recalculate stats called for userId: ${userId}`);
+    console.log(` Recalculate stats called for userId: ${userId}`);
     
     const UserProfile = require('../models/UserProfile');
     const profile = await UserProfile.findOne({ userId });
     
     if (!profile) {
-      console.error(`❌ Profile not found for userId: ${userId}`);
+      console.error(` Profile not found for userId: ${userId}`);
       throw new Error('User profile not found');
     }
     
-    console.log(`✅ Profile found for user: ${profile.username}`);
+    console.log(` Profile found for user: ${profile.username}`);
     
     // Sync (which now just returns profile as-is)
     const updatedProfile = await syncUserStats(profile);
     
-    console.log(`✅ Stats recalculation complete for user: ${profile.username}`);
+    console.log(` Stats recalculation complete for user: ${profile.username}`);
     
     return updatedProfile.stats;
   } catch (error) {
-    console.error('❌ Error recalculating user stats:', error.message);
+    console.error(' Error recalculating user stats:', error.message);
     console.error('Stack:', error.stack);
     throw error;
   }

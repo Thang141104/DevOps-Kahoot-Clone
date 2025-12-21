@@ -35,13 +35,13 @@ const statsWebhookRoutes = require('./routes/stats-webhook.routes');
 // MongoDB connection
 mongoose.connect(process.env.MONGODB_URI)
 .then(() => {
-  console.log('✅ Connected to MongoDB (User Service)');
+  console.log(' Connected to MongoDB (User Service)');
   
   // Initialize achievements in database
   initializeAchievements();
 })
 .catch(err => {
-  console.error('❌ MongoDB connection error:', err);
+  console.error(' MongoDB connection error:', err);
   process.exit(1);
 });
 
@@ -54,14 +54,14 @@ async function initializeAchievements() {
     const count = await Achievement.countDocuments();
     
     if (count === 0) {
-      console.log('📝 Seeding achievements...');
+      console.log(' Seeding achievements...');
       await Achievement.insertMany(achievementsData);
-      console.log(`✅ Seeded ${achievementsData.length} achievements`);
+      console.log(` Seeded ${achievementsData.length} achievements`);
     } else {
-      console.log(`✅ Achievements already initialized (${count} achievements)`);
+      console.log(` Achievements already initialized (${count} achievements)`);
     }
   } catch (error) {
-    console.error('❌ Error initializing achievements:', error);
+    console.error(' Error initializing achievements:', error);
   }
 }
 
@@ -132,16 +132,16 @@ app.use((err, req, res, next) => {
 
 // Start server - bind to 0.0.0.0 for container access
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 User Service running on 0.0.0.0:${PORT}`);
-  console.log(`📁 Avatars directory: ${uploadsDir}`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(` User Service running on 0.0.0.0:${PORT}`);
+  console.log(` Avatars directory: ${uploadsDir}`);
+  console.log(` Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
-  console.log('\n🛑 Shutting down gracefully...');
+  console.log('\n Shutting down gracefully...');
   await mongoose.connection.close();
-  console.log('✅ MongoDB connection closed');
+  console.log(' MongoDB connection closed');
   process.exit(0);
 });
 

@@ -14,7 +14,7 @@
 
 - name: Copy SonarQube deployment manifest
   copy:
-    src: "{{ playbook_dir }}/../../k8s/sonarqube-deployment.yaml"
+    src: "{{ playbook_dir }}/../../k8s/sonarqube/sonarqube-deployment.yaml"
     dest: /home/ubuntu/sonarqube/sonarqube-deployment.yaml
     owner: ubuntu
     group: ubuntu

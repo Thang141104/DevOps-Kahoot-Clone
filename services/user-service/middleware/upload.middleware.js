@@ -1,30 +1,12 @@
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
 
-// Ensure upload directory exists
-const uploadDir = path.join(__dirname, '..', process.env.UPLOAD_PATH || './uploads/avatars');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-// Configure storage
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    // Generate unique filename: userId-timestamp.ext
-    const userId = req.params.userId || req.user.id;
-    const ext = path.extname(file.originalname);
-    const filename = `${userId}-${Date.now()}${ext}`;
-    cb(null, filename);
-  }
-});
+// Use memory storage for S3 upload (no local file storage)
+const storage = multer.memoryStorage();
 
 // File filter
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = (process.env.ALLOWED_FILE_TYPES || 'image/jpeg,image/png,image/gif').split(',');
+  const allowedTypes = (process.env.ALLOWED_FILE_TYPES || 'image/jpeg,image/png,image/gif,image/webp').split(',');
   
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
@@ -66,6 +48,5 @@ const handleUploadError = (err, req, res, next) => {
 
 module.exports = {
   upload,
-  handleUploadError,
-  uploadDir
+  handleUploadError
 };

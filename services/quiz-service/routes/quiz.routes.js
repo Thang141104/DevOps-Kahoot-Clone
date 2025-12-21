@@ -98,7 +98,7 @@ router.post('/', authMiddleware, async (req, res) => {
       
       // Track to analytics
       await axios.post(`${ANALYTICS_SERVICE_URL}/events`, eventData);
-      console.log(`📊 Analytics: Tracked quiz_created for user ${req.user.id}`);
+      console.log(`Analytics: Tracked quiz_created for user ${req.user.id}`);
       
       // Update user stats and check achievements
       const statsResult = await axios.post(`${USER_SERVICE_URL}/webhook/update-stats`, {
@@ -108,10 +108,10 @@ router.post('/', authMiddleware, async (req, res) => {
       });
       
       if (statsResult.data.newAchievements && statsResult.data.newAchievements.length > 0) {
-        console.log(`🏆 User ${req.user.id} unlocked ${statsResult.data.newAchievements.length} achievements!`);
+        console.log(`User ${req.user.id} unlocked ${statsResult.data.newAchievements.length} achievements!`);
       }
     } catch (analyticsError) {
-      console.error('❌ Failed to track analytics:', analyticsError.message);
+      console.error('Failed to track analytics:', analyticsError.message);
       // Don't fail quiz creation if analytics fails
     }
     

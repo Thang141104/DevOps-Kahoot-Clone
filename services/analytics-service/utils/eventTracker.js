@@ -7,7 +7,7 @@ async function trackEvent(eventData) {
   try {
     const event = new AnalyticsEvent(eventData);
     await event.save();
-    console.log(`📊 Event tracked: ${eventData.eventType}`);
+    console.log(`Event tracked: ${eventData.eventType}`);
     return event;
   } catch (error) {
     console.error('Error tracking event:', error);

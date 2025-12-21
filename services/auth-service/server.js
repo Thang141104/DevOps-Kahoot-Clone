@@ -36,14 +36,14 @@ const MONGODB_URI = process.env.MONGODB_URI;
 
 mongoose.connect(MONGODB_URI)
   .then(() => {
-    console.log('✅ Connected to MongoDB');
+    console.log(' Connected to MongoDB');
     // Start server only after DB connection
     app.listen(PORT, '0.0.0.0', () => {
-      console.log(`🚀 Auth Service listening on port ${PORT}`);
+      console.log(` Auth Service listening on port ${PORT}`);
     });
   })
   .catch((err) => {
-    console.error('❌ Failed to connect to MongoDB:', err);
+    console.error(' Failed to connect to MongoDB:', err);
     process.exit(1);
   });
 

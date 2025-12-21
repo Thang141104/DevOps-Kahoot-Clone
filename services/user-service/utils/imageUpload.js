@@ -48,7 +48,7 @@ const deleteImage = async (filePath) => {
   try {
     if (filePath) {
       await fs.unlink(filePath);
-      console.log('🗑️  Deleted image:', filePath);
+      console.log('  Deleted image:', filePath);
     }
   } catch (error) {
     console.error('Error deleting image:', error);

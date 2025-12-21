@@ -5,6 +5,7 @@ const { authMiddleware } = require('../middleware/auth.middleware');
 const { validateProfileUpdate } = require('../middleware/validation.middleware');
 const { upload, handleUploadError } = require('../middleware/upload.middleware');
 const { processImage, deleteImage, getImageUrl } = require('../utils/imageUpload');
+const { uploadAvatar, replaceAvatar, deleteAvatar } = require('../utils/s3');
 const { syncUserStats } = require('../utils/statsCalculator');
 const path = require('path');
 
@@ -36,7 +37,7 @@ router.post('/:userId/profile', async (req, res) => {
     
     await profile.save();
     
-    console.log(`✅ Profile created for user ${userId}`);
+    console.log(`[Profile] Profile created for user ${userId}`);
     
     // Return profile directly (not nested) for easier consumption
     res.status(201).json(profile);
@@ -58,7 +59,7 @@ router.get('/:userId/profile', async (req, res) => {
     
     // Auto-create profile if doesn't exist
     if (!profile) {
-      console.log(`📝 Profile not found for user ${userId}, creating default profile...`);
+      console.log(` Profile not found for user ${userId}, creating default profile...`);
       
       // Create default profile with minimal info
       // The user can update it later
@@ -72,7 +73,7 @@ router.get('/:userId/profile', async (req, res) => {
       });
       
       await profile.save();
-      console.log(`✅ Auto-created profile for user ${userId}`);
+      console.log(` Auto-created profile for user ${userId}`);
     }
     
     // Sync stats from other services (don't fail if this fails)
@@ -165,13 +166,6 @@ router.post('/:userId/avatar', authMiddleware, upload.single('avatar'), handleUp
       });
     }
     
-    // Process image (resize, compress)
-    const processedPath = await processImage(req.file.path, {
-      width: 400,
-      height: 400,
-      quality: 80
-    });
-    
     // Get or create profile
     let profile = await UserProfile.findOne({ userId });
     
@@ -183,17 +177,21 @@ router.post('/:userId/avatar', authMiddleware, upload.single('avatar'), handleUp
       });
     }
     
-    // Delete old avatar if exists
-    if (profile.avatarUrl) {
-      const oldPath = path.join(__dirname, '..', profile.avatarUrl);
-      await deleteImage(oldPath);
-    }
+    // Upload to S3 (will delete old avatar if exists)
+    const avatarUrl = await replaceAvatar(
+      req.file.buffer,
+      userId,
+      profile.avatarUrl,
+      req.file.originalname
+    );
     
-    // Update avatar URL
-    profile.avatarUrl = getImageUrl(processedPath);
+    // Update avatar URL in profile
+    profile.avatarUrl = avatarUrl;
     profile.lastActiveAt = new Date();
     
     await profile.save();
+    
+    console.log(`[Profile] Avatar updated for user ${userId}:`, avatarUrl);
     
     res.json({
       message: 'Avatar uploaded successfully',
@@ -235,13 +233,14 @@ router.delete('/:userId/avatar', authMiddleware, async (req, res) => {
       });
     }
     
-    // Delete avatar file
-    const avatarPath = path.join(__dirname, '..', profile.avatarUrl);
-    await deleteImage(avatarPath);
+    // Delete avatar from S3
+    await deleteAvatar(profile.avatarUrl);
     
     // Update profile
     profile.avatarUrl = null;
     await profile.save();
+    
+    console.log(`[Profile] Avatar deleted for user ${userId}`);
     
     res.json({
       message: 'Avatar deleted successfully'

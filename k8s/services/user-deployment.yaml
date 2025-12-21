@@ -59,6 +59,10 @@ spec:
             configMapKeyRef:
               name: app-config
               key: GAME_SERVICE_URL
+        - name: AWS_REGION
+          value: "us-east-1"
+        - name: S3_AVATAR_BUCKET
+          value: "kahoot-clone-user-avatars-802346121373"
         resources:
           requests:
             memory: "128Mi"  # Reduced from 256Mi

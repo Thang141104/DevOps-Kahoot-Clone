@@ -11,15 +11,15 @@ async function seedAchievements() {
       useUnifiedTopology: true
     });
     
-    console.log('✅ Connected to MongoDB');
+    console.log(' Connected to MongoDB');
     
     // Clear existing achievements
     await Achievement.deleteMany({});
-    console.log('🗑️  Cleared existing achievements');
+    console.log('  Cleared existing achievements');
     
     // Insert new achievements
     await Achievement.insertMany(achievementsData);
-    console.log(`✅ Seeded ${achievementsData.length} achievements`);
+    console.log(` Seeded ${achievementsData.length} achievements`);
     
     // Display summary by category
     const categories = await Achievement.aggregate([
@@ -31,14 +31,14 @@ async function seedAchievements() {
       }
     ]);
     
-    console.log('\n📊 Achievements by category:');
+    console.log('\n Achievements by category:');
     categories.forEach(cat => {
       console.log(`   ${cat._id}: ${cat.count}`);
     });
     
     process.exit(0);
   } catch (error) {
-    console.error('❌ Error seeding achievements:', error);
+    console.error(' Error seeding achievements:', error);
     process.exit(1);
   }
 }

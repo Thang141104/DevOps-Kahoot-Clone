@@ -1,55 +1,44 @@
-# Kahoot Clone - Documentation
+# Documentation Index
 
-## 📚 Documentation Structure
+Welcome to the DevOps Kahoot Clone documentation. This directory contains comprehensive guides for deploying, configuring, and maintaining the application.
 
-### Infrastructure
-- [Infrastructure Guide](infrastructure/README.md) - Complete infrastructure setup
-- [Quick Start](infrastructure/QUICKSTART.md) - Fast deployment guide
-- [Nx Cache Automation](infrastructure/NX_AUTOMATION.md) - Build caching configuration
+## Documentation Structure
 
-### Deployment
-- Current deployment uses Terraform + Ansible + Jenkins CI/CD
-- Kubernetes cluster with multi-service architecture
-- AWS infrastructure: ECR, S3, EC2
+### [1. Infrastructure Guide](infrastructure/README.md)
+Complete guide for infrastructure provisioning and configuration:
+- AWS infrastructure with Terraform
+- Kubernetes cluster setup with Ansible  
+- Network configuration and security
+- Resource requirements and sizing
 
-## 🚀 Quick Start
+### [2. Quick Start Guide](infrastructure/QUICKSTART.md)
+Fast-track deployment guide:
+- Prerequisites checklist
+- Quick deployment steps
+- Verification procedures
+- Common first-time issues
 
-1. **Prerequisites**
-   - AWS account with credentials configured
-   - Terraform installed
-   - Ansible installed (via WSL on Windows)
-   - kubectl installed
+### [3. Nx Build Automation](infrastructure/NX_AUTOMATION.md)
+Smart build system documentation:
+- Nx configuration and setup
+- Affected service detection
+- Remote cache with S3
+- Performance optimizations
 
-2. **Deploy Infrastructure**
-   ```bash
-   cd infrastructure/terraform
-   terraform init
-   terraform apply
-   ```
+## Quick Links
 
-3. **Configure Services**
-   ```bash
-   cd ../ansible
-   ansible-playbook -i inventory/hosts site.yml
-   ```
+- **Main README**: [../README.md](../README.md)
+- **Infrastructure Code**: [../infrastructure/](../infrastructure/)
+- **Kubernetes Manifests**: [../k8s/](../k8s/)
+- **CI/CD Pipeline**: [../Jenkinsfile](../Jenkinsfile)
 
-4. **Access Application**
-   - Frontend: http://<WORKER_IP>:30006
-   - Gateway: http://<WORKER_IP>:30000
-   - Jenkins: http://<JENKINS_IP>:8080
+## Getting Help
 
-## 🏗️ Architecture
+- Check the appropriate guide above for your topic
+- Review the main [README.md](../README.md) for complete overview
+- See [Troubleshooting](../README.md#troubleshooting) section in main README
+- Open an issue on GitHub for bugs or questions
 
-- **Microservices**: auth, user, quiz, game, analytics
-- **Gateway**: API gateway for routing
-- **Frontend**: React application
-- **Infrastructure**: AWS (us-east-1)
-- **Orchestration**: Kubernetes (1.28)
-- **CI/CD**: Jenkins with automated pipelines
-- **Monitoring**: Prometheus metrics endpoints
+---
 
-## 📖 See Also
-
-- [Main README](../README.md) - Project overview
-- [Jenkinsfile](../Jenkinsfile) - CI/CD pipeline configuration
-- [K8s Deployments](../k8s/) - Kubernetes manifests
+Last Updated: December 2025

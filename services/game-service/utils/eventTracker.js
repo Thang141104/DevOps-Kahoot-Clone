@@ -20,7 +20,7 @@ async function trackEventAndUpdateStats(eventData) {
       relatedEntityId,
       metadata
     });
-    console.log(`📊 Analytics: Tracked ${eventType} for user ${userId}`);
+    console.log(`Analytics: Tracked ${eventType} for user ${userId}`);
     
     // 2. Update User stats via webhook
     await axios.post(`${USER_SERVICE_URL}/webhook/update-stats`, {
@@ -28,10 +28,10 @@ async function trackEventAndUpdateStats(eventData) {
       eventType,
       metadata
     });
-    console.log(`✅ Stats: Updated for user ${userId}`);
+    console.log(`Stats: Updated for user ${userId}`);
     
   } catch (error) {
-    console.error(`❌ Failed to track event ${eventType}:`, error.message);
+    console.error(`Failed to track event ${eventType}:`, error.message);
     // Don't throw - allow game to continue even if tracking fails
   }
 }

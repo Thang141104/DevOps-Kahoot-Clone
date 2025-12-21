@@ -9,7 +9,7 @@ router.get('/', async (req, res) => {
     const { hostId, status, limit = 50 } = req.query;
     let query = {};
     
-    console.log('📋 Fetching game sessions with filters:', { hostId, status, limit });
+    console.log(' Fetching game sessions with filters:', { hostId, status, limit });
     
     if (hostId) {
       query.hostId = hostId;
@@ -23,11 +23,11 @@ router.get('/', async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(parseInt(limit));
     
-    console.log(`✅ Found ${sessions.length} game sessions`);
+    console.log(` Found ${sessions.length} game sessions`);
     
     res.json(sessions);
   } catch (error) {
-    console.error('❌ Error fetching game sessions:', error);
+    console.error(' Error fetching game sessions:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -35,18 +35,18 @@ router.get('/', async (req, res) => {
 // Get game session by PIN
 router.get('/pin/:pin', async (req, res) => {
   try {
-    console.log('🔍 Looking for game with PIN:', req.params.pin);
+    console.log('Looking for game with PIN:', req.params.pin);
     const session = await GameSession.findOne({ pin: req.params.pin });
     
     if (!session) {
-      console.log('❌ Game session not found for PIN:', req.params.pin);
-      return res.status(404).json({ error: 'Game session not found' });
+      console.log('Game session not found for PIN:', req.params.pin);
+      return res.status(404).json({ message: 'Game not found' });
     }
     
-    console.log('✅ Found game session:', session._id);
+    console.log('Found game session:', session._id);
     res.json(session);
   } catch (error) {
-    console.error('Error fetching game session:', error);
+    console.error('Error creating game session:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -69,7 +69,7 @@ router.post('/', async (req, res) => {
   try {
     const { quizId, hostId } = req.body;
     
-    console.log('🎮 Creating game session:', { quizId, hostId });
+    console.log(' Creating game session:', { quizId, hostId });
     
     // Validate required fields
     if (!quizId) {
@@ -97,7 +97,7 @@ router.post('/', async (req, res) => {
       return res.status(500).json({ error: 'Failed to generate unique PIN' });
     }
 
-    console.log('📌 Generated PIN:', pin);
+    console.log('Generated PIN:', pin);
 
     // Create game session
     const session = new GameSession({
@@ -109,7 +109,7 @@ router.post('/', async (req, res) => {
     });
     
     await session.save();
-    console.log('✅ Game session created:', session._id);
+    console.log('Game session created:', session._id);
     
     // Note: Don't track game_created here - only track when host actually starts the game
     // This prevents counting games that were created but never started
@@ -120,7 +120,7 @@ router.post('/', async (req, res) => {
       status: session.status
     });
   } catch (error) {
-    console.error('❌ Error creating game session:', error);
+    console.error(' Error creating game session:', error);
     res.status(400).json({ error: error.message });
   }
 });

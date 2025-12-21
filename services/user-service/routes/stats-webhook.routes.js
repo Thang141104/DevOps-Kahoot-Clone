@@ -11,7 +11,7 @@ router.post('/check-achievements/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     
-    console.log(`🔍 Manually checking achievements for user ${userId}`);
+    console.log(` Manually checking achievements for user ${userId}`);
     
     const profile = await UserProfile.findOne({ userId });
     if (!profile) {
@@ -25,7 +25,7 @@ router.post('/check-achievements/:userId', async (req, res) => {
     const newAchievements = await checkAchievements(userId);
     
     if (newAchievements.length > 0) {
-      console.log(`🏆 Unlocked ${newAchievements.length} achievements for ${userId}`);
+      console.log(` Unlocked ${newAchievements.length} achievements for ${userId}`);
       return res.json({
         success: true,
         message: `Unlocked ${newAchievements.length} achievements`,
@@ -69,7 +69,7 @@ router.post('/update-stats', async (req, res) => {
       });
     }
     
-    console.log(`📊 Updating stats for user ${userId}, event: ${eventType}`);
+    console.log(` Updating stats for user ${userId}, event: ${eventType}`);
     
     // Get or create profile
     let profile = await UserProfile.findOne({ userId });
@@ -120,7 +120,7 @@ router.post('/update-stats', async (req, res) => {
         // Check if player won (rank 1 or won flag)
         if (metadata?.rank === 1 || metadata?.won === true) {
           profile.stats.wins += 1;
-          console.log(`🏆 Player won! Total wins: ${profile.stats.wins}`);
+          console.log(` Player won! Total wins: ${profile.stats.wins}`);
         }
         
         if (metadata?.accuracy) {
@@ -140,13 +140,13 @@ router.post('/update-stats', async (req, res) => {
     if (statsUpdated) {
       profile.lastActiveAt = new Date();
       await profile.save();
-      console.log(`✅ Stats updated for user ${userId}`);
+      console.log(` Stats updated for user ${userId}`);
       
       // Check for newly unlocked achievements
       const newAchievements = await checkAchievements(userId);
       
       if (newAchievements.length > 0) {
-        console.log(`🏆 Unlocked ${newAchievements.length} new achievements for ${userId}`);
+        console.log(` Unlocked ${newAchievements.length} new achievements for ${userId}`);
         return res.json({
           success: true,
           message: 'Stats updated and achievements unlocked',

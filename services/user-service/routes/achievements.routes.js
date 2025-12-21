@@ -201,7 +201,7 @@ router.post('/:userId/check', async (req, res) => {
   try {
     const { userId } = req.params;
     
-    console.log(`🔍 Force checking achievements for user ${userId}`);
+    console.log(` Force checking achievements for user ${userId}`);
     
     const profile = await UserProfile.findOne({ userId });
     if (!profile) {
@@ -215,7 +215,7 @@ router.post('/:userId/check', async (req, res) => {
     const newAchievements = await checkAchievements(userId);
     
     if (newAchievements.length > 0) {
-      console.log(`🏆 Unlocked ${newAchievements.length} achievements for ${userId}`);
+      console.log(` Unlocked ${newAchievements.length} achievements for ${userId}`);
       return res.json({
         success: true,
         message: `Unlocked ${newAchievements.length} achievements`,

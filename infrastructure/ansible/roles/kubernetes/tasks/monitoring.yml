@@ -21,8 +21,8 @@
     mode: '0644'
   become: yes
   loop:
-    - { src: "{{ playbook_dir }}/../../k8s/prometheus-deployment.yaml", dest: "/home/ubuntu/monitoring/prometheus-deployment.yaml" }
-    - { src: "{{ playbook_dir }}/../../k8s/grafana-deployment.yaml", dest: "/home/ubuntu/monitoring/grafana-deployment.yaml" }
+    - { src: "{{ playbook_dir }}/../../k8s/monitoring/prometheus-deployment.yaml", dest: "/home/ubuntu/monitoring/prometheus-deployment.yaml" }
+    - { src: "{{ playbook_dir }}/../../k8s/monitoring/grafana-deployment.yaml", dest: "/home/ubuntu/monitoring/grafana-deployment.yaml" }
   ignore_errors: yes
 
 - name: Check if monitoring namespace exists
@@ -84,20 +84,20 @@
 - name: Display Monitoring stack access info
   debug:
     msg:
-      - "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-      - "✅ Monitoring Stack Deployment Complete!"
-      - "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-      - "📊 Prometheus:"
+      - "==========================================="
+      - "Monitoring Stack Deployment Complete!"
+      - "==========================================="
+      - "Prometheus:"
       - "   - NodePort: {{ prometheus_nodeport.stdout }}"
       - "   - URL: http://<worker-node-ip>:{{ prometheus_nodeport.stdout }}"
       - ""
-      - "📈 Grafana:"
+      - "Grafana:"
       - "   - NodePort: {{ grafana_nodeport.stdout }}"
       - "   - URL: http://<worker-node-ip>:{{ grafana_nodeport.stdout }}"
       - "   - Default Login: admin / admin"
       - "   - Change password on first login!"
       - ""
-      - "🔧 Add Prometheus datasource in Grafana:"
+      - "Add Prometheus datasource in Grafana:"
       - "   URL: http://prometheus.monitoring.svc.cluster.local:9090"
-      - "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      - "==========================================="
   when: prometheus_nodeport is succeeded and grafana_nodeport is succeeded
