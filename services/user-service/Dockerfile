@@ -2,21 +2,17 @@
 FROM node:18-alpine
 
 # Set working directory
-WORKDIR /app/services/user-service
+WORKDIR /app
 
-# Install dependencies for shared utilities first
-COPY services/shared/package*.json ../shared/
-RUN cd ../shared && npm ci --only=production
-
-# Copy shared utilities
-COPY services/shared ../shared/
-
-# Install service-specific dependencies
-COPY services/user-service/package*.json ./
+# Copy package files
+COPY package*.json ./
 RUN npm ci --only=production
 
+# Add cors package
+RUN npm install cors
+
 # Copy service code
-COPY services/user-service .
+COPY . .
 
 # Create uploads directory for avatars
 RUN mkdir -p uploads/avatars
