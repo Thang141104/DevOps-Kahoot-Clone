@@ -92,10 +92,11 @@ metadata:
   labels:
     app: game-service
 spec:
-  type: ClusterIP
+  type: NodePort
   ports:
   - port: 3003
     targetPort: 3003
+    nodePort: 30003
     protocol: TCP
     name: http
   selector:
