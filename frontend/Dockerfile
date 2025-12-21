@@ -33,7 +33,8 @@ COPY --from=build /app/build ./build
 # Create entrypoint script for runtime config
 RUN echo '#!/bin/sh' > /docker-entrypoint.sh && \
     echo 'echo "window._env_ = {" > /app/build/env-config.js' >> /docker-entrypoint.sh && \
-    echo 'echo "  REACT_APP_API_URL: \"$REACT_APP_API_URL\"" >> /app/build/env-config.js' >> /docker-entrypoint.sh && \
+    echo 'echo "  REACT_APP_API_URL: \"$REACT_APP_API_URL\"," >> /app/build/env-config.js' >> /docker-entrypoint.sh && \
+    echo 'echo "  REACT_APP_SOCKET_URL: \"$REACT_APP_SOCKET_URL\"" >> /app/build/env-config.js' >> /docker-entrypoint.sh && \
     echo 'echo "}" >> /app/build/env-config.js' >> /docker-entrypoint.sh && \
     echo 'exec serve -s build -l 3006' >> /docker-entrypoint.sh && \
     chmod +x /docker-entrypoint.sh
