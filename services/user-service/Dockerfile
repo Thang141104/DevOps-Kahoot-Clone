@@ -1,16 +1,22 @@
 # User Service Dockerfile
 FROM node:18-alpine
 
-WORKDIR /app
+# Set working directory
+WORKDIR /app/services/user-service
 
-# Copy package files
-COPY package*.json ./
+# Install dependencies for shared utilities first
+COPY services/shared/package*.json ../shared/
+RUN cd ../shared && npm ci --only=production
 
-# Install dependencies
+# Copy shared utilities
+COPY services/shared ../shared/
+
+# Install service-specific dependencies
+COPY services/user-service/package*.json ./
 RUN npm ci --only=production
 
-# Copy application files
-COPY . .
+# Copy service code
+COPY services/user-service .
 
 # Create uploads directory for avatars
 RUN mkdir -p uploads/avatars
