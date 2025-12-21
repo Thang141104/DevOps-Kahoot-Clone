@@ -27,5 +27,5 @@ EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3001/health/live', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); });"
 
-# Start service
-CMD ["node", "server.js"]
+# Start service  
+CMD ["node", "--trace-warnings", "server.js"]
