@@ -135,18 +135,25 @@ router.post('/register', validateRegistration, asyncHandler(async (req, res) => 
  * @access  Public
  */
 router.post('/login', asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+  const { email, emailOrUsername, password } = req.body;
+  
+  const loginIdentifier = emailOrUsername || email;
 
   // Validate input
-  if (!email || !password) {
-    throw new ValidationError('Email and password are required');
+  if (!loginIdentifier || !password) {
+    throw new ValidationError('Email/Username and password are required');
   }
 
-  // Find user
-  const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
+  // Find user by email or username
+  const user = await User.findOne({ 
+    $or: [
+      { email: loginIdentifier.toLowerCase() },
+      { username: loginIdentifier }
+    ]
+  }).select('+password');
 
   if (!user) {
-    logger.warn('Login attempt with non-existent email', { email });
+    logger.warn('Login attempt with non-existent credentials', { identifier: loginIdentifier });
     throw new UnauthorizedError('Invalid credentials');
   }
 
