@@ -65,7 +65,7 @@ spec:
           mountPath: /opt/sonarqube/logs
       containers:
       - name: sonarqube
-        image: sonarqube:community
+        image: sonarqube:10.9.1-community
         ports:
         - containerPort: 9000
         env:
@@ -80,6 +80,8 @@ spec:
               key: postgres-password
         - name: SONAR_ES_BOOTSTRAP_CHECKS_DISABLE
           value: "true"
+        - name: SONAR_JAVA_OPTS
+          value: "-Xmx1536m -Xms512m"
         resources:
           requests:
             memory: "1Gi"

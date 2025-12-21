@@ -164,8 +164,12 @@ pipeline {
                                 echo "🔍 Running SonarQube analysis..."
                                 // Try to load token from credentials
                                 withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
-                                    withEnv(["JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64", "PATH+JAVA=/usr/lib/jvm/java-17-openjdk-amd64/bin"]) {
-                                        sh """
+                                    withEnv([
+                                        "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64",
+                                        "PATH+JAVA=/usr/lib/jvm/java-17-openjdk-amd64/bin",
+                                        "SONAR_SCANNER_JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64"
+                                    ]) {
+                                        sh '''
                                             # Verify Java version
                                             echo "🔧 Using Java version:"
                                             java -version
@@ -189,7 +193,7 @@ pipeline {
                                               -Dsonar.qualitygate.wait=false || true
                                             
                                             echo "✅ SonarQube analysis complete"
-                                        """
+                                        '''
                                     }
                                 }
                             } catch (Exception e) {
