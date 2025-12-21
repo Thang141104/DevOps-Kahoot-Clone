@@ -23,7 +23,7 @@ app.get('/health', (req, res) => {
 
 // Import routes
 const authRoutes = require('./routes/auth.routes');
-app.use('/api/auth', authRoutes);
+app.use('/', authRoutes); // Gateway already strips /api/auth prefix
 
 // Basic error handler
 app.use((err, req, res, next) => {
