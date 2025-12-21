@@ -2,11 +2,28 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const fs = require('fs');
 const { metricsMiddleware, register } = require('./utils/metrics');
+
+// Debug logging function
+function debugLog(message) {
+  const timestamp = new Date().toISOString();
+  const logMessage = `${timestamp} [ANALYTICS] ${message}\n`;
+  console.log(logMessage.trim());
+  try {
+    fs.appendFileSync('/tmp/analytics-debug.log', logMessage);
+  } catch (err) {
+    console.error('Failed to write to debug log:', err);
+  }
+}
+
+debugLog('🚀 Analytics Service starting...');
+debugLog(`Environment variables: MONGODB_URI=${process.env.MONGODB_URI ? 'SET' : 'NOT_SET'}, PORT=${process.env.PORT}`);
 
 // Initialize Express app
 const app = express();
 const PORT = process.env.PORT || 3005;
+debugLog(`Express app initialized, PORT: ${PORT}`);
 
 // Metrics middleware
 app.use(metricsMiddleware);
@@ -17,15 +34,20 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Import routes
+debugLog('Loading routes...');
 const eventsRoutes = require('./routes/events.routes');
 const statsRoutes = require('./routes/stats.routes');
+debugLog('Routes loaded successfully');
 
 // MongoDB connection
+debugLog('Connecting to MongoDB...');
 mongoose.connect(process.env.MONGODB_URI)
 .then(() => {
+  debugLog('✅ Connected to MongoDB (Analytics Service)');
   console.log('✅ Connected to MongoDB (Analytics Service)');
 })
 .catch((error) => {
+  debugLog(`❌ MongoDB connection error: ${error.message}`);
   console.error('❌ MongoDB connection error:', error);
   process.exit(1);
 });
@@ -92,7 +114,11 @@ app.use((error, req, res, next) => {
 });
 
 // Start server - bind to 0.0.0.0 for container access
+debugLog('Starting server...');
 app.listen(PORT, '0.0.0.0', () => {
+  debugLog(`🚀 Analytics Service running on 0.0.0.0:${PORT}`);
+  debugLog(`📊 Event tracking enabled`);
+  debugLog(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🚀 Analytics Service running on 0.0.0.0:${PORT}`);
   console.log(`📊 Event tracking enabled`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);

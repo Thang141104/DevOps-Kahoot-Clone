@@ -1,0 +1,103 @@
+# ============================================
+# Monitoring Stack Deployment Tasks
+# Deploy Prometheus and Grafana to Kubernetes cluster
+# ============================================
+---
+- name: Create monitoring directory on master
+  file:
+    path: /home/ubuntu/monitoring
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+    mode: '0755'
+  become: yes
+
+- name: Copy monitoring deployment manifests
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: ubuntu
+    group: ubuntu
+    mode: '0644'
+  become: yes
+  loop:
+    - { src: "{{ playbook_dir }}/../../k8s/prometheus-deployment.yaml", dest: "/home/ubuntu/monitoring/prometheus-deployment.yaml" }
+    - { src: "{{ playbook_dir }}/../../k8s/grafana-deployment.yaml", dest: "/home/ubuntu/monitoring/grafana-deployment.yaml" }
+  ignore_errors: yes
+
+- name: Check if monitoring namespace exists
+  shell: kubectl get namespace monitoring
+  register: monitoring_namespace
+  become: yes
+  become_user: ubuntu
+  ignore_errors: yes
+
+- name: Create monitoring namespace
+  shell: kubectl create namespace monitoring
+  when: monitoring_namespace.rc != 0
+  become: yes
+  become_user: ubuntu
+  ignore_errors: yes
+
+- name: Deploy Prometheus to Kubernetes
+  shell: kubectl apply -f /home/ubuntu/monitoring/prometheus-deployment.yaml
+  become: yes
+  become_user: ubuntu
+  register: prometheus_deploy
+  ignore_errors: yes
+
+- name: Deploy Grafana to Kubernetes
+  shell: kubectl apply -f /home/ubuntu/monitoring/grafana-deployment.yaml
+  become: yes
+  become_user: ubuntu
+  register: grafana_deploy
+  ignore_errors: yes
+
+- name: Wait for Prometheus deployment to be ready
+  shell: kubectl wait --for=condition=available --timeout=300s deployment/prometheus -n monitoring
+  when: prometheus_deploy is changed
+  become: yes
+  become_user: ubuntu
+  ignore_errors: yes
+
+- name: Wait for Grafana deployment to be ready
+  shell: kubectl wait --for=condition=available --timeout=300s deployment/grafana -n monitoring
+  when: grafana_deploy is changed
+  become: yes
+  become_user: ubuntu
+  ignore_errors: yes
+
+- name: Get Prometheus service NodePort
+  shell: kubectl get svc -n monitoring prometheus -o jsonpath='{.spec.ports[0].nodePort}'
+  register: prometheus_nodeport
+  become: yes
+  become_user: ubuntu
+  ignore_errors: yes
+
+- name: Get Grafana service NodePort
+  shell: kubectl get svc -n monitoring grafana -o jsonpath='{.spec.ports[0].nodePort}'
+  register: grafana_nodeport
+  become: yes
+  become_user: ubuntu
+  ignore_errors: yes
+
+- name: Display Monitoring stack access info
+  debug:
+    msg:
+      - "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      - "✅ Monitoring Stack Deployment Complete!"
+      - "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+      - "📊 Prometheus:"
+      - "   - NodePort: {{ prometheus_nodeport.stdout }}"
+      - "   - URL: http://<worker-node-ip>:{{ prometheus_nodeport.stdout }}"
+      - ""
+      - "📈 Grafana:"
+      - "   - NodePort: {{ grafana_nodeport.stdout }}"
+      - "   - URL: http://<worker-node-ip>:{{ grafana_nodeport.stdout }}"
+      - "   - Default Login: admin / admin"
+      - "   - Change password on first login!"
+      - ""
+      - "🔧 Add Prometheus datasource in Grafana:"
+      - "   URL: http://prometheus.monitoring.svc.cluster.local:9090"
+      - "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  when: prometheus_nodeport is succeeded and grafana_nodeport is succeeded

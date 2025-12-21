@@ -17,7 +17,14 @@
   include_tasks: master.yml
   when: "'k8s_master' in group_names"
 
+- name: Configure worker nodes
+  include_tasks: worker.yml
+  when: "'k8s_workers' in group_names"
+
 - name: Deploy SonarQube to cluster
   include_tasks: sonarqube.yml
   when: "'k8s_master' in group_names"
 
+- name: Deploy Monitoring Stack (Prometheus + Grafana)
+  include_tasks: monitoring.yml
+  when: "'k8s_master' in group_names"

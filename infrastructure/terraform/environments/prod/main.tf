@@ -23,7 +23,7 @@ terraform {
   # backend "s3" {
   #   bucket         = "kahoot-clone-terraform-state-prod"
   #   key            = "prod/terraform.tfstate"
-  #   region         = "ap-southeast-1"
+  #   region         = "us-east-1"
   #   encrypt        = true
   #   dynamodb_table = "kahoot-clone-terraform-locks-prod"
   # }
