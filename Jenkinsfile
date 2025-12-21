@@ -164,30 +164,33 @@ pipeline {
                                 echo "🔍 Running SonarQube analysis..."
                                 // Try to load token from credentials
                                 withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
-                                    sh """
-                                        # Set JAVA_HOME to Java 17
-                                        export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-                                        export PATH=\$JAVA_HOME/bin:\$PATH
-                                        
-                                        # Check if sonar-scanner is installed
-                                        if ! command -v sonar-scanner &> /dev/null; then
-                                            echo "📥 Installing sonar-scanner..."
-                                            sudo npm install -g sonar-scanner || true
-                                        fi
-                                        
-                                        echo "🔍 Running SonarQube scan..."
-                                        sonar-scanner \
-                                          -Dsonar.projectKey=kahoot-clone \
-                                          -Dsonar.projectName="Kahoot Clone" \
-                                          -Dsonar.sources=. \
-                                          -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/**,**/coverage/** \
-                                          -Dsonar.host.url=${SONARQUBE_URL} \
-                                          -Dsonar.login=${SONAR_TOKEN} \
-                                          -Dsonar.sourceEncoding=UTF-8 \
-                                          -Dsonar.qualitygate.wait=false || true
-                                        
-                                        echo "✅ SonarQube analysis complete"
-                                    """
+                                    withEnv(["JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64", "PATH+JAVA=/usr/lib/jvm/java-17-openjdk-amd64/bin"]) {
+                                        sh """
+                                            # Verify Java version
+                                            echo "🔧 Using Java version:"
+                                            java -version
+                                            
+                                            # Check if sonar-scanner is installed
+                                            if ! command -v sonar-scanner &> /dev/null; then
+                                                echo "📥 Installing sonar-scanner..."
+                                                sudo npm install -g sonar-scanner || true
+                                            fi
+                                            
+                                            echo "🔍 Running SonarQube scan..."
+                                            sonar-scanner \
+                                              -Dsonar.projectKey=kahoot-clone \
+                                              -Dsonar.projectName="Kahoot Clone" \
+                                              -Dsonar.sources=. \
+                                              -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/**,**/coverage/** \
+                                              -Dsonar.host.url=${SONARQUBE_URL} \
+                                              -Dsonar.token=${SONAR_TOKEN} \
+                                              -Dsonar.sourceEncoding=UTF-8 \
+                                              -Dsonar.java.binaries=. \
+                                              -Dsonar.qualitygate.wait=false || true
+                                            
+                                            echo "✅ SonarQube analysis complete"
+                                        """
+                                    }
                                 }
                             } catch (Exception e) {
                                 echo "⚠️ SonarQube analysis skipped: ${e.message}"
