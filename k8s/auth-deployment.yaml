@@ -90,7 +90,7 @@ spec:
               name: app-config
               key: USER_SERVICE_URL
         - name: FRONTEND_URL
-          value: "http://98.84.105.168:30006"
+          value: "http://44.198.175.214:30006"
         resources:
           requests:
             memory: "128Mi"  # Reduced from 256Mi
