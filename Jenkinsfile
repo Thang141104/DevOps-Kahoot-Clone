@@ -175,17 +175,19 @@ pipeline {
                                         
                                         # Download and use SonarScanner CLI (supports Java 17+)
                                         SCANNER_VERSION="5.0.1.3006"
-                                        SCANNER_DIR="/opt/sonar-scanner-${SCANNER_VERSION}"
+                                        SCANNER_DIR="${HOME}/sonar-scanner-${SCANNER_VERSION}"
                                         
                                         if [ ! -d "${SCANNER_DIR}" ]; then
                                             echo "📥 Downloading SonarScanner ${SCANNER_VERSION}..."
                                             cd /tmp
                                             wget -q https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SCANNER_VERSION}-linux.zip
-                                            sudo unzip -q sonar-scanner-cli-${SCANNER_VERSION}-linux.zip -d /opt/
-                                            sudo mv /opt/sonar-scanner-${SCANNER_VERSION}-linux ${SCANNER_DIR}
-                                            sudo chmod +x ${SCANNER_DIR}/bin/sonar-scanner
+                                            unzip -q sonar-scanner-cli-${SCANNER_VERSION}-linux.zip
+                                            mv sonar-scanner-${SCANNER_VERSION}-linux ${SCANNER_DIR}
+                                            chmod +x ${SCANNER_DIR}/bin/sonar-scanner
                                             rm -f sonar-scanner-cli-${SCANNER_VERSION}-linux.zip
-                                            echo "✅ SonarScanner installed"
+                                            echo "✅ SonarScanner installed to ${SCANNER_DIR}"
+                                        else
+                                            echo "✅ SonarScanner already exists at ${SCANNER_DIR}"
                                         fi
                                         
                                         # Add to PATH
