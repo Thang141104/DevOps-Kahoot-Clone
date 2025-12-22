@@ -323,8 +323,13 @@ const Profile = () => {
               if (isOwner) {
                 try {
                   const user = JSON.parse(localStorage.getItem('user'));
-                  const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/user/users/${user.id}/check`, {
-                    method: 'POST'
+                  const token = localStorage.getItem('token');
+                  const response = await fetch(API_URLS.USER_CHECK_ACHIEVEMENTS(user.id), {
+                    method: 'POST',
+                    headers: {
+                      'Authorization': `Bearer ${token}`,
+                      'Content-Type': 'application/json'
+                    }
                   });
                   const data = await response.json();
                   console.log('Auto-check achievements:', data);

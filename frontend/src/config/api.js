@@ -37,6 +37,7 @@ export const API_URLS = {
   USER_STATS: (userId) => `${API_BASE_URL}/api/user/users/${userId}/stats`,
   USER_STATS_SYNC: (userId) => `${API_BASE_URL}/api/user/users/${userId}/stats/sync`,
   USER_ACHIEVEMENTS: (userId) => `${API_BASE_URL}/api/user/users/${userId}/achievements`,
+  USER_CHECK_ACHIEVEMENTS: (userId) => `${API_BASE_URL}/api/user/users/${userId}/check`,
   USER_ACTIVITY: (userId) => `${API_BASE_URL}/api/user/users/${userId}/activity`,
   USER_AVATAR: (userId) => `${API_BASE_URL}/api/user/users/${userId}/avatar`,
   USER_PREFERENCES: (userId) => `${API_BASE_URL}/api/user/users/${userId}/preferences`,
