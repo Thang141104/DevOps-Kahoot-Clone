@@ -8,6 +8,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { sendOTPEmail, sendWelcomeEmail } = require('../utils/email');
 
 // Simple error handler
 const asyncHandler = (fn) => (req, res, next) => {
@@ -68,7 +69,7 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
 
 /**
  * @route   POST /api/auth/register
- * @desc    Register a new user
+ * @desc    Register a new user and send OTP email
  * @access  Public
  */
 router.post('/register', validateRegistration, asyncHandler(async (req, res) => {
@@ -92,12 +93,82 @@ router.post('/register', validateRegistration, asyncHandler(async (req, res) => 
   const salt = await bcrypt.genSalt(12);
   const hashedPassword = await bcrypt.hash(password, salt);
 
-  // Create user
+  // Create user (not verified yet)
   const user = await User.create({
     username,
     email: email.toLowerCase(),
-    password: hashedPassword
+    password: hashedPassword,
+    isVerified: false
   });
+
+  // Generate and send OTP
+  const otp = user.generateOTP();
+  await user.save();
+
+  try {
+    await sendOTPEmail(user.email, otp, user.username);
+    logger.info('OTP sent to user email', { userId: user._id, email: user.email });
+  } catch (error) {
+    logger.error('Failed to send OTP email', { error: error.message, userId: user._id });
+    // Delete user if email fails
+    await User.deleteOne({ _id: user._id });
+    throw new Error('Failed to send verification email. Please try again.');
+  }
+
+  logger.info('User registered successfully, awaiting verification', {
+    userId: user._id,
+    username: user.username,
+    email: user.email
+  });
+
+  res.status(201).json({
+    success: true,
+    message: 'Registration successful! Please check your email for verification code.',
+    userId: user._id,
+    email: user.email,
+    requiresVerification: true
+  });
+}));
+
+/**
+ * @route   POST /api/auth/verify-otp
+ * @desc    Verify OTP code
+ * @access  Public
+ */
+router.post('/verify-otp', asyncHandler(async (req, res) => {
+  const { email, otp } = req.body;
+
+  if (!email || !otp) {
+    throw new ValidationError('Email and OTP are required');
+  }
+
+  const user = await User.findOne({ email: email.toLowerCase() });
+
+  if (!user) {
+    throw new ValidationError('User not found');
+  }
+
+  if (user.isVerified) {
+    throw new ValidationError('Email already verified');
+  }
+
+  // Verify OTP
+  if (!user.verifyOTP(otp)) {
+    logger.warn('Invalid or expired OTP', { userId: user._id, email: user.email });
+    throw new ValidationError('Invalid or expired OTP code');
+  }
+
+  // Mark user as verified
+  user.isVerified = true;
+  user.otp = undefined; // Clear OTP
+  await user.save();
+
+  // Send welcome email
+  try {
+    await sendWelcomeEmail(user.email, user.username);
+  } catch (error) {
+    logger.error('Failed to send welcome email', { error: error.message });
+  }
 
   // Generate JWT
   const token = jwt.sign(
@@ -110,22 +181,59 @@ router.post('/register', validateRegistration, asyncHandler(async (req, res) => 
     { expiresIn: JWT_EXPIRES_IN }
   );
 
-  logger.info('User registered successfully', {
-    userId: user._id,
-    username: user.username,
-    email: user.email
-  });
+  logger.info('User verified successfully', { userId: user._id, email: user.email });
 
-  res.status(201).json({
+  res.json({
     success: true,
-    message: 'User registered successfully',
+    message: 'Email verified successfully!',
     token,
     user: {
       id: user._id,
       username: user.username,
       email: user.email,
-      createdAt: user.createdAt
+      isVerified: user.isVerified
     }
+  });
+}));
+
+/**
+ * @route   POST /api/auth/resend-otp
+ * @desc    Resend OTP code
+ * @access  Public
+ */
+router.post('/resend-otp', asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    throw new ValidationError('Email is required');
+  }
+
+  const user = await User.findOne({ email: email.toLowerCase() });
+
+  if (!user) {
+    throw new ValidationError('User not found');
+  }
+
+  if (user.isVerified) {
+    throw new ValidationError('Email already verified');
+  }
+
+  // Generate new OTP
+  const otp = user.generateOTP();
+  await user.save();
+
+  // Send OTP email
+  try {
+    await sendOTPEmail(user.email, otp, user.username);
+    logger.info('OTP resent to user email', { userId: user._id, email: user.email });
+  } catch (error) {
+    logger.error('Failed to resend OTP email', { error: error.message });
+    throw new Error('Failed to send verification email. Please try again.');
+  }
+
+  res.json({
+    success: true,
+    message: 'OTP code sent to your email'
   });
 }));
 
@@ -155,6 +263,18 @@ router.post('/login', asyncHandler(async (req, res) => {
   if (!user) {
     logger.warn('Login attempt with non-existent credentials', { identifier: loginIdentifier });
     throw new UnauthorizedError('Invalid credentials');
+  }
+
+  // Check if user is verified
+  if (!user.isVerified) {
+    logger.warn('Login attempt with unverified account', { userId: user._id, email: user.email });
+    return res.status(403).json({
+      success: false,
+      error: 'Email not verified',
+      message: 'Please verify your email before logging in',
+      requiresVerification: true,
+      email: user.email
+    });
   }
 
   // Verify password

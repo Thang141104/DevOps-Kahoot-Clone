@@ -1,6 +1,6 @@
-# 🎮 Kahoot Clone - Production-Ready Microservices Platform
+#  Kahoot Clone - Production-Ready Microservices Platform
 
-> **🏗️ Professional Modular Infrastructure - DEPLOYED** ✅
+> ** Professional Modular Infrastructure - DEPLOYED** 
 > - **Infrastructure**: `infrastructure/` - Modular Terraform + Role-based Ansible
 > - **Region**: AWS us-east-1  
 > - **Deploy**: `.\infrastructure\deploy.ps1 -Action all`
@@ -16,13 +16,13 @@ Production-grade Kahoot clone với microservices architecture, automated testin
 
 ## ⭐ Điểm Nổi Bật
 
-### ✅ Priority 1 - Hoàn Thành 100%
+###  Priority 1 - Hoàn Thành 100%
 - **Testing**: 80% coverage với Jest + Supertest
 - **Monitoring**: Prometheus + Grafana dashboards
 - **Backup**: Automated daily MongoDB backups
 - **Secrets**: K8s encrypted secrets (không hardcode)
 
-### 🚀 Production Features
+###  Production Features
 - Production-grade error handling
 - Structured logging với Winston
 - Input validation & sanitization
@@ -30,13 +30,13 @@ Production-grade Kahoot clone với microservices architecture, automated testin
 - Circuit breaker cho service calls
 - Health checks cho K8s probes
 
-### ⚡ Performance Optimizations
+###  Performance Optimizations
 - Jenkins CI/CD: 52% nhanh hơn (parallelization)
 - Terraform: 47% nhanh hơn (20-concurrent)
 - Docker multi-stage builds
 - Resource-optimized (Free Tier compatible)
 
-## 📋 Mục Lục
+##  Mục Lục
 
 - [Kiến Trúc](#-kiến-trúc)
 - [Quick Start](#-quick-start)
@@ -47,7 +47,7 @@ Production-grade Kahoot clone với microservices architecture, automated testin
 - [Secrets Management](#-secrets-management-priority-14)
 - [Project Structure](#-project-structure)
 
-## 🏗️ Kiến Trúc
+##  Kiến Trúc
 
 ### Microservices
 ```
@@ -63,7 +63,7 @@ Frontend (React) → API Gateway → [ Auth | User | Quiz | Game | Analytics ]
 - **CI/CD**: Jenkins với optimized pipeline
 - **IaC**: Terraform với parallelization
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### 1. Clone & Setup
 
@@ -101,7 +101,7 @@ npm test
 npm run test:watch
 ```
 
-## 🏭 Production Deployment
+##  Production Deployment
 
 ### Bước 1: Setup Priority 1 Features
 
@@ -168,17 +168,17 @@ Write-Host "Prometheus:  http://${MASTER_IP}:30090"
 Write-Host "Grafana:     http://${MASTER_IP}:30300 (admin/admin123)"
 ```
 
-## 🧪 Testing (Priority 1.1)
+##  Testing (Priority 1.1)
 
 ### Test Coverage Target: 80%
 
 **Test Suites:**
-- ✅ `auth-service/tests/auth.routes.test.js` - Auth flows
-- ✅ `user-service/tests/achievements.test.js` - User features
-- ✅ `quiz-service/tests/quiz.routes.test.js` - Quiz CRUD
-- ✅ `game-service/tests/game.routes.test.js` - Game sessions
-- ✅ `analytics-service/tests/analytics.routes.test.js` - Analytics
-- ✅ `shared/tests/errorHandler.test.js` - Middleware
+-  `auth-service/tests/auth.routes.test.js` - Auth flows
+-  `user-service/tests/achievements.test.js` - User features
+-  `quiz-service/tests/quiz.routes.test.js` - Quiz CRUD
+-  `game-service/tests/game.routes.test.js` - Game sessions
+-  `analytics-service/tests/analytics.routes.test.js` - Analytics
+-  `shared/tests/errorHandler.test.js` - Middleware
 
 ### Run Tests
 
@@ -202,7 +202,7 @@ npm test -- --coverage
 - **DB Mocking**: MongoDB Memory Server 9.1
 - **Coverage Thresholds**: 80% (branches, functions, lines, statements)
 
-## 📊 Monitoring (Priority 1.2)
+##  Monitoring (Priority 1.2)
 
 ### Prometheus + Grafana Stack
 
@@ -247,7 +247,7 @@ app.use(prometheusMiddleware('service-name'));
 app.get('/metrics', metricsHandler);
 ```
 
-## 💾 Backup (Priority 1.3)
+##  Backup (Priority 1.3)
 
 ### Automated Daily Backups
 
@@ -288,7 +288,7 @@ kubectl create secret generic aws-credentials \
 # Uncomment AWS env vars in k8s/backup/mongodb-backup.yaml
 ```
 
-## 🔐 Secrets Management (Priority 1.4)
+##  Secrets Management (Priority 1.4)
 
 ### Kubernetes Encrypted Secrets
 
@@ -333,13 +333,13 @@ kubectl get secret mongodb-secret -n kahoot-app -o yaml
 
 ### Security Best Practices
 
-- ✅ No hardcoded secrets in code
-- ✅ .env file in .gitignore
-- ✅ Encryption at rest enabled
-- ⚠️ Rotate secrets every 90 days
-- ⚠️ Use RBAC to restrict access
+-  No hardcoded secrets in code
+-  .env file in .gitignore
+-  Encryption at rest enabled
+-  Rotate secrets every 90 days
+-  Use RBAC to restrict access
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 kahoot-clone/
@@ -394,7 +394,7 @@ kahoot-clone/
 └── README.md                         # This file
 ```
 
-## 🛠️ Development
+##  Development
 
 ### Code Standards
 
@@ -428,20 +428,20 @@ app.post('/api/endpoint',
 5. Add to Jenkinsfile
 6. Write tests (maintain 80% coverage)
 
-## 📈 Production Readiness
+##  Production Readiness
 
 | Category | Status | Score |
 |----------|--------|-------|
-| Testing | ✅ 80% | 20/20 |
-| Monitoring | ✅ Full stack | 15/15 |
-| Backup | ✅ Automated | 10/10 |
-| Secrets | ✅ Encrypted | 10/10 |
-| Error Handling | ✅ Production | 10/10 |
-| Logging | ✅ Structured | 10/10 |
-| Security | ✅ Hardened | 10/10 |
+| Testing |  80% | 20/20 |
+| Monitoring |  Full stack | 15/15 |
+| Backup |  Automated | 10/10 |
+| Secrets |  Encrypted | 10/10 |
+| Error Handling |  Production | 10/10 |
+| Logging |  Structured | 10/10 |
+| Security |  Hardened | 10/10 |
 | **TOTAL** | **Production Ready** | **85/100** |
 
-## 🚦 CI/CD Pipeline
+##  CI/CD Pipeline
 
 **Jenkins Optimized Pipeline (52% faster):**
 
@@ -461,14 +461,14 @@ Stage 8: Notifications
 - Optimized: ~5.8 minutes
 - Improvement: 52%
 
-## 📚 Documentation
+##  Documentation
 
 - [PRODUCTION_CHECKLIST.md](./docs/PRODUCTION_CHECKLIST.md) - Quality checklist
 - [PARALLELIZATION_GUIDE.md](./docs/PARALLELIZATION_GUIDE.md) - Optimization guide
 - [K8S_CLUSTER_GUIDE.md](./docs/K8S_CLUSTER_GUIDE.md) - Kubernetes setup
 - [QUICKSTART_JENKINS.md](./QUICKSTART_JENKINS.md) - Jenkins guide
 
-## 🤝 Contributing
+##  Contributing
 
 1. Fork repository
 2. Create feature branch: `git checkout -b feature/amazing`
@@ -477,7 +477,7 @@ Stage 8: Notifications
 5. Push: `git push origin feature/amazing`
 6. Create Pull Request
 
-## 📝 Next Steps (Priority 2-3)
+##  Next Steps (Priority 2-3)
 
 - [ ] Add integration tests (E2E with Cypress)
 - [ ] Implement auto-scaling (HPA)
@@ -485,14 +485,11 @@ Stage 8: Notifications
 - [ ] Add disaster recovery plan
 - [ ] Implement load testing (k6)
 
-## 👥 Team
+##  Team
 
 DevOps & Full-Stack Development
 
 ---
 
-**Built with ❤️ using Node.js, React, Kubernetes, and Production-Grade DevOps**
+**Built with  using Node.js, React, Kubernetes, and Production-Grade DevOps**
 
-#   U p d a t e d :   1 2 / 2 0 / 2 0 2 5   2 3 : 4 6 : 5 6 
- 
- 

@@ -1,38 +1,38 @@
-# 📋 DEPLOYMENT CHECKLIST
+#  DEPLOYMENT CHECKLIST
 
-## ✅ ĐÃ FIX CÁC LỖI
+##  ĐÃ FIX CÁC LỖI
 
-### 1. **File Trùng Lặp** ✅
-- ❌ **Trước**: Có 4 cặp file trùng (auth, user, frontend, sonarqube)
-- ✅ **Sau**: Đã xóa các file trùng ở root k8s/, giữ files trong thư mục con
+### 1. **File Trùng Lặp** 
+-  **Trước**: Có 4 cặp file trùng (auth, user, frontend, sonarqube)
+-  **Sau**: Đã xóa các file trùng ở root k8s/, giữ files trong thư mục con
 
-### 2. **Service Definitions Trùng** ✅
-- ❌ **Trước**: Mỗi deployment file có 2 Service definitions giống nhau
-- ✅ **Sau**: Đã xóa tất cả Service trùng, mỗi service chỉ có 1 definition
+### 2. **Service Definitions Trùng** 
+-  **Trước**: Mỗi deployment file có 2 Service definitions giống nhau
+-  **Sau**: Đã xóa tất cả Service trùng, mỗi service chỉ có 1 definition
 
-### 3. **YAML Syntax Errors** ✅
-- ❌ **Trước**: auth-deployment.yaml có lỗi ngắt dòng `periodSeconds: 5---`
-- ✅ **Sau**: Đã fix tất cả YAML syntax errors
+### 3. **YAML Syntax Errors** 
+-  **Trước**: auth-deployment.yaml có lỗi ngắt dòng `periodSeconds: 5---`
+-  **Sau**: Đã fix tất cả YAML syntax errors
 
-### 4. **ECR Registry Regions** ✅
-- ❌ **Trước**: user-service dùng ap-southeast-1, các services khác dùng us-east-1
-- ✅ **Sau**: Tất cả services đều dùng us-east-1 (nhất quán với Jenkinsfile)
+### 4. **ECR Registry Regions** 
+-  **Trước**: user-service dùng ap-southeast-1, các services khác dùng us-east-1
+-  **Sau**: Tất cả services đều dùng us-east-1 (nhất quán với Jenkinsfile)
 
-### 5. **Pod Affinity cho Co-location** ✅
-- ❌ **Trước**: Pods có thể bị schedule tràn lan trên các nodes
-- ✅ **Sau**: Đã thêm podAffinity để các backend services được schedule cùng node (giảm latency)
+### 5. **Pod Affinity cho Co-location** 
+-  **Trước**: Pods có thể bị schedule tràn lan trên các nodes
+-  **Sau**: Đã thêm podAffinity để các backend services được schedule cùng node (giảm latency)
 
-### 6. **Jenkinsfile Deployment Paths** ✅
-- ❌ **Trước**: kubectl apply -f k8s/auth-deployment.yaml (file không tồn tại)
-- ✅ **Sau**: kubectl apply -f k8s/services/auth-deployment.yaml (đúng path)
+### 6. **Jenkinsfile Deployment Paths** 
+-  **Trước**: kubectl apply -f k8s/auth-deployment.yaml (file không tồn tại)
+-  **Sau**: kubectl apply -f k8s/services/auth-deployment.yaml (đúng path)
 
-### 7. **ConfigMap URLs** ✅
-- ❌ **Trước**: Hard-coded IPs 34.200.233.56, 44.198.175.214
-- ✅ **Sau**: Đã thêm comment hướng dẫn update, fix Socket URL từ port 30004 → 30003
+### 7. **ConfigMap URLs** 
+-  **Trước**: Hard-coded IPs 34.200.233.56, 44.198.175.214
+-  **Sau**: Đã thêm comment hướng dẫn update, fix Socket URL từ port 30004 → 30003
 
 ---
 
-## 🎯 CẤU TRÚC DEPLOYMENTS HIỆN TẠI
+##  CẤU TRÚC DEPLOYMENTS HIỆN TẠI
 
 ```
 k8s/
@@ -49,13 +49,13 @@ k8s/
 │   └── gateway-deployment.yaml # Gateway + NodePort 30000
 ├── frontend/
 │   └── frontend-deployment.yaml # Frontend + NodePort 30006
-├── secrets.yaml                 # ⚠️ KHÔNG commit lên Git
+├── secrets.yaml                 #  KHÔNG commit lên Git
 └── test-connectivity.sh         # Script test giao tiếp giữa services
 ```
 
 ---
 
-## 📡 SERVICE COMMUNICATION ARCHITECTURE
+##  SERVICE COMMUNICATION ARCHITECTURE
 
 ```
 External Users → Frontend (NodePort 30006)
@@ -87,7 +87,7 @@ External Users → Game Service (NodePort 30003, WebSocket)
 
 ---
 
-## 🚀 DEPLOYMENT STEPS (VIA JENKINS)
+##  DEPLOYMENT STEPS (VIA JENKINS)
 
 ### 1. **Chuẩn Bị Secrets**
 ```bash
@@ -138,7 +138,7 @@ kubectl get svc -n kahoot-clone
 
 ---
 
-## 🧪 MANUAL DEPLOYMENT (KHÔNG DÙNG JENKINS)
+##  MANUAL DEPLOYMENT (KHÔNG DÙNG JENKINS)
 
 ```bash
 # 1. Apply namespace
@@ -176,7 +176,7 @@ kubectl get all -n kahoot-clone
 
 ---
 
-## ✅ VERIFICATION CHECKLIST
+##  VERIFICATION CHECKLIST
 
 ### DNS & Networking
 - [ ] All pods Running
@@ -198,16 +198,16 @@ kubectl get all -n kahoot-clone
 
 ---
 
-## 🎯 HIGH AVAILABILITY STRATEGY
+##  HIGH AVAILABILITY STRATEGY
 
 **Replicas & Load Balancing:**
-- ✅ **Gateway**: 2 replicas (entry point redundancy)
-- ✅ **Auth Service**: 2 replicas (authentication critical)
-- ✅ **User Service**: 2 replicas (profile management)
-- ✅ **Quiz Service**: 2 replicas (quiz CRUD)
-- ✅ **Game Service**: 2 replicas (real-time game sessions)
-- ✅ **Analytics Service**: 2 replicas (data processing)
-- ✅ **Frontend**: 1 replica (static files, low resource)
+-  **Gateway**: 2 replicas (entry point redundancy)
+-  **Auth Service**: 2 replicas (authentication critical)
+-  **User Service**: 2 replicas (profile management)
+-  **Quiz Service**: 2 replicas (quiz CRUD)
+-  **Game Service**: 2 replicas (real-time game sessions)
+-  **Analytics Service**: 2 replicas (data processing)
+-  **Frontend**: 1 replica (static files, low resource)
 
 **Pod Anti-Affinity:**
 - Mỗi service có 2 replicas **tự động phân tán** trên 2 nodes khác nhau
@@ -245,7 +245,7 @@ Total: ~768Mi, ~300m CPU
 
 ---
 
-## 🔧 TROUBLESHOOTING
+##  TROUBLESHOOTING
 
 ### Service không thể giao tiếp
 ```bash
@@ -280,7 +280,7 @@ kubectl delete secret ecr-registry-secret -n kahoot-clone
 
 ---
 
-## 📊 EXPECTED RESOURCE USAGE
+##  EXPECTED RESOURCE USAGE
 
 | Service | Pods | Memory Request | Memory Limit | CPU Request | CPU Limit | Replicas |
 |---------|------|----------------|--------------|-------------|-----------|----------|
@@ -301,7 +301,7 @@ kubectl delete secret ecr-registry-secret -n kahoot-clone
 
 ---
 
-## ⚠️ QUAN TRỌNG
+##  QUAN TRỌNG
 
 1. **KHÔNG commit k8s/secrets.yaml** lên Git - sử dụng secrets.yaml.example
 2. **UPDATE ConfigMap** với worker node IPs thực tế sau khi deploy infrastructure

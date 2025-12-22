@@ -118,6 +118,10 @@ metadata:
     app: game-service
 spec:
   type: NodePort
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800  # 3 hours
   ports:
   - port: 3003
     targetPort: 3003
