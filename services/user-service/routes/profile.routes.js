@@ -51,7 +51,7 @@ router.post('/:userId/profile', async (req, res) => {
 });
 
 // Get user profile (auto-creates if not exists)
-router.get('/:userId/profile', async (req, res) => {
+router.get('/:userId/profile', authMiddleware, async (req, res) => {
   try {
     const { userId } = req.params;
     
@@ -61,19 +61,18 @@ router.get('/:userId/profile', async (req, res) => {
     if (!profile) {
       console.log(` Profile not found for user ${userId}, creating default profile...`);
       
-      // Create default profile with minimal info
-      // The user can update it later
+      // Create default profile using JWT data
       profile = new UserProfile({
         userId,
-        username: `User_${userId.substring(0, 6)}`, // Use first 6 chars of userId
-        email: '',
-        displayName: `User ${userId.substring(0, 6)}`,
+        username: req.user.username,
+        email: req.user.email,
+        displayName: req.user.username,
         bio: '',
         lastActiveAt: new Date()
       });
       
       await profile.save();
-      console.log(` Auto-created profile for user ${userId}`);
+      console.log(` Auto-created profile for user ${userId} with email ${req.user.email}`);
     }
     
     // Sync stats from other services (don't fail if this fails)
