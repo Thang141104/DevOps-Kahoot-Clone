@@ -22,8 +22,8 @@ mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
-.then(() => console.log('MongoDB connected'))
-.catch(err => console.error('MongoDB connection error:', err));
+.then(() => console.log('✅ MongoDB connected'))
+.catch(err => console.error('❌ MongoDB connection error:', err));
 
 // Routes
 const quizRoutes = require('./routes/quiz.routes');
@@ -62,5 +62,5 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 3002;
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Quiz Service running on port ${PORT}`);
+  console.log(`🎯 Quiz Service running on port ${PORT}`);
 });

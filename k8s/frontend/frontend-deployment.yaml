@@ -22,6 +22,9 @@ spec:
     spec:
       imagePullSecrets:
       - name: ecr-registry-secret
+      nodeSelector:
+        node-role: frontend
+        node-ip: "44.198.175.214"
       containers:
       - name: frontend
         image: 802346121373.dkr.ecr.us-east-1.amazonaws.com/kahoot-clone-frontend:latest
@@ -31,9 +34,15 @@ spec:
           name: http
         env:
         - name: REACT_APP_API_URL
-          value: "http://gateway:3000"
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: REACT_APP_API_URL
         - name: REACT_APP_SOCKET_URL
-          value: "http://game-service:3004"
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: REACT_APP_SOCKET_URL
         resources:
           requests:
             memory: "128Mi"  # Reduced from 256Mi

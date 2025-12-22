@@ -1,11 +1,3 @@
-process.on('uncaughtException', err => {
-  console.error('Uncaught Exception:', err);
-  process.exit(1);
-});
-process.on('unhandledRejection', err => {
-  console.error('Unhandled Rejection:', err);
-  process.exit(1);
-});
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
@@ -25,7 +17,7 @@ function debugLog(message) {
   }
 }
 
-debugLog(' Analytics Service starting...');
+debugLog('🚀 Analytics Service starting...');
 debugLog(`Environment variables: MONGODB_URI=${process.env.MONGODB_URI ? 'SET' : 'NOT_SET'}, PORT=${process.env.PORT}`);
 
 // Initialize Express app
@@ -51,12 +43,12 @@ debugLog('Routes loaded successfully');
 debugLog('Connecting to MongoDB...');
 mongoose.connect(process.env.MONGODB_URI)
 .then(() => {
-  debugLog('Connected to MongoDB (Analytics Service)');
-  console.log('Connected to MongoDB (Analytics Service)');
+  debugLog('✅ Connected to MongoDB (Analytics Service)');
+  console.log('✅ Connected to MongoDB (Analytics Service)');
 })
 .catch((error) => {
-  debugLog(`MongoDB connection error: ${error.message}`);
-  console.error('MongoDB connection error:', error);
+  debugLog(`❌ MongoDB connection error: ${error.message}`);
+  console.error('❌ MongoDB connection error:', error);
   process.exit(1);
 });
 
@@ -124,19 +116,19 @@ app.use((error, req, res, next) => {
 // Start server - bind to 0.0.0.0 for container access
 debugLog('Starting server...');
 app.listen(PORT, '0.0.0.0', () => {
-  debugLog(`Analytics Service running on 0.0.0.0:${PORT}`);
-  debugLog(`Event tracking enabled`);
-  debugLog(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`Analytics Service running on 0.0.0.0:${PORT}`);
-  console.log(`Event tracking enabled`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  debugLog(`🚀 Analytics Service running on 0.0.0.0:${PORT}`);
+  debugLog(`📊 Event tracking enabled`);
+  debugLog(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🚀 Analytics Service running on 0.0.0.0:${PORT}`);
+  console.log(`📊 Event tracking enabled`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully...');
+  console.log('🛑 SIGTERM received, shutting down gracefully...');
   mongoose.connection.close(false, () => {
-    console.log(' MongoDB connection closed');
+    console.log('💤 MongoDB connection closed');
     process.exit(0);
   });
 });

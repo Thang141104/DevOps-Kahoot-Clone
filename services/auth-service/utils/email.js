@@ -35,7 +35,7 @@ const sendOTPEmail = async (email, otp, username) => {
         <body>
           <div class="container">
             <div class="header">
-              <h1> Quiz Application</h1>
+              <h1>🎯 Quiz Application</h1>
               <p>Email Verification</p>
             </div>
             <div class="content">
@@ -46,7 +46,7 @@ const sendOTPEmail = async (email, otp, username) => {
               <div class="otp-code">${otp}</div>
               
               <div class="warning">
-                 This code will expire in <strong>10 minutes</strong>
+                ⚠️ This code will expire in <strong>10 minutes</strong>
               </div>
               
               <p>If you didn't request this verification code, please ignore this email.</p>
@@ -64,10 +64,10 @@ const sendOTPEmail = async (email, otp, username) => {
     };
 
     const info = await transporter.sendMail(mailOptions);
-    console.log('OTP Email sent:', info.messageId);
+    console.log('✅ OTP Email sent:', info.messageId);
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('Error sending OTP email:', error);
+    console.error('❌ Error sending OTP email:', error);
     throw new Error('Failed to send verification email');
   }
 };
@@ -78,7 +78,7 @@ const sendWelcomeEmail = async (email, username) => {
     const mailOptions = {
       from: `"Quiz App" <${process.env.EMAIL_USER}>`,
       to: email,
-      subject: 'Welcome to Quiz Application!',
+      subject: 'Welcome to Quiz Application! 🎉',
       html: `
         <!DOCTYPE html>
         <html>
@@ -97,7 +97,7 @@ const sendWelcomeEmail = async (email, username) => {
         <body>
           <div class="container">
             <div class="header">
-              <h1>Welcome to Quiz App!</h1>
+              <h1>🎉 Welcome to Quiz App!</h1>
             </div>
             <div class="content">
               <h2>Hi ${username}!</h2>
@@ -126,9 +126,9 @@ const sendWelcomeEmail = async (email, username) => {
     };
 
     await transporter.sendMail(mailOptions);
-    console.log('Welcome email sent');
+    console.log('✅ Welcome email sent');
   } catch (error) {
-    console.error('Error sending welcome email:', error);
+    console.error('❌ Error sending welcome email:', error);
   }
 };
 

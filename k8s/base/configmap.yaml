@@ -38,6 +38,14 @@ data:
   OTP_EXPIRES_IN: "10"
   
   # Frontend React App Variables
+  # NodePort services are accessible from ANY worker node
+  # If one node fails, you can manually switch to the other node IP
+  # Gateway NodePort 30000, Game-service NodePort 30003, Frontend NodePort 30006
+  # Primary: 34.200.233.56, Fallback: 44.198.175.214
   REACT_APP_API_URL: "http://34.200.233.56:30000"
-  REACT_APP_SOCKET_URL: "http://34.200.233.56:30004"
+  REACT_APP_SOCKET_URL: "http://34.200.233.56:30003"
   FRONTEND_URL: "http://44.198.175.214:30006"
+  
+  # Alternative IPs (for manual failover if primary node fails)
+  REACT_APP_API_URL_FALLBACK: "http://44.198.175.214:30000"
+  REACT_APP_SOCKET_URL_FALLBACK: "http://44.198.175.214:30003"

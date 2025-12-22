@@ -1,46 +1,139 @@
 ---
 # ===================================
-# SonarQube Deployment Playbook
-# Deploy SonarQube to Kubernetes cluster
+# SonarQube Deployment Playbook (WORKER NODES)
+# SonarQube 10.x + PostgreSQL
 # ===================================
 
 - name: Deploy SonarQube to Kubernetes
   hosts: k8s_master
   become: yes
   tasks:
-    - name: Set vm.max_map_count for SonarQube (ElasticSearch requirement)
+
+    # --------------------------------------------------
+    # Kernel requirements (ElasticSearch) - Apply on ALL nodes
+    # --------------------------------------------------
+    - name: Ensure vm.max_map_count is set
       sysctl:
         name: vm.max_map_count
         value: '262144'
         state: present
         sysctl_set: yes
         reload: yes
-    
-    - name: Verify vm.max_map_count is set
+      delegate_to: "{{ item }}"
+      with_items:
+        - 34.200.233.56
+        - 44.198.175.214
+      ignore_errors: yes
+
+    - name: Verify vm.max_map_count
       command: sysctl vm.max_map_count
       register: vm_max_map_count
       changed_when: false
-    
-    - name: Display vm.max_map_count
+
+    - name: Show vm.max_map_count
       debug:
-        msg: "vm.max_map_count is set to {{ vm_max_map_count.stdout }}"
-    
-    - name: Create sonarqube directory
+        msg: "vm.max_map_count = {{ vm_max_map_count.stdout }}"
+
+    # --------------------------------------------------
+    # Workspace
+    # --------------------------------------------------
+    - name: Create sonarqube workspace
       file:
         path: /home/ubuntu/sonarqube
         state: directory
+        owner: ubuntu
+        group: ubuntu
         mode: '0755'
-      become_user: ubuntu
 
-    - name: Create SonarQube deployment manifest
+    # --------------------------------------------------
+    # Kubernetes Manifest
+    # --------------------------------------------------
+    - name: Create SonarQube manifest
       copy:
-        dest: /home/ubuntu/sonarqube/sonarqube-deployment.yaml
+        dest: /home/ubuntu/sonarqube/sonarqube.yaml
         mode: '0644'
         content: |
           apiVersion: v1
           kind: Namespace
           metadata:
             name: sonarqube
+          ---
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: sonarqube-secret
+            namespace: sonarqube
+          type: Opaque
+          stringData:
+            postgres-password: "sonar123"
+          ---
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: postgres
+            namespace: sonarqube
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: postgres
+            template:
+              metadata:
+                labels:
+                  app: postgres
+              spec:
+                # Schedule on worker nodes ONLY (not master)
+                affinity:
+                  nodeAffinity:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                      nodeSelectorTerms:
+                      - matchExpressions:
+                        - key: node-role.kubernetes.io/control-plane
+                          operator: DoesNotExist
+                  
+                containers:
+                - name: postgres
+                  image: postgres:15-alpine
+                  ports:
+                  - containerPort: 5432
+                  env:
+                  - name: POSTGRES_USER
+                    value: sonar
+                  - name: POSTGRES_DB
+                    value: sonarqube
+                  - name: POSTGRES_PASSWORD
+                    valueFrom:
+                      secretKeyRef:
+                        name: sonarqube-secret
+                        key: postgres-password
+                  readinessProbe:
+                    exec:
+                      command:
+                      - sh
+                      - -c
+                      - pg_isready -U sonar -d sonarqube
+                    initialDelaySeconds: 10
+                    periodSeconds: 5
+                  volumeMounts:
+                  - name: postgres-data
+                    mountPath: /var/lib/postgresql/data
+                volumes:
+                - name: postgres-data
+                  hostPath:
+                    path: /data/postgres
+                    type: DirectoryOrCreate
+          ---
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: postgres
+            namespace: sonarqube
+          spec:
+            ports:
+            - port: 5432
+              targetPort: 5432
+            selector:
+              app: postgres
           ---
           apiVersion: apps/v1
           kind: Deployment
@@ -57,10 +150,14 @@
                 labels:
                   app: sonarqube
               spec:
-                securityContext:
-                  fsGroup: 1000
-                  fsGroupChangePolicy: OnRootMismatch
+                # Schedule on worker nodes, same node as PostgreSQL
                 affinity:
+                  nodeAffinity:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                      nodeSelectorTerms:
+                      - matchExpressions:
+                        - key: node-role.kubernetes.io/control-plane
+                          operator: DoesNotExist
                   podAffinity:
                     requiredDuringSchedulingIgnoredDuringExecution:
                     - labelSelector:
@@ -70,29 +167,53 @@
                           values:
                           - postgres
                       topologyKey: kubernetes.io/hostname
+                  
+                securityContext:
+                  fsGroup: 1000
+
                 initContainers:
-                - name: init-sysctl
-                  image: busybox:1.36
+                - name: wait-for-postgres
+                  image: postgres:15-alpine
+                  env:
+                  - name: PGPASSWORD
+                    valueFrom:
+                      secretKeyRef:
+                        name: sonarqube-secret
+                        key: postgres-password
                   command:
                   - sh
                   - -c
                   - |
-                    sysctl -w vm.max_map_count=262144
-                    sysctl -w fs.file-max=65536
-                  securityContext:
-                    privileged: true
+                    echo "Waiting for PostgreSQL..."
+                    echo "Using Kubernetes service discovery env vars..."
+                    
+                    # Use K8s auto-injected environment variable
+                    POSTGRES_HOST="${POSTGRES_PORT_5432_TCP_ADDR:-postgres}"
+                    echo "Target: $POSTGRES_HOST:5432"
+                    
+                    max_attempts=60
+                    attempt=0
+                    
+                    until pg_isready -h "$POSTGRES_HOST" -p 5432 -U sonar -d sonarqube; do
+                      attempt=$((attempt+1))
+                      if [ $attempt -ge $max_attempts ]; then
+                        echo "Failed to connect after $max_attempts attempts"
+                        echo "Env vars available:"
+                        env | grep POSTGRES || echo "No POSTGRES env vars"
+                        exit 1
+                      fi
+                      echo "Attempt $attempt/$max_attempts - waiting 5s..."
+                      sleep 5
+                    done
+                    echo "PostgreSQL is ready at $POSTGRES_HOST!"
+
                 - name: init-permissions
                   image: busybox:1.36
                   command:
                   - sh
                   - -c
                   - |
-                    chown -R 1000:1000 /opt/sonarqube/data
-                    chown -R 1000:1000 /opt/sonarqube/extensions
-                    chown -R 1000:1000 /opt/sonarqube/logs
-                    chmod -R 755 /opt/sonarqube/data
-                    chmod -R 755 /opt/sonarqube/extensions
-                    chmod -R 755 /opt/sonarqube/logs
+                    chown -R 1000:1000 /opt/sonarqube
                   securityContext:
                     runAsUser: 0
                   volumeMounts:
@@ -102,46 +223,45 @@
                     mountPath: /opt/sonarqube/extensions
                   - name: sonarqube-logs
                     mountPath: /opt/sonarqube/logs
+
                 containers:
                 - name: sonarqube
-                  image: sonarqube:10-community
+                  image: sonarqube:10.4.1-community
                   ports:
                   - containerPort: 9000
                   env:
                   - name: SONAR_JDBC_URL
-                    value: "jdbc:postgresql://postgres:5432/sonarqube"
+                    value: jdbc:postgresql://postgres:5432/sonarqube
                   - name: SONAR_JDBC_USERNAME
-                    value: "sonar"
+                    value: sonar
                   - name: SONAR_JDBC_PASSWORD
                     valueFrom:
                       secretKeyRef:
                         name: sonarqube-secret
                         key: postgres-password
-                  - name: SONAR_ES_BOOTSTRAP_CHECKS_DISABLE
-                    value: "true"
+                  - name: SONAR_JDBC_MAXWAIT
+                    value: "300"
                   resources:
                     requests:
-                      memory: "2Gi"
+                      memory: "3Gi"
                       cpu: "500m"
                     limits:
-                      memory: "3Gi"
+                      memory: "4Gi"
                       cpu: "1000m"
-                  livenessProbe:
-                    httpGet:
-                      path: /api/system/status
-                      port: 9000
-                    initialDelaySeconds: 120
-                    periodSeconds: 30
-                    timeoutSeconds: 10
-                    failureThreshold: 6
                   readinessProbe:
                     httpGet:
                       path: /api/system/status
                       port: 9000
-                    initialDelaySeconds: 60
-                    periodSeconds: 10
-                    timeoutSeconds: 5
-                    failureThreshold: 6
+                    initialDelaySeconds: 120
+                    periodSeconds: 15
+                    failureThreshold: 10
+                  livenessProbe:
+                    httpGet:
+                      path: /api/system/status
+                      port: 9000
+                    initialDelaySeconds: 180
+                    periodSeconds: 30
+                    failureThreshold: 10
                   volumeMounts:
                   - name: sonarqube-data
                     mountPath: /opt/sonarqube/data
@@ -149,6 +269,7 @@
                     mountPath: /opt/sonarqube/extensions
                   - name: sonarqube-logs
                     mountPath: /opt/sonarqube/logs
+
                 volumes:
                 - name: sonarqube-data
                   hostPath:
@@ -170,160 +291,46 @@
             namespace: sonarqube
           spec:
             type: NodePort
+            selector:
+              app: sonarqube
             ports:
             - port: 9000
               targetPort: 9000
               nodePort: 30900
-            selector:
-              app: sonarqube
-          ---
-          apiVersion: apps/v1
-          kind: Deployment
-          metadata:
-            name: postgres
-            namespace: sonarqube
-          spec:
-            replicas: 1
-            selector:
-              matchLabels:
-                app: postgres
-            template:
-              metadata:
-                labels:
-                  app: postgres
-              spec:
-                containers:
-                - name: postgres
-                  image: postgres:15-alpine
-                  ports:
-                  - containerPort: 5432
-                  env:
-                  - name: POSTGRES_USER
-                    value: "sonar"
-                  - name: POSTGRES_PASSWORD
-                    valueFrom:
-                      secretKeyRef:
-                        name: sonarqube-secret
-                        key: postgres-password
-                  - name: POSTGRES_DB
-                    value: "sonarqube"
-                  volumeMounts:
-                  - name: postgres-data
-                    mountPath: /var/lib/postgresql/data
-                volumes:
-                - name: postgres-data
-                  emptyDir: {}
-          ---
-          apiVersion: v1
-          kind: Service
-          metadata:
-            name: postgres
-            namespace: sonarqube
-          spec:
-            ports:
-            - port: 5432
-              targetPort: 5432
-            selector:
-              app: postgres
-          ---
-          apiVersion: v1
-          kind: Secret
-          metadata:
-            name: sonarqube-secret
-            namespace: sonarqube
-          type: Opaque
-          stringData:
-            postgres-password: "sonar123"
-            sonar-token: "CHANGE_ME_AFTER_FIRST_LOGIN"
 
-    - name: Check if SonarQube namespace exists
-      shell: kubectl get namespace sonarqube
-      register: sonarqube_namespace
-      ignore_errors: yes
-      become_user: ubuntu
-
-    - name: Deploy SonarQube
-      shell: kubectl apply -f /home/ubuntu/sonarqube/sonarqube-deployment.yaml
-      register: sonarqube_deploy
-      become_user: ubuntu
-
-    - name: Wait for PostgreSQL to be ready (2-3 minutes)
-      shell: kubectl wait --for=condition=ready --timeout=300s pod -l app=postgres -n sonarqube
-      retries: 2
-      delay: 30
-      register: postgres_ready
-      until: postgres_ready.rc == 0
+    # --------------------------------------------------
+    # Clean up existing deployment
+    # --------------------------------------------------
+    - name: Delete existing SonarQube deployment
+      shell: kubectl delete -f /home/ubuntu/sonarqube/sonarqube.yaml --ignore-not-found=true
       become_user: ubuntu
       ignore_errors: yes
 
-    - name: Wait for SonarQube to be ready (5-10 minutes)
-      shell: kubectl wait --for=condition=ready --timeout=600s pod -l app=sonarqube -n sonarqube
-      retries: 3
-      delay: 60
-      register: sonarqube_ready
-      until: sonarqube_ready.rc == 0
+    - name: Wait for cleanup
+      pause:
+        seconds: 10
+
+    # --------------------------------------------------
+    # Deploy
+    # --------------------------------------------------
+    - name: Apply SonarQube manifest
+      shell: kubectl apply -f /home/ubuntu/sonarqube/sonarqube.yaml
+      become_user: ubuntu
+
+    - name: Wait for PostgreSQL
+      shell: kubectl wait --for=condition=ready pod -l app=postgres -n sonarqube --timeout=300s
+      become_user: ubuntu
+
+    - name: Wait for SonarQube
+      shell: kubectl wait --for=condition=ready pod -l app=sonarqube -n sonarqube --timeout=600s
       become_user: ubuntu
       ignore_errors: yes
 
-    - name: Get SonarQube service cluster IP
-      shell: kubectl get svc -n sonarqube sonarqube -o jsonpath='{.spec.clusterIP}'
-      register: sonarqube_clusterip
+    - name: Show pod status
+      shell: kubectl get pods -n sonarqube -o wide
       become_user: ubuntu
-      when: sonarqube_ready is succeeded
+      register: pod_status
 
-    - name: Get SonarQube NodePort
-      shell: kubectl get svc -n sonarqube sonarqube -o jsonpath='{.spec.ports[0].nodePort}'
-      become_user: ubuntu
-      register: sonarqube_nodeport
-      when: sonarqube_ready is succeeded
-
-    - name: Display SonarQube deployment info
+    - name: Display pods
       debug:
-        msg:
-          - "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          - "✅ SonarQube Deployed Successfully!"
-          - "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          - ""
-          - "📍 Access URLs:"
-          - "   Internal (from Jenkins): http://sonarqube.sonarqube.svc.cluster.local:9000"
-          - "   Cluster IP: http://{{ sonarqube_clusterip.stdout }}:9000"
-          - "   External (NodePort): http://{{ ansible_host }}:{{ sonarqube_nodeport.stdout }}"
-          - ""
-          - "👤 Default Credentials:"
-          - "   Username: admin"
-          - "   Password: admin"
-          - "   ⚠️  IMPORTANT: Change password on first login!"
-          - ""
-          - "🔧 Access from your machine:"
-          - "   Option 1 - Port Forward:"
-          - "     kubectl --kubeconfig=<path> port-forward -n sonarqube svc/sonarqube 9000:9000"
-          - "     Then open: http://localhost:9000"
-          - ""
-          - "   Option 2 - Direct NodePort:"
-          - "     http://{{ ansible_host }}:{{ sonarqube_nodeport.stdout }}"
-          - ""
-          - "🎯 Next Steps for Jenkins Integration:"
-          - "   1. Access SonarQube UI (use any method above)"
-          - "   2. Login with admin/admin and change password"
-          - "   3. Go to: My Account → Security → Generate Token"
-          - "   4. Token Name: jenkins-token"
-          - "   5. Copy the generated token"
-          - "   6. In Jenkins: Manage Jenkins → Credentials → Add"
-          - "      - Kind: Secret text"
-          - "      - Secret: <paste token>"
-          - "      - ID: sonarqube-token"
-          - "   7. Uncomment SONAR_TOKEN line in Jenkinsfile (line 26)"
-          - ""
-          - "📝 Verify deployment:"
-          - "   kubectl get pods -n sonarqube"
-          - "   kubectl logs -n sonarqube -l app=sonarqube"
-          - "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-      when: sonarqube_ready is succeeded
-
-    - name: Display troubleshooting info
-      debug:
-        msg:
-          - "⚠️  SonarQube deployment may still be initializing..."
-          - "Check status with: kubectl get pods -n sonarqube -w"
-          - "Check logs: kubectl logs -n sonarqube -l app=sonarqube -f"
-      when: sonarqube_ready is failed
+        msg: "{{ pod_status.stdout_lines }}"

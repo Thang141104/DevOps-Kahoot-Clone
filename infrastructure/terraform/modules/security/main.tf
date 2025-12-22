@@ -197,3 +197,24 @@ resource "aws_security_group_rule" "k8s_pod_network_master" {
   security_group_id = aws_security_group.k8s_master.id
   description       = "Allow pod network traffic on master (Calico)"
 }
+
+# Allow BGP (Calico) traffic between nodes
+resource "aws_security_group_rule" "k8s_bgp_workers" {
+  type              = "ingress"
+  from_port         = 179
+  to_port           = 179
+  protocol          = "tcp"
+  cidr_blocks       = ["10.0.0.0/16"]
+  security_group_id = aws_security_group.k8s_worker.id
+  description       = "Allow BGP (Calico) traffic on workers"
+}
+
+resource "aws_security_group_rule" "k8s_bgp_master" {
+  type              = "ingress"
+  from_port         = 179
+  to_port           = 179
+  protocol          = "tcp"
+  cidr_blocks       = ["10.0.0.0/16"]
+  security_group_id = aws_security_group.k8s_master.id
+  description       = "Allow BGP (Calico) traffic on master"
+}

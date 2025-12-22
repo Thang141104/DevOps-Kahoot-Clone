@@ -62,15 +62,15 @@ pipeline {
     }
     
     stages {
-        stage(' Initialization') {
+        stage('🚀 Initialization') {
             steps {
                 script {
                     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                    echo "  Pipeline Started (Nx + AWS ECR)"
-                    echo " Nx Smart Builds Enabled"
-                    echo " Commit: ${env.GIT_COMMIT_SHORT}"
-                    echo " Build: ${BUILD_VERSION}"
-                    echo " ECR: ${ECR_REGISTRY}"
+                    echo "🏗️  Pipeline Started (Nx + AWS ECR)"
+                    echo "🔄 Nx Smart Builds Enabled"
+                    echo "📝 Commit: ${env.GIT_COMMIT_SHORT}"
+                    echo "🔢 Build: ${BUILD_VERSION}"
+                    echo "🌏 ECR: ${ECR_REGISTRY}"
                     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                     
                     checkout scm
@@ -78,10 +78,10 @@ pipeline {
             }
         }
         
-        stage(' Setup Nx') {
+        stage('⚙️ Setup Nx') {
             steps {
                 script {
-                    echo " Installing Nx and dependencies..."
+                    echo "📦 Installing Nx and dependencies..."
                     sh '''
                         # Install Nx at root level
                         npm install -D nx@latest @nx/js@latest @nx/workspace@latest nx-remotecache-s3@latest
@@ -101,16 +101,16 @@ pipeline {
                             }]
                           }' 2>/dev/null || true
                         
-                        echo " Nx setup complete with S3 remote cache"
+                        echo "✅ Nx setup complete with S3 remote cache"
                     '''
                 }
             }
         }
         
-        stage(' Detect Affected Services') {
+        stage('🔍 Detect Affected Services') {
             steps {
                 script {
-                    echo " Detecting affected services with Nx..."
+                    echo "🔍 Detecting affected services with Nx..."
                     
                     // Get affected projects
                     def affectedApps = sh(
@@ -120,30 +120,30 @@ pipeline {
                     
                     if (affectedApps == "all" || affectedApps.isEmpty()) {
                         env.AFFECTED_SERVICES = "gateway,auth-service,user-service,quiz-service,game-service,analytics-service,frontend"
-                        echo " Building all services (no git history or first build)"
+                        echo "⚠️ Building all services (no git history or first build)"
                     } else {
                         env.AFFECTED_SERVICES = affectedApps.replace("\n", ",")
-                        echo " Affected services: ${env.AFFECTED_SERVICES}"
+                        echo "✅ Affected services: ${env.AFFECTED_SERVICES}"
                     }
                     
                     // Display affected summary
                     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                    echo " AFFECTED SERVICES (Nx Detection)"
+                    echo "📋 AFFECTED SERVICES (Nx Detection)"
                     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                     env.AFFECTED_SERVICES.split(',').each { service ->
-                        echo "   ${service}"
+                        echo "  ✓ ${service}"
                     }
                     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                 }
             }
         }
         
-        stage(' Security Scan') {
+        stage('🔍 Security Scan') {
             parallel {
                 stage('Trivy Repository Scan') {
                     steps {
                         script {
-                            echo " Trivy: Scanning repository for vulnerabilities..."
+                            echo "🔍 Trivy: Scanning repository for vulnerabilities..."
                             sh """
                                 # Scan repository for filesystem vulnerabilities
                                 trivy fs --severity ${TRIVY_SEVERITY} \
@@ -161,43 +161,36 @@ pipeline {
                     steps { 
                         script {
                             try {
-                                echo " Running SonarQube analysis..."
+                                echo "🔍 Running SonarQube analysis..."
                                 // Try to load token from credentials
                                 withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
-                                    withEnv([
-                                        "JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64",
-                                        "PATH+JAVA=/usr/lib/jvm/java-17-openjdk-amd64/bin",
-                                        "SONAR_SCANNER_JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64"
-                                    ]) {
-                                        sh '''
-                                            # Verify Java version
-                                            echo " Using Java version:"
-                                            java -version
-                                            
-                                            # Check if sonar-scanner is installed
-                                            if ! command -v sonar-scanner &> /dev/null; then
-                                                echo " Installing sonar-scanner..."
-                                                sudo npm install -g sonar-scanner || true
-                                            fi
-                                            
-                                            echo " Running SonarQube scan..."
-                                            sonar-scanner \
-                                              -Dsonar.projectKey=kahoot-clone \
-                                              -Dsonar.projectName="Kahoot Clone" \
-                                              -Dsonar.sources=. \
-                                              -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/**,**/coverage/** \
-                                              -Dsonar.host.url=${SONARQUBE_URL} \
-                                              -Dsonar.token=${SONAR_TOKEN} \
-                                              -Dsonar.sourceEncoding=UTF-8 \
-                                              -Dsonar.java.binaries=. \
-                                              -Dsonar.qualitygate.wait=false || true
-                                            
-                                            echo " SonarQube analysis complete"
-                                        '''
-                                    }
+                                    sh """
+                                        # Set JAVA_HOME to Java 17
+                                        export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+                                        export PATH=\$JAVA_HOME/bin:\$PATH
+                                        
+                                        # Check if sonar-scanner is installed
+                                        if ! command -v sonar-scanner &> /dev/null; then
+                                            echo "📥 Installing sonar-scanner..."
+                                            sudo npm install -g sonar-scanner || true
+                                        fi
+                                        
+                                        echo "🔍 Running SonarQube scan..."
+                                        sonar-scanner \
+                                          -Dsonar.projectKey=kahoot-clone \
+                                          -Dsonar.projectName="Kahoot Clone" \
+                                          -Dsonar.sources=. \
+                                          -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/**,**/coverage/** \
+                                          -Dsonar.host.url=${SONARQUBE_URL} \
+                                          -Dsonar.login=${SONAR_TOKEN} \
+                                          -Dsonar.sourceEncoding=UTF-8 \
+                                          -Dsonar.qualitygate.wait=false || true
+                                        
+                                        echo "✅ SonarQube analysis complete"
+                                    """
                                 }
                             } catch (Exception e) {
-                                echo " SonarQube analysis skipped: ${e.message}"
+                                echo "⚠️ SonarQube analysis skipped: ${e.message}"
                                 echo "To enable: Configure 'sonarqube-token' credential in Jenkins"
                             }
                         }
@@ -206,23 +199,23 @@ pipeline {
             }
         }
         
-        stage(' ECR Login') {
+        stage('🔐 ECR Login') {
             steps {
                 script {
-                    echo " Logging into AWS ECR..."
+                    echo "🔐 Logging into AWS ECR..."
                     sh """
                         aws ecr get-login-password --region ${AWS_REGION} | \
                         docker login --username AWS --password-stdin ${ECR_REGISTRY}
                     """
-                    echo " ECR login successful"
+                    echo "✅ ECR login successful"
                 }
             }
         }
         
-        stage(' Install Dependencies & Static Analysis') {
+        stage('📦 Install Dependencies & Static Analysis') {
             steps {
                 script {
-                    echo " Installing dependencies (Batch 1: Gateway, Auth)..."
+                    echo "📦 Installing dependencies (Batch 1: Gateway, Auth)..."
                     // Batch 1: Core dependencies
                     parallel(
                         'Gateway': {
@@ -237,7 +230,7 @@ pipeline {
                         }
                     )
                     
-                    echo " Installing dependencies (Batch 2: User, Quiz, Game)..."
+                    echo "📦 Installing dependencies (Batch 2: User, Quiz, Game)..."
                     // Batch 2: Service dependencies
                     parallel(
                         'User Service': {
@@ -257,7 +250,7 @@ pipeline {
                         }
                     )
                     
-                    echo " Installing dependencies (Batch 3: Analytics, Frontend)..."
+                    echo "📦 Installing dependencies (Batch 3: Analytics, Frontend)..."
                     // Batch 3: Frontend & Analytics
                     parallel(
                         'Analytics Service': {
@@ -275,12 +268,12 @@ pipeline {
             }
         }
         
-        stage(' Build & Push Images - Batch 1') {
+        stage('🐳 Build & Push Images - Batch 1') {
             parallel {
                 stage('Gateway') {
                     steps {
                         script {
-                            echo " Building Gateway with cache..."
+                            echo "🐳 Building Gateway with cache..."
                             sh """
                                 docker buildx build \
                                   --cache-from ${ECR_REGISTRY}/${PROJECT_NAME}-gateway:latest \
@@ -297,7 +290,7 @@ pipeline {
                 stage('Auth Service') {
                     steps {
                         script {
-                            echo " Building Auth Service with cache..."
+                            echo "🐳 Building Auth Service with cache..."
                             sh """
                                 docker buildx build \
                                   --cache-from ${ECR_REGISTRY}/${PROJECT_NAME}-auth:latest \
@@ -314,7 +307,7 @@ pipeline {
                 stage('User Service') {
                     steps {
                         script {
-                            echo " Building User Service with cache..."
+                            echo "🐳 Building User Service with cache..."
                             sh """
                                 docker buildx build \
                                   --cache-from ${ECR_REGISTRY}/${PROJECT_NAME}-user:latest \
@@ -331,7 +324,7 @@ pipeline {
                 stage('Quiz Service') {
                     steps {
                         script {
-                            echo " Building Quiz Service with cache..."
+                            echo "🐳 Building Quiz Service with cache..."
                             sh """
                                 docker buildx build \
                                   --cache-from ${ECR_REGISTRY}/${PROJECT_NAME}-quiz:latest \
@@ -348,12 +341,12 @@ pipeline {
             }
         }
         
-        stage(' Build & Push Images - Batch 2') {
+        stage('🐳 Build & Push Images - Batch 2') {
             parallel {
                 stage('Game Service') {
                     steps {
                         script {
-                            echo " Building Game Service with cache..."
+                            echo "🐳 Building Game Service with cache..."
                             sh """
                                 docker buildx build \
                                   --cache-from ${ECR_REGISTRY}/${PROJECT_NAME}-game:latest \
@@ -370,7 +363,7 @@ pipeline {
                 stage('Analytics Service') {
                     steps {
                         script {
-                            echo " Building Analytics Service with cache..."
+                            echo "🐳 Building Analytics Service with cache..."
                             sh """
                                 docker buildx build \
                                   --cache-from ${ECR_REGISTRY}/${PROJECT_NAME}-analytics:latest \
@@ -387,7 +380,7 @@ pipeline {
                 stage('Frontend') {
                     steps {
                         script {
-                            echo " Building Frontend with cache..."
+                            echo "🐳 Building Frontend with cache..."
                             sh """
                                 docker buildx build \
                                   --cache-from ${ECR_REGISTRY}/${PROJECT_NAME}-frontend:latest \
@@ -404,7 +397,7 @@ pipeline {
             }
         }
         
-        stage(' Security Scan - Images') {
+        stage('🔍 Security Scan - Images') {
             parallel {
                 stage('Trivy - Gateway') {
                     steps {
@@ -493,7 +486,7 @@ pipeline {
             }
         }
         
-        stage(' Pre-Deployment Validation') {
+        stage('🚀 Pre-Deployment Validation') {
             parallel {
                 stage('Generate Security Report') {
                     steps {
@@ -516,13 +509,13 @@ pipeline {
             }
         }
         
-        stage(' Deploy to Kubernetes') {
+        stage('🚀 Deploy to Kubernetes') {
             steps {
                 script {
-                    echo " Deploying to Kubernetes via SSH..."
+                    echo "🚀 Deploying to Kubernetes via SSH..."
                     
                     // Create ECR secret locally first (Jenkins has AWS CLI)
-                    echo " Creating ECR pull secret YAML..."
+                    echo "🔐 Creating ECR pull secret YAML..."
                     sh """
                         # Get ECR login token
                         ECR_TOKEN=\$(aws ecr get-login-password --region ${AWS_REGION})
@@ -545,14 +538,14 @@ pipeline {
                             ssh -i \${SSH_KEY} -o StrictHostKeyChecking=no ubuntu@98.84.105.168 << 'ENDSSH'
                                 # Setup Git repo on master node if not exists
                                 if [ ! -d ~/kahoot-repo ]; then
-                                    echo " Cloning repository for the first time..."
+                                    echo "📦 Cloning repository for the first time..."
                                     git clone https://github.com/Thang141104/DevOps-Kahoot-Clone.git ~/kahoot-repo
                                 else
-                                    echo " Updating repository..."
+                                    echo "🔄 Updating repository..."
                                     cd ~/kahoot-repo
                                     git fetch origin
-                                    git checkout fix/auth-routing-issues
-                                    git pull origin fix/auth-routing-issues
+                                    git checkout main
+                                    git pull origin main
                                 fi
                                 
                                 cd ~/kahoot-repo
@@ -561,23 +554,23 @@ pipeline {
                                 DEPLOY_COUNT=\$(kubectl get deployments -n kahoot-clone --no-headers 2>/dev/null | wc -l)
                                 
                                 # Download secrets from S3
-                                echo " Downloading secrets from S3..."
+                                echo "📦 Downloading secrets from S3..."
                                 aws s3 cp s3://kahoot-clone-secrets-802346121373/secrets.yaml k8s/secrets.yaml
                                 
                                 if [ "\$DEPLOY_COUNT" -eq 0 ]; then
-                                    echo " No deployments found. Creating initial deployments..."
+                                    echo "🆕 No deployments found. Creating initial deployments..."
                                     
                                     # Apply namespace and configmap first
                                     kubectl apply -f k8s/base/namespace.yaml
                                     kubectl apply -f k8s/base/configmap.yaml
                                     
                                     # Apply ECR secret after namespace created
-                                    echo " Applying ECR pull secret..."
+                                    echo "🔐 Applying ECR pull secret..."
                                     kubectl apply -f /tmp/ecr-secret.yaml
-                                    echo " ECR secret updated"
+                                    echo "✅ ECR secret updated"
                                     
                                     # Apply app secrets from S3
-                                    echo " Applying application secrets..."
+                                    echo "🔐 Applying application secrets..."
                                     kubectl apply -f k8s/secrets.yaml
 
                                     
@@ -590,17 +583,17 @@ pipeline {
                                     kubectl apply -f k8s/services/analytics-deployment.yaml
                                     kubectl apply -f k8s/frontend/frontend-deployment.yaml
                                     
-                                    echo " Initial deployments created!"
+                                    echo "✅ Initial deployments created!"
                                 else
-                                    echo " Deployments already exist. Updating secrets and re-applying..."
+                                    echo "🔄 Deployments already exist. Updating secrets and re-applying..."
                                     
                                     # Update ECR secret for existing namespace
-                                    echo " Updating ECR pull secret..."
+                                    echo "🔐 Updating ECR pull secret..."
                                     kubectl apply -f /tmp/ecr-secret.yaml
-                                    echo " ECR secret updated"
+                                    echo "✅ ECR secret updated"
                                     
                                     # Update app secrets from S3
-                                    echo " Updating application secrets..."
+                                    echo "🔐 Updating application secrets..."
                                     kubectl apply -f k8s/secrets.yaml
                                     
                                     # Re-apply deployments with updated imagePullSecrets
@@ -611,67 +604,67 @@ pipeline {
                                     kubectl apply -f k8s/services/game-deployment.yaml
                                     kubectl apply -f k8s/services/analytics-deployment.yaml
                                     kubectl apply -f k8s/frontend/frontend-deployment.yaml
-                                    echo " Deployments re-applied!"
+                                    echo "✅ Deployments re-applied!"
                                 fi
                                 
-                                echo "\n Current deployments:"
+                                echo "\n📋 Current deployments:"
                                 kubectl get deployments -n kahoot-clone
                                 
-                                echo "\n Updating image tags to build ${BUILD_VERSION}..."
+                                echo "\n🔄 Updating image tags to build ${BUILD_VERSION}..."
                                 # Update image tags in K8s deployments
                                 # Format: deployment-name/container-name=image
                                 
                                 echo "Updating gateway..."
                                 kubectl set image deployment/gateway \
                                   gateway=${ECR_REGISTRY}/${PROJECT_NAME}-gateway:${BUILD_VERSION} \
-                                  -n kahoot-clone || echo "  Warning: Failed to update gateway"
+                                  -n kahoot-clone || echo "⚠️  Warning: Failed to update gateway"
                                 
                                 echo "Updating auth-service..."
                                 kubectl set image deployment/auth-service \
                                   auth-service=${ECR_REGISTRY}/${PROJECT_NAME}-auth:${BUILD_VERSION} \
-                                  -n kahoot-clone || echo "  Warning: Failed to update auth-service"
+                                  -n kahoot-clone || echo "⚠️  Warning: Failed to update auth-service"
                                 
                                 echo "Updating user-service..."
                                 kubectl set image deployment/user-service \
                                   user-service=${ECR_REGISTRY}/${PROJECT_NAME}-user:${BUILD_VERSION} \
-                                  -n kahoot-clone || echo "  Warning: Failed to update user-service"
+                                  -n kahoot-clone || echo "⚠️  Warning: Failed to update user-service"
                                 
                                 echo "Updating quiz-service..."
                                 kubectl set image deployment/quiz-service \
                                   quiz-service=${ECR_REGISTRY}/${PROJECT_NAME}-quiz:${BUILD_VERSION} \
-                                  -n kahoot-clone || echo "  Warning: Failed to update quiz-service"
+                                  -n kahoot-clone || echo "⚠️  Warning: Failed to update quiz-service"
                                 
                                 echo "Updating game-service..."
                                 kubectl set image deployment/game-service \
                                   game-service=${ECR_REGISTRY}/${PROJECT_NAME}-game:${BUILD_VERSION} \
-                                  -n kahoot-clone || echo "  Warning: Failed to update game-service"
+                                  -n kahoot-clone || echo "⚠️  Warning: Failed to update game-service"
                                 
                                 echo "Updating analytics-service..."
                                 kubectl set image deployment/analytics-service \
                                   analytics-service=${ECR_REGISTRY}/${PROJECT_NAME}-analytics:${BUILD_VERSION} \
-                                  -n kahoot-clone || echo "  Warning: Failed to update analytics-service"
+                                  -n kahoot-clone || echo "⚠️  Warning: Failed to update analytics-service"
                                 
                                 echo "Updating frontend..."
                                 kubectl set image deployment/frontend \
                                   frontend=${ECR_REGISTRY}/${PROJECT_NAME}-frontend:${BUILD_VERSION} \
-                                  -n kahoot-clone || echo "  Warning: Failed to update frontend"
+                                  -n kahoot-clone || echo "⚠️  Warning: Failed to update frontend"
                                 
-                                echo "\n Cleaning up failed/old pods..."
+                                echo "\n🧹 Cleaning up failed/old pods..."
                                 # Delete pods with ImagePullBackOff or ErrImagePull
                                 kubectl get pods -n kahoot-clone --field-selector=status.phase!=Running,status.phase!=Pending | grep -E 'ImagePullBackOff|ErrImagePull|Error|Terminating' | awk '{print \$1}' | xargs -r kubectl delete pod -n kahoot-clone || true
                                 
                                 # Alternative: Force rollout restart to recreate all pods
-                                echo "\n Forcing rollout restart..."
+                                echo "\n🔄 Forcing rollout restart..."
                                 for deployment in gateway auth-service user-service quiz-service game-service analytics-service frontend; do
                                     kubectl rollout restart deployment/\${deployment} -n kahoot-clone
                                 done
                                 
-                                echo "\n Waiting for rollout to complete (60s)..."
+                                echo "\n⏳ Waiting for rollout to complete (60s)..."
                                 sleep 60
                                 
-                                echo "\n Deployment updated:"
+                                echo "\n✅ Deployment updated:"
                                 kubectl get deployments -n kahoot-clone
-                                echo "\n Pods status:"
+                                echo "\n📊 Pods status:"
                                 kubectl get pods -n kahoot-clone
 ENDSSH
                         """
@@ -684,14 +677,14 @@ ENDSSH
     post {
         success {
             script {
-                echo " Pipeline completed successfully!"
-                echo " Images: ${ECR_REGISTRY}/${PROJECT_NAME}-*:${BUILD_VERSION}"
-                echo " SonarQube: ${SONARQUBE_URL}"
-                echo " Security reports archived"
+                echo "✅ Pipeline completed successfully!"
+                echo "📦 Images: ${ECR_REGISTRY}/${PROJECT_NAME}-*:${BUILD_VERSION}"
+                echo "🔍 SonarQube: ${SONARQUBE_URL}"
+                echo "🛡️ Security reports archived"
             }
         }
         failure {
-            echo " Pipeline failed!"
+            echo "❌ Pipeline failed!"
         }
         always {
             // Cleanup

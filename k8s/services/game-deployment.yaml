@@ -8,7 +8,7 @@ metadata:
     app: game-service
     tier: backend
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: game-service
@@ -24,6 +24,31 @@ spec:
     spec:
       imagePullSecrets:
       - name: ecr-registry-secret
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - game-service
+              topologyKey: kubernetes.io/hostname
+        podAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 50
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - auth-service
+                  - user-service
+                  - quiz-service
+              topologyKey: kubernetes.io/hostname
       containers:
       - name: game-service
         image: 802346121373.dkr.ecr.us-east-1.amazonaws.com/kahoot-clone-game:latest

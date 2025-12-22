@@ -8,7 +8,7 @@ metadata:
     app: gateway
     tier: backend
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: gateway
@@ -24,6 +24,29 @@ spec:
     spec:
       imagePullSecrets:
       - name: ecr-registry-secret
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - gateway
+              topologyKey: kubernetes.io/hostname
+        podAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 50
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: tier
+                  operator: In
+                  values:
+                  - backend
+              topologyKey: kubernetes.io/hostname
       containers:
       - name: gateway
         image: 802346121373.dkr.ecr.us-east-1.amazonaws.com/kahoot-clone-gateway:latest

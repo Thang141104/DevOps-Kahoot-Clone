@@ -1,11 +1,3 @@
-process.on('uncaughtException', err => {
-  console.error('Uncaught Exception:', err);
-  process.exit(1);
-});
-process.on('unhandledRejection', err => {
-  console.error('Unhandled Rejection:', err);
-  process.exit(1);
-});
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
@@ -36,13 +28,13 @@ mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
-.then(() => console.log('MongoDB connected'))
-.catch(err => console.error('MongoDB connection error:', err));
+.then(() => console.log('✅ MongoDB connected'))
+.catch(err => console.error('❌ MongoDB connection error:', err));
 
 // Auto-progression helper function
 const autoProgressQuestion = async (io, pin, questionIndex, timeLimit) => {
   setTimeout(async () => {
-    console.log(`Time's up for question ${questionIndex} in game ${pin}`);
+    console.log(`⏰ Time's up for question ${questionIndex} in game ${pin}`);
     
     const GameSession = require('./models/GameSession');
     const axios = require('axios');
@@ -96,7 +88,7 @@ const autoProgressQuestion = async (io, pin, questionIndex, timeLimit) => {
         questionType: currentQuestion.type
       });
 
-      console.log(`Revealed answer: ${correctAnswer} for question ${questionIndex} (Type: ${currentQuestion.type})`);
+      console.log(`✅ Revealed answer: ${correctAnswer} for question ${questionIndex} (Type: ${currentQuestion.type})`);
 
       // After 7 seconds, move to next question or end game (increased from 4s to give time for navigation)
       setTimeout(async () => {
@@ -104,7 +96,7 @@ const autoProgressQuestion = async (io, pin, questionIndex, timeLimit) => {
         
         if (nextIndex < quiz.questions.length) {
           const nextQuestion = quiz.questions[nextIndex];
-          console.log(`Auto moving to question ${nextIndex}`);
+          console.log(`➡️ Auto moving to question ${nextIndex}`);
           
           io.to(pin).emit('question-started', {
             question: nextQuestion,
@@ -117,13 +109,13 @@ const autoProgressQuestion = async (io, pin, questionIndex, timeLimit) => {
           
         } else {
           // Game over, show final leaderboard
-          console.log(`Game ${pin} finished!`);
+          console.log(`🏁 Game ${pin} finished!`);
           
           // Update game status to finished in database
           game.status = 'finished';
           game.finishedAt = new Date();
           await game.save();
-          console.log(`Game status updated to 'finished' in database`);
+          console.log(`✅ Game status updated to 'finished' in database`);
           
           const leaderboard = game.players
             .map(p => ({
@@ -136,7 +128,7 @@ const autoProgressQuestion = async (io, pin, questionIndex, timeLimit) => {
 
           io.to(pin).emit('game-finished', { leaderboard });
           
-          console.log(`Final leaderboard:`, leaderboard);
+          console.log(`📊 Final leaderboard:`, leaderboard);
           
           // Track analytics for authenticated players AND host
           
@@ -185,7 +177,7 @@ const autoProgressQuestion = async (io, pin, questionIndex, timeLimit) => {
               
               // If player won (rank 1), track wins stat specifically
               if (rank === 1 && game.players.length > 1) {
-                console.log(` Player ${player.userId} won the game! (Tracked in game_completed metadata)`);
+                console.log(`🏆 Player ${player.userId} won the game! (Tracked in game_completed metadata)`);
               }
             }
           }
@@ -203,13 +195,13 @@ const games = new Map();
 
 // Socket.io connection
 io.on('connection', (socket) => {
-  console.log('Client connected:', socket.id);
+  console.log('🔌 Client connected:', socket.id);
 
   // Host joins game room
   socket.on('host-join', (data) => {
     const { pin } = data;
     socket.join(pin);
-    console.log(`Host joined room: ${pin}`);
+    console.log(`� Host joined room: ${pin}`);
   });
 
   // Player joins game
@@ -268,7 +260,7 @@ io.on('connection', (socket) => {
       // Send confirmation to player
       socket.emit('joined-game', { game, player: newPlayer });
       
-      console.log(`${player.nickname} joined game ${pin}${newPlayer.isAuthenticated ? ' (authenticated)' : ' (guest)'}`);
+      console.log(`👤 ${player.nickname} joined game ${pin}${newPlayer.isAuthenticated ? ' (authenticated)' : ' (guest)'}`);
     } catch (error) {
       console.error('Error joining game:', error);
       socket.emit('error', { message: 'Failed to join game' });
@@ -306,7 +298,7 @@ io.on('connection', (socket) => {
       });
 
       io.to(pin).emit('game-started', { game });
-      console.log(`Game ${pin} started by host ${game.hostId}`);
+      console.log(`🎮 Game ${pin} started by host ${game.hostId}`);
     } catch (error) {
       console.error('Error starting game:', error);
       socket.emit('error', { message: 'Failed to start game' });
@@ -320,8 +312,8 @@ io.on('connection', (socket) => {
     const room = io.sockets.adapter.rooms.get(pin);
     const clientsInRoom = room ? room.size : 0;
     
-    console.log(`Starting question ${questionIndex} for game ${pin}`);
-    console.log(`Clients in room "${pin}": ${clientsInRoom}`);
+    console.log(`📝 Starting question ${questionIndex} for game ${pin}`);
+    console.log(`👥 Clients in room "${pin}": ${clientsInRoom}`);
     
     // Broadcast to all players in the room
     io.to(pin).emit('question-started', {
@@ -338,7 +330,7 @@ io.on('connection', (socket) => {
   socket.on('player-answer', async (data) => {
     const { pin, playerId, answer, timeUsed, questionIndex } = data;
     
-    console.log(`Received player-answer:`, { pin, playerId, answer, timeUsed, questionIndex });
+    console.log(`📥 Received player-answer:`, { pin, playerId, answer, timeUsed, questionIndex });
     
     try {
       const GameSession = require('./models/GameSession');
@@ -351,12 +343,12 @@ io.on('connection', (socket) => {
       // Find player in game to verify they exist
       const playerInGame = game.players.find(p => p.id == playerId); // Use == for loose equality
       if (!playerInGame) {
-        console.error(`Player ${playerId} not found in game ${pin}`);
+        console.error(`❌ Player ${playerId} not found in game ${pin}`);
         console.log(`Available players:`, game.players.map(p => ({ id: p.id, nickname: p.nickname })));
         return socket.emit('error', { message: 'Player not found in game' });
       }
 
-      console.log(`Player found: ${playerInGame.nickname} (ID: ${playerInGame.id})`);
+      console.log(`✅ Player found: ${playerInGame.nickname} (ID: ${playerInGame.id})`);
 
       // Fetch quiz from quiz-service API (direct call to avoid Gateway rate limiting)
       const axios = require('axios');
@@ -376,7 +368,7 @@ io.on('connection', (socket) => {
         // True/False uses A/B: 0=A=False, 1=B=True
         const correctLetter = question.correctAnswer === 1 ? 'B' : 'A';
         isCorrect = answer === correctLetter;
-        console.log(`Answer check (True/False): Player sent "${answer}", Correct is "${correctLetter}" (index ${question.correctAnswer}), Result: ${isCorrect}`);
+        console.log(`🔍 Answer check (True/False): Player sent "${answer}", Correct is "${correctLetter}" (index ${question.correctAnswer}), Result: ${isCorrect}`);
       } else if (question.type === 'Multiple Choice') {
         // For Multiple Choice: answer must be array and match ALL correct answers
         const correctIndexes = Array.isArray(question.correctAnswer) 
@@ -391,12 +383,12 @@ io.on('connection', (socket) => {
         isCorrect = correctLetters.length === sortedPlayerAnswers.length &&
                     correctLetters.every((letter, idx) => letter === sortedPlayerAnswers[idx]);
         
-        console.log(`Answer check: Player sent [${playerAnswers.join(',')}], Correct is [${correctLetters.join(',')}], Result: ${isCorrect}`);
+        console.log(`🔍 Answer check: Player sent [${playerAnswers.join(',')}], Correct is [${correctLetters.join(',')}], Result: ${isCorrect}`);
       } else {
         // Single Choice
         const correctLetter = ['A', 'B', 'C', 'D'][question.correctAnswer];
         isCorrect = answer === correctLetter;
-        console.log(`Answer check: Player sent "${answer}", Correct is "${correctLetter}", Result: ${isCorrect}`);
+        console.log(`🔍 Answer check: Player sent "${answer}", Correct is "${correctLetter}", Result: ${isCorrect}`);
       }
       
       // Calculate points (Kahoot-style: base points + time bonus)
@@ -407,7 +399,7 @@ io.on('connection', (socket) => {
         const timeBonus = Math.max(0, Math.floor(basePoints * 0.5 * (1 - timeUsed / timeLimit)));
         points = basePoints + timeBonus;
         
-        console.log(`Points calculation: base=${basePoints}, timeUsed=${timeUsed}s/${timeLimit}s, timeBonus=${timeBonus}, total=${points}`);
+        console.log(`💰 Points calculation: base=${basePoints}, timeUsed=${timeUsed}s/${timeLimit}s, timeBonus=${timeBonus}, total=${points}`);
       }
 
       // Update player score in database
@@ -427,15 +419,15 @@ io.on('connection', (socket) => {
         }
       );
 
-      console.log(`Database update result:`, updateResult);
+      console.log(`📊 Database update result:`, updateResult);
 
       // Verify the update by fetching the game again
       const updatedGame = await GameSession.findOne({ pin });
       const updatedPlayer = updatedGame.players.find(p => p.id == playerId); // Use == for loose equality
-      console.log(`Updated player score in DB: ${updatedPlayer?.score || 0} (was expecting: ${(playerInGame.score || 0) + points})`);
+      console.log(`✅ Updated player score in DB: ${updatedPlayer?.score || 0} (was expecting: ${(playerInGame.score || 0) + points})`);
 
       if (updateResult.matchedCount === 0) {
-        console.error(`Failed to update player score! No player matched with id: ${playerId}`);
+        console.error(`❌ Failed to update player score! No player matched with id: ${playerId}`);
       }
 
       // Send result back to the player who answered
@@ -457,7 +449,7 @@ io.on('connection', (socket) => {
         points
       });
 
-      console.log(`Player ${playerId} answered: ${answer}, correct: ${isCorrect}, points: ${points}`);
+      console.log(`✅ Player ${playerId} answered: ${answer}, correct: ${isCorrect}, points: ${points}`);
     } catch (error) {
       console.error('Error processing answer:', error);
       socket.emit('error', { message: 'Failed to process answer' });
@@ -489,27 +481,27 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    console.log('Client disconnected:', socket.id);
+    console.log('🔌 Client disconnected:', socket.id);
   });
 
    // HOST events
   socket.on('host-join-control', ({ pin }) => {
     socket.join(pin);
-    console.log(`Host joined control room: ${pin}`);
+    console.log(`🎮 Host joined control room: ${pin}`);
   });
 
   socket.on('show-answer', ({ pin, correctAnswer }) => {
     // Deprecated: Auto-progression handles this now
-    console.log('show-answer event received but ignored - using auto-progression');
+    console.log('⚠️ show-answer event received but ignored - using auto-progression');
   });
 
   socket.on('next-question', ({ pin, questionIndex, question }) => {
     // Deprecated: Auto-progression handles this now
-    console.log('next-question event received but ignored - using auto-progression');
+    console.log('⚠️ next-question event received but ignored - using auto-progression');
   });
 
   socket.on('game-ended', async ({ pin, leaderboard }) => {
-    console.log(`Host manually ended game: ${pin}`);
+    console.log(`🏁 Host manually ended game: ${pin}`);
     
     try {
       const GameSession = require('./models/GameSession');
@@ -520,13 +512,13 @@ io.on('connection', (socket) => {
         game.status = 'finished';
         game.finishedAt = new Date();
         await game.save();
-        console.log(`Game ${pin} status updated to 'finished' in database`);
+        console.log(`✅ Game ${pin} status updated to 'finished' in database`);
         
         // Broadcast game-finished to all players
         io.to(pin).emit('game-finished', { leaderboard });
-        console.log(`Final leaderboard broadcasted:`, leaderboard);
+        console.log(`📊 Final leaderboard broadcasted:`, leaderboard);
       } else {
-        console.error(`Game ${pin} not found when trying to end manually`);
+        console.error(`❌ Game ${pin} not found when trying to end manually`);
       }
     } catch (error) {
       console.error('Error ending game manually:', error);
@@ -536,7 +528,7 @@ io.on('connection', (socket) => {
   // PLAYER events
   socket.on('player-ready-for-question', ({ pin, playerId }) => {
     socket.join(pin);
-    console.log(` Player ${playerId} ready in room: ${pin}`);
+    console.log(`👤 Player ${playerId} ready in room: ${pin}`);
   });
 
   socket.on('player-answer', ({ pin, playerId, answer, timeUsed }) => {
@@ -580,5 +572,5 @@ app.get('/health', (req, res) => {
 
 const PORT = process.env.PORT || 3003;
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(` Game Service running on port ${PORT}`);
+  console.log(`🎮 Game Service running on port ${PORT}`);
 });
