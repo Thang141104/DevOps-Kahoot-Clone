@@ -70,7 +70,13 @@ const Dashboard = () => {
       const user = JSON.parse(localStorage.getItem('user'));
       if (!user || !user.id) return;
 
-      const response = await fetch(API_URLS.USER_PROFILE(user.id));
+      const token = localStorage.getItem('token');
+      const response = await fetch(API_URLS.USER_PROFILE(user.id), {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
       const data = await response.json();
 
       if (response.ok) {

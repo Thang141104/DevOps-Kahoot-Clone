@@ -28,6 +28,7 @@ const Profile = () => {
   const fetchProfile = async () => {
     try {
       const user = JSON.parse(localStorage.getItem('user'));
+      const token = localStorage.getItem('token');
       const targetUserId = userId || user?.id;
       
       if (!targetUserId) {
@@ -37,7 +38,12 @@ const Profile = () => {
 
       setIsOwner(!userId || userId === user?.id);
 
-      const response = await fetch(API_URLS.USER_PROFILE(targetUserId));
+      const response = await fetch(API_URLS.USER_PROFILE(targetUserId), {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
       const data = await response.json();
 
       console.log('Profile API response:', { status: response.status, data });
@@ -62,9 +68,15 @@ const Profile = () => {
   const fetchAchievements = async () => {
     try {
       const user = JSON.parse(localStorage.getItem('user'));
+      const token = localStorage.getItem('token');
       const targetUserId = userId || user?.id;
 
-      const response = await fetch(API_URLS.USER_ACHIEVEMENTS(targetUserId));
+      const response = await fetch(API_URLS.USER_ACHIEVEMENTS(targetUserId), {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
       const data = await response.json();
 
       console.log('Achievements API response:', { status: response.status, data });

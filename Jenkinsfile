@@ -185,6 +185,7 @@ pipeline {
                                             mv sonar-scanner-${SCANNER_VERSION}-linux ${SCANNER_DIR}
                                             chmod +x ${SCANNER_DIR}/bin/sonar-scanner
                                             rm -f sonar-scanner-cli-${SCANNER_VERSION}-linux.zip
+                                            cd ${WORKSPACE}
                                             echo "✅ SonarScanner installed to ${SCANNER_DIR}"
                                         else
                                             echo "✅ SonarScanner already exists at ${SCANNER_DIR}"
@@ -193,12 +194,12 @@ pipeline {
                                         # Add to PATH
                                         export PATH=${SCANNER_DIR}/bin:$PATH
                                         
-                                        echo "🔍 Running SonarQube scan..."
+                                        echo "🔍 Running SonarQube scan from workspace..."
                                         sonar-scanner \
                                           -Dsonar.projectKey=kahoot-clone \
                                           -Dsonar.projectName="Kahoot Clone" \
                                           -Dsonar.sources=. \
-                                          -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/**,**/coverage/**,**/.nx/**,**/infrastructure/** \
+                                          -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/**,**/coverage/**,**/.nx/**,**/infrastructure/**,**/tmp/**,**/temp/** \
                                           -Dsonar.host.url=${SONARQUBE_URL} \
                                           -Dsonar.token=${SONAR_TOKEN} \
                                           -Dsonar.sourceEncoding=UTF-8 \
