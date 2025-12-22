@@ -3,9 +3,9 @@ const router = express.Router();
 const UserProfile = require('../models/UserProfile');
 const { authMiddleware } = require('../middleware/auth.middleware');
 const { validateProfileUpdate } = require('../middleware/validation.middleware');
-const { upload, handleUploadError } = require('../middleware/upload.middleware');
-const { processImage, deleteImage, getImageUrl } = require('../utils/imageUpload');
-const { uploadAvatar, replaceAvatar, deleteAvatar } = require('../utils/s3');
+// Avatar upload disabled - not using S3
+// const { upload, handleUploadError } = require('../middleware/upload.middleware');
+// const { processImage, deleteImage, getImageUrl } = require('../utils/imageUpload');
 const { syncUserStats } = require('../utils/statsCalculator');
 const path = require('path');
 
@@ -146,113 +146,15 @@ router.put('/:userId/profile', authMiddleware, validateProfileUpdate, async (req
   }
 });
 
-// Upload avatar
-router.post('/:userId/avatar', authMiddleware, upload.single('avatar'), handleUploadError, async (req, res) => {
-  try {
-    const { userId } = req.params;
-    
-    // Check if user owns this profile
-    if (req.user.id !== userId) {
-      return res.status(403).json({ 
-        error: 'Forbidden',
-        message: 'You can only update your own avatar' 
-      });
-    }
-    
-    if (!req.file) {
-      return res.status(400).json({ 
-        error: 'No file uploaded',
-        message: 'Please select an image to upload' 
-      });
-    }
-    
-    // Get or create profile
-    let profile = await UserProfile.findOne({ userId });
-    
-    if (!profile) {
-      profile = new UserProfile({
-        userId,
-        username: req.user.username,
-        email: req.user.email
-      });
-    }
-    
-    // Upload to S3 (will delete old avatar if exists)
-    const avatarUrl = await replaceAvatar(
-      req.file.buffer,
-      userId,
-      profile.avatarUrl,
-      req.file.originalname
-    );
-    
-    // Update avatar URL in profile
-    profile.avatarUrl = avatarUrl;
-    profile.lastActiveAt = new Date();
-    
-    await profile.save();
-    
-    console.log(`[Profile] Avatar updated for user ${userId}:`, avatarUrl);
-    
-    res.json({
-      message: 'Avatar uploaded successfully',
-      avatarUrl: profile.avatarUrl
-    });
-  } catch (error) {
-    console.error('Error uploading avatar:', error);
-    res.status(500).json({ 
-      error: 'Upload failed',
-      message: error.message 
-    });
-  }
-});
+// Avatar upload disabled - not using S3
+// router.post('/:userId/avatar', authMiddleware, upload.single('avatar'), handleUploadError, async (req, res) => {
+//   res.status(501).json({ error: 'Avatar upload not implemented', message: 'Feature disabled' });
+// });
 
-// Delete avatar
-router.delete('/:userId/avatar', authMiddleware, async (req, res) => {
-  try {
-    const { userId } = req.params;
-    
-    // Check if user owns this profile
-    if (req.user.id !== userId) {
-      return res.status(403).json({ 
-        error: 'Forbidden',
-        message: 'You can only delete your own avatar' 
-      });
-    }
-    
-    const profile = await UserProfile.findOne({ userId });
-    
-    if (!profile) {
-      return res.status(404).json({ 
-        error: 'Profile not found' 
-      });
-    }
-    
-    if (!profile.avatarUrl) {
-      return res.status(404).json({ 
-        error: 'No avatar to delete' 
-      });
-    }
-    
-    // Delete avatar from S3
-    await deleteAvatar(profile.avatarUrl);
-    
-    // Update profile
-    profile.avatarUrl = null;
-    await profile.save();
-    
-    console.log(`[Profile] Avatar deleted for user ${userId}`);
-    
-    res.json({
-      message: 'Avatar deleted successfully'
-    });
-  } catch (error) {
-    console.error('Error deleting avatar:', error);
-    res.status(500).json({ 
-      error: 'Server error',
-      message: error.message 
-    });
-  }
-});
+// Avatar delete disabled - not using S3  
+// router.delete('/:userId/avatar', authMiddleware, async (req, res) => {
+//   res.status(501).json({ error: 'Avatar delete not implemented', message: 'Feature disabled' });
+// });
 
 // Search users
 router.get('/search', async (req, res) => {
