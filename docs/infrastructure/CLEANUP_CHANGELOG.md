@@ -139,9 +139,9 @@ Clear documentation index with:
 
 ## Maintenance
 
-**Last Updated**: December 21, 2025  
-**Updated By**: DevOps Team  
-**Review Frequency**: Monthly  
+**Last Updated**: December 21, 2025
+**Updated By**: DevOps Team
+**Review Frequency**: Monthly
 **Next Review**: January 2026
 
 ---

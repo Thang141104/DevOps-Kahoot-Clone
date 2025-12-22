@@ -1,42 +1,42 @@
-# 🚀 Nx Automation Setup - Infrastructure as Code
+# Nx Automation Setup - Infrastructure as Code
 
-## 📋 Overview
+## Overview
 
 This project now includes **full automation** for Nx monorepo setup using Infrastructure-as-Code principles. The Nx configuration, S3 remote cache, and all required packages are automatically deployed via Terraform and Ansible.
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    TERRAFORM (Infrastructure)               │
+│ TERRAFORM (Infrastructure) │
 ├─────────────────────────────────────────────────────────────┤
-│  • S3 Bucket: kahoot-nx-cache-{account_id}                 │
-│  • Lifecycle Policy: 7 days retention                       │
-│  • IAM Policy: S3 access for Jenkins role                  │
-│  • Encryption: AES256                                       │
+│ • S3 Bucket: kahoot-nx-cache-{account_id} │
+│ • Lifecycle Policy: 7 days retention │
+│ • IAM Policy: S3 access for Jenkins role │
+│ • Encryption: AES256 │
 └─────────────────────────────────────────────────────────────┘
                            ↓
 ┌─────────────────────────────────────────────────────────────┐
-│                  ANSIBLE (Configuration)                    │
+│ ANSIBLE (Configuration) │
 ├─────────────────────────────────────────────────────────────┤
-│  • Install Nx CLI globally on Jenkins                       │
-│  • Install @nx/js, @nx/workspace, @nx/web, nx-remotecache-s3│
-│  • Deploy nx.json template (S3 cache config)                │
-│  • Deploy workspace.json template (7 projects)              │
-│  • Deploy setup-nx.sh helper script                         │
+│ • Install Nx CLI globally on Jenkins │
+│ • Install @nx/js, @nx/workspace, @nx/web, nx-remotecache-s3│
+│ • Deploy nx.json template (S3 cache config) │
+│ • Deploy workspace.json template (7 projects) │
+│ • Deploy setup-nx.sh helper script │
 └─────────────────────────────────────────────────────────────┘
                            ↓
 ┌─────────────────────────────────────────────────────────────┐
-│                    JENKINS (CI/CD)                          │
+│ JENKINS (CI/CD) │
 ├─────────────────────────────────────────────────────────────┤
-│  • Jenkinsfile auto-detects affected services              │
-│  • Nx runs only changed services                            │
-│  • Build cache shared across all builds                     │
-│  • 70-98% faster builds                                      │
+│ • Jenkinsfile auto-detects affected services │
+│ • Nx runs only changed services │
+│ • Build cache shared across all builds │
+│ • 70-98% faster builds │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## 📦 Components Created
+## Components Created
 
 ### Terraform Module: `modules/nx-cache`
 
@@ -48,9 +48,9 @@ This project now includes **full automation** for Nx monorepo setup using Infras
 **Resources:**
 ```hcl
 module "nx_cache" {
-  source                = "./modules/nx-cache"
-  project_name          = var.project_name
-  aws_region            = var.aws_region
+  source = "./modules/nx-cache"
+  project_name = var.project_name
+  aws_region = var.aws_region
   jenkins_iam_role_name = module.compute.jenkins_iam_role_name
 }
 ```
@@ -62,13 +62,13 @@ module "nx_cache" {
 ### Ansible Role: `jenkins/tasks/nx.yml`
 
 **Tasks:**
-1. ✅ Create `/var/lib/jenkins/workspace` directory
-2. ✅ Check if Nx already installed globally
-3. ✅ Install Nx CLI (`npm install -g nx`)
-4. ✅ Install Nx packages: `@nx/js`, `@nx/workspace`, `@nx/web`, `nx-remotecache-s3`
-5. ✅ Deploy `nx.json.j2` template → `/var/lib/jenkins/nx-templates/nx.json`
-6. ✅ Deploy `workspace.json.j2` template → `/var/lib/jenkins/nx-templates/workspace.json`
-7. ✅ Deploy `setup-nx.sh.j2` script → `/var/lib/jenkins/nx-templates/setup-nx.sh`
+1. Create `/var/lib/jenkins/workspace` directory
+2. Check if Nx already installed globally
+3. Install Nx CLI (`npm install -g nx`)
+4. Install Nx packages: `@nx/js`, `@nx/workspace`, `@nx/web`, `nx-remotecache-s3`
+5. Deploy `nx.json.j2` template → `/var/lib/jenkins/nx-templates/nx.json`
+6. Deploy `workspace.json.j2` template → `/var/lib/jenkins/nx-templates/workspace.json`
+7. Deploy `setup-nx.sh.j2` script → `/var/lib/jenkins/nx-templates/setup-nx.sh`
 
 ### Jinja2 Templates
 
@@ -89,7 +89,7 @@ module "nx_cache" {
 - Installs Nx dependencies if needed
 - Displays cache bucket info
 
-## 🚀 Deployment
+## Deployment
 
 ### **Option 1: Full Deployment (Recommended)**
 
@@ -133,7 +133,7 @@ $env:AWS_REGION = "us-east-1"
 wsl bash -c "export NX_CACHE_BUCKET='$env:NX_CACHE_BUCKET' ECR_REGISTRY='$env:ECR_REGISTRY' AWS_REGION='$env:AWS_REGION' && ansible-playbook -i inventory/hosts site.yml"
 ```
 
-## ✅ Verification
+## Verification
 
 ### 1. Check Terraform Outputs
 
@@ -191,8 +191,8 @@ cat /var/lib/jenkins/nx-templates/workspace.json | jq '.projects | keys'
 
 1. Trigger a Jenkins build
 2. Check logs for Nx stages:
-   - ⚙️ Setup Nx
-   - 🔍 Detect Affected Services
+   - Setup Nx
+   - Detect Affected Services
 3. Verify S3 cache usage:
 
 ```bash
@@ -200,7 +200,7 @@ aws s3 ls s3://kahoot-nx-cache-<ACCOUNT_ID>/nx-cache/ --recursive
 # Expected: Cache entries for each build
 ```
 
-## 🔄 How It Works
+## How It Works
 
 ### **First Deployment**
 
@@ -246,28 +246,28 @@ aws s3 ls s3://kahoot-nx-cache-<ACCOUNT_ID>/nx-cache/ --recursive
 8. Next build reuses cache → 98% faster
 ```
 
-## 📊 Performance Impact
+## Performance Impact
 
 ### **Before Nx (Manual Builds)**
 
 ```
 Build All Services: 30 minutes
-- gateway:           4 min
-- auth-service:      4 min
-- user-service:      4 min
-- quiz-service:      5 min
-- game-service:      4 min
+- gateway: 4 min
+- auth-service: 4 min
+- user-service: 4 min
+- quiz-service: 5 min
+- game-service: 4 min
 - analytics-service: 4 min
-- frontend:          5 min
+- frontend: 5 min
 Total: 30 minutes per build
 ```
 
 ### **After Nx (With Cache)**
 
 ```
-Rebuild (no changes):  30 seconds  (98% faster)
-Partial change:        3-8 minutes (70-90% faster)
-Full rebuild:          12 minutes  (60% faster with parallelization)
+Rebuild (no changes): 30 seconds (98% faster)
+Partial change: 3-8 minutes (70-90% faster)
+Full rebuild: 12 minutes (60% faster with parallelization)
 
 Example: Change only auth-service
 - Nx detects: auth-service, user-service (depends on auth)
@@ -276,7 +276,7 @@ Example: Change only auth-service
 - Time: 4 minutes instead of 30 minutes
 ```
 
-## 🛠️ Customization
+## Customization
 
 ### Change Cache Retention
 
@@ -286,7 +286,7 @@ Edit `terraform/modules/nx-cache/main.tf`:
 resource "aws_s3_bucket_lifecycle_configuration" "nx_cache" {
   rule {
     expiration {
-      days = 30  # Change from 7 to 30 days
+      days = 30 # Change from 7 to 30 days
     }
   }
 }
@@ -301,7 +301,7 @@ Edit `ansible/roles/jenkins/templates/nx.json.j2`:
   "tasksRunnerOptions": {
     "default": {
       "options": {
-        "parallel": 5  // Change from 3 to 5
+        "parallel": 5 // Change from 3 to 5
       }
     }
   }
@@ -338,7 +338,7 @@ cd infrastructure
 .\deploy.ps1 -Action ansible
 ```
 
-## 🔍 Troubleshooting
+## Troubleshooting
 
 ### Issue: "Bucket does not exist"
 
@@ -384,24 +384,24 @@ cd infrastructure
 .\deploy.ps1 -Action ansible
 ```
 
-## 📚 Related Documentation
+## Related Documentation
 
 - [NX_SETUP.md](../../NX_SETUP.md) - Complete Nx guide and commands
 - [Jenkinsfile](../../Jenkinsfile) - Pipeline with Nx integration
 - [setup-nx.ps1](../../setup-nx.ps1) - Manual Nx setup script (for local testing)
 
-## 🎯 Next Steps
+## Next Steps
 
-1. ✅ Deploy infrastructure: `.\deploy.ps1 -Action all`
-2. ✅ Verify Nx installation on Jenkins
-3. ✅ Test Jenkins pipeline with Nx
-4. ✅ Monitor S3 cache usage
-5. ✅ Enjoy 70-98% faster builds! 🚀
+1. Deploy infrastructure: `.\deploy.ps1 -Action all`
+2. Verify Nx installation on Jenkins
+3. Test Jenkins pipeline with Nx
+4. Monitor S3 cache usage
+5. Enjoy 70-98% faster builds!
 
 ---
 
-**Maintainer:** DevOps Team  
-**Last Updated:** 2025  
-**Terraform Version:** >= 1.5.0  
-**Ansible Version:** >= 2.14  
+**Maintainer:** DevOps Team
+**Last Updated:** 2025
+**Terraform Version:** >= 1.5.0
+**Ansible Version:** >= 2.14
 **Nx Version:** 17.0.0

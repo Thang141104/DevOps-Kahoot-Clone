@@ -1,6 +1,6 @@
 # Kahoot Clone - Documentation
 
-## 📚 Documentation Structure
+## Documentation Structure
 
 ### Infrastructure
 - [Infrastructure Guide](infrastructure/README.md) - Complete infrastructure setup
@@ -12,7 +12,7 @@
 - Kubernetes cluster with multi-service architecture
 - AWS infrastructure: ECR, S3, EC2
 
-## 🚀 Quick Start
+## Quick Start
 
 1. **Prerequisites**
    - AWS account with credentials configured
@@ -38,7 +38,7 @@
    - Gateway: http://<WORKER_IP>:30000
    - Jenkins: http://<JENKINS_IP>:8080
 
-## 🏗️ Architecture
+## Architecture
 
 - **Microservices**: auth, user, quiz, game, analytics
 - **Gateway**: API gateway for routing
@@ -48,7 +48,7 @@
 - **CI/CD**: Jenkins with automated pipelines
 - **Monitoring**: Prometheus metrics endpoints
 
-## 📖 See Also
+## See Also
 
 - [Main README](../README.md) - Project overview
 - [Jenkinsfile](../Jenkinsfile) - CI/CD pipeline configuration

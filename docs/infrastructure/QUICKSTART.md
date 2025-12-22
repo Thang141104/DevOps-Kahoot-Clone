@@ -5,7 +5,7 @@
 
 This guide will help you deploy the entire infrastructure in **~40 minutes**.
 
-## 📋 Prerequisites (5 minutes)
+## Prerequisites (5 minutes)
 
 ### Windows Setup
 
@@ -41,7 +41,7 @@ sudo apt install -y python3-pip
 pip3 install boto3 botocore
 ```
 
-## 🔑 Step 1: AWS Configuration (5 minutes)
+## Step 1: AWS Configuration (5 minutes)
 
 ```powershell
 # Configure AWS credentials
@@ -55,7 +55,7 @@ aws configure
 aws sts get-caller-identity
 ```
 
-## 🔐 Step 2: Generate SSH Keys (2 minutes)
+## Step 2: Generate SSH Keys (2 minutes)
 
 ```bash
 # In WSL
@@ -65,7 +65,7 @@ ssh-keygen -t rsa -b 4096 -f ~/.ssh/kahoot-prod -N ""
 cat ~/.ssh/kahoot-prod.pub
 ```
 
-## 🗄️ Step 3: Setup Remote State (5 minutes)
+## Step 3: Setup Remote State (5 minutes)
 
 ```powershell
 # Navigate to backend directory
@@ -87,7 +87,7 @@ terraform apply -auto-approve
 terraform output -json > backend-config.json
 ```
 
-## ⚙️ Step 4: Configure Production Environment (3 minutes)
+## Step 4: Configure Production Environment (3 minutes)
 
 ```powershell
 # Navigate to prod environment
@@ -103,21 +103,21 @@ notepad terraform.tfvars
 # AWS Credentials
 aws_access_key = "YOUR_AWS_ACCESS_KEY"
 aws_secret_key = "YOUR_AWS_SECRET_KEY"
-aws_region     = "ap-southeast-1"
+aws_region = "ap-southeast-1"
 
 # Project
 project_name = "kahoot-clone"
-owner_email  = "your-email@example.com"
+owner_email = "your-email@example.com"
 
 # SSH Key (paste public key from Step 2)
 ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EA... ubuntu@hostname"
 ssh_private_key_path = "~/.ssh/kahoot-prod"
 
 # Infrastructure (adjust as needed)
-jenkins_instance_type    = "t3.medium"  # 2 vCPU, 4GB RAM
-k8s_master_instance_type = "t3.medium"  # 2 vCPU, 4GB RAM
-k8s_worker_count         = 2
-k8s_worker_instance_type = "t3.medium"  # 2 vCPU, 4GB RAM
+jenkins_instance_type = "t3.medium" # 2 vCPU, 4GB RAM
+k8s_master_instance_type = "t3.medium" # 2 vCPU, 4GB RAM
+k8s_worker_count = 2
+k8s_worker_instance_type = "t3.medium" # 2 vCPU, 4GB RAM
 ```
 
 **Enable remote state in main.tf:**
@@ -126,16 +126,16 @@ Uncomment the backend configuration:
 ```hcl
 terraform {
   backend "s3" {
-    bucket         = "kahoot-clone-terraform-state-prod"
-    key            = "prod/terraform.tfstate"
-    region         = "ap-southeast-1"
-    encrypt        = true
+    bucket = "kahoot-clone-terraform-state-prod"
+    key = "prod/terraform.tfstate"
+    region = "ap-southeast-1"
+    encrypt = true
     dynamodb_table = "kahoot-clone-terraform-locks-prod"
   }
 }
 ```
 
-## 🚀 Step 5: Deploy Infrastructure (40 minutes)
+## Step 5: Deploy Infrastructure (40 minutes)
 
 ### Option A: Automated Deployment (Recommended)
 
@@ -172,7 +172,7 @@ cd /mnt/d/DevOps_Lab2/DevOps-Kahoot-Clone/infrastructure/ansible
 ansible-playbook -i inventory/hosts site.yml
 ```
 
-## ✅ Step 6: Verification (5 minutes)
+## Step 6: Verification (5 minutes)
 
 ```powershell
 # View infrastructure details
@@ -209,7 +209,7 @@ kubectl get nodes
 kubectl get pods --all-namespaces
 ```
 
-## 🎯 Step 7: Initial Configuration (10 minutes)
+## Step 7: Initial Configuration (10 minutes)
 
 ### Configure Jenkins
 
@@ -244,7 +244,7 @@ kubectl apply -f /path/to/k8s/sonarqube-deployment.yaml
 kubectl get pods -n sonarqube
 ```
 
-## 🔧 Step 8: Deploy Application (15 minutes)
+## Step 8: Deploy Application (15 minutes)
 
 ### Create Jenkins Pipeline
 
@@ -269,7 +269,7 @@ kubectl get pods -n sonarqube
 - Security scans (Trivy + SonarQube)
 - Deploy to K8s
 
-## 📊 Total Timeline
+## Total Timeline
 
 | Step | Duration | Task |
 |------|----------|------|
@@ -285,7 +285,7 @@ kubectl get pods -n sonarqube
 | 10 | 15 min | First application deployment |
 | **Total** | **~90 min** | **Complete setup** |
 
-## 💰 Cost Estimate
+## Cost Estimate
 
 **Infrastructure:**
 - 1 x t3.medium (Jenkins): $30/month
@@ -299,7 +299,7 @@ kubectl get pods -n sonarqube
 - S3 storage (5GB free)
 - ECR (500MB free)
 
-## 🐛 Common Issues
+## Common Issues
 
 ### Issue: "Permission denied (publickey)"
 
@@ -339,7 +339,7 @@ ssh -i ~/.ssh/kahoot-prod ubuntu@<JENKINS_IP>
 sudo journalctl -u jenkins -f
 ```
 
-## 🎓 Next Steps
+## Next Steps
 
 After successful deployment:
 
@@ -360,14 +360,14 @@ After successful deployment:
    - Rotate credentials
    - Setup AWS GuardDuty
 
-## 📚 Additional Resources
+## Additional Resources
 
 - [Full Documentation](README.md)
 - [Terraform Modules](terraform/modules/README.md)
 - [Ansible Roles](ansible/roles/README.md)
 - [Troubleshooting Guide](docs/TROUBLESHOOTING.md)
 
-## ✅ Success Checklist
+## Success Checklist
 
 - [ ] AWS credentials configured
 - [ ] SSH keys generated
@@ -381,4 +381,4 @@ After successful deployment:
 
 ---
 
-**Congratulations!** 🎉 Your enterprise infrastructure is ready!
+**Congratulations!** Your enterprise infrastructure is ready!

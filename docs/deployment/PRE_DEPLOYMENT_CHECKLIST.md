@@ -1,11 +1,11 @@
-# 🚀 PRE-DEPLOYMENT CHECKLIST
+# PRE-DEPLOYMENT CHECKLIST
 
-## ✅ KIỂM TRA ĐÃ HOÀN THÀNH
+## KIỂM TRA ĐÃ HOÀN THÀNH
 
-### 1. **Deployment Files** ✅
-- ✅ Xóa file trùng: `k8s/auth-deployment.yaml`, `k8s/frontend-deployment.yaml`
-- ✅ Tất cả deployment files trong `k8s/services/` và `k8s/frontend/`
-- ✅ Replicas: 
+### 1. **Deployment Files**
+- Xóa file trùng: `k8s/auth-deployment.yaml`, `k8s/frontend-deployment.yaml`
+- Tất cả deployment files trong `k8s/services/` và `k8s/frontend/`
+- Replicas:
   - Gateway: 2 replicas
   - Auth: 2 replicas
   - User: 2 replicas
@@ -13,35 +13,35 @@
   - Game: 2 replicas
   - Analytics: 2 replicas
   - Frontend: 1 replica
-- ✅ Pod Anti-Affinity: Configured để spread replicas across nodes
-- ✅ Removed nodeSelector: Kubernetes tự động load balance
+- Pod Anti-Affinity: Configured để spread replicas across nodes
+- Removed nodeSelector: Kubernetes tự động load balance
 
-### 2. **Jenkinsfile** ✅
-- ✅ Branch: `main` (đã sửa từ `fix/auth-routing-issues`)
-- ✅ ECR Registry: `802346121373.dkr.ecr.us-east-1.amazonaws.com`
-- ✅ AWS Region: `us-east-1`
-- ✅ Deployment paths: `k8s/services/`, `k8s/frontend/`, `k8s/base/`
-- ✅ Image tags: `${BUILD_VERSION}` (dynamic per build)
-- ✅ Rollout strategy: Force restart all deployments
+### 2. **Jenkinsfile**
+- Branch: `main` (đã sửa từ `fix/auth-routing-issues`)
+- ECR Registry: `802346121373.dkr.ecr.us-east-1.amazonaws.com`
+- AWS Region: `us-east-1`
+- Deployment paths: `k8s/services/`, `k8s/frontend/`, `k8s/base/`
+- Image tags: `${BUILD_VERSION}` (dynamic per build)
+- Rollout strategy: Force restart all deployments
 
-### 3. **ConfigMap** ✅
-- ✅ Node IPs: 34.200.233.56, 44.198.175.214
-- ✅ NodePorts:
+### 3. **ConfigMap**
+- Node IPs: 34.200.233.56, 44.198.175.214
+- NodePorts:
   - Gateway: 30000
   - Game WebSocket: 30003
   - Frontend: 30006
-- ✅ Fallback URLs: Added for manual failover
-- ✅ Internal service URLs: Using Kubernetes DNS
+- Fallback URLs: Added for manual failover
+- Internal service URLs: Using Kubernetes DNS
 
-### 4. **Services Configuration** ✅
-- ✅ Gateway: NodePort 30000
-- ✅ Game: NodePort 30003 (for WebSocket)
-- ✅ Frontend: NodePort 30006
-- ✅ Backend services: ClusterIP (internal only)
+### 4. **Services Configuration**
+- Gateway: NodePort 30000
+- Game: NodePort 30003 (for WebSocket)
+- Frontend: NodePort 30006
+- Backend services: ClusterIP (internal only)
 
 ---
 
-## 🤔 ECR & CACHE STRATEGY
+## ECR & CACHE STRATEGY
 
 ### **KHÔNG NÊN XÓA ECR Images**
 
@@ -65,9 +65,9 @@ buildDiscarder(logRotator(numToKeepStr: '10'))
 → Tự động xóa cache sau 7 ngày
 
 ### **KHI NÀO NÊN XÓA ECR:**
-- ✅ **Khi test lần đầu**: Xóa tất cả images cũ để bắt đầu sạch
-- ✅ **Khi có breaking changes**: Force rebuild from scratch
-- ✅ **Khi hết storage**: ECR có giới hạn free tier 500MB
+- **Khi test lần đầu**: Xóa tất cả images cũ để bắt đầu sạch
+- **Khi có breaking changes**: Force rebuild from scratch
+- **Khi hết storage**: ECR có giới hạn free tier 500MB
 
 ### **LỆNH XÓA ECR (Nếu cần):**
 ```bash
@@ -108,7 +108,7 @@ done
 
 ---
 
-## 📋 FINAL CHECKLIST TRƯỚC KHI PUSH
+## FINAL CHECKLIST TRƯỚC KHI PUSH
 
 ### **A. Local Files Ready**
 - [ ] Tất cả duplicate files đã xóa
@@ -145,7 +145,7 @@ done
 
 ---
 
-## 🚦 DEPLOYMENT STEPS
+## DEPLOYMENT STEPS
 
 ### **1. Clean ECR (Optional - First Time Recommended)**
 ```bash
@@ -212,38 +212,38 @@ curl http://44.198.175.214:30006
 
 ---
 
-## 🎯 EXPECTED RESULTS
+## EXPECTED RESULTS
 
 ### **Successful Build:**
 ```
-✅ All 7 services built successfully
-✅ Images pushed to ECR with BUILD_NUMBER tag
-✅ SonarQube analysis passed (or reported)
-✅ Trivy security scan completed
-✅ Deployments created/updated
-✅ All pods Running (may take 3-5 minutes)
+ All 7 services built successfully
+ Images pushed to ECR with BUILD_NUMBER tag
+ SonarQube analysis passed (or reported)
+ Trivy security scan completed
+ Deployments created/updated
+ All pods Running (may take 3-5 minutes)
 ```
 
 ### **Pod Distribution:**
 ```
-NAME                               READY   STATUS    NODE
-gateway-xxx-1                      1/1     Running   34.200.233.56
-gateway-xxx-2                      1/1     Running   44.198.175.214
-auth-service-xxx-1                 1/1     Running   34.200.233.56
-auth-service-xxx-2                 1/1     Running   44.198.175.214
-user-service-xxx-1                 1/1     Running   34.200.233.56
-user-service-xxx-2                 1/1     Running   44.198.175.214
+NAME READY STATUS NODE
+gateway-xxx-1 1/1 Running 34.200.233.56
+gateway-xxx-2 1/1 Running 44.198.175.214
+auth-service-xxx-1 1/1 Running 34.200.233.56
+auth-service-xxx-2 1/1 Running 44.198.175.214
+user-service-xxx-1 1/1 Running 34.200.233.56
+user-service-xxx-2 1/1 Running 44.198.175.214
 ... (similar pattern for all services)
 ```
 
 ### **Services Accessible:**
-- Gateway: `http://34.200.233.56:30000` ✅
-- Game WebSocket: `http://34.200.233.56:30003` ✅
-- Frontend: `http://44.198.175.214:30006` ✅
+- Gateway: `http://34.200.233.56:30000`
+- Game WebSocket: `http://34.200.233.56:30003`
+- Frontend: `http://44.198.175.214:30006`
 
 ---
 
-## ⚠️ TROUBLESHOOTING
+## TROUBLESHOOTING
 
 ### **ImagePullBackOff:**
 - ECR secret expired (recreate after 12 hours)
@@ -284,7 +284,7 @@ kubectl describe pod <POD_NAME> -n kahoot-clone
 
 ---
 
-## 📊 COST OPTIMIZATION
+## COST OPTIMIZATION
 
 **Current Setup:**
 - **ECR Storage**: ~2-3GB (7 services × ~300MB avg)
@@ -299,13 +299,13 @@ kubectl describe pod <POD_NAME> -n kahoot-clone
 
 ---
 
-## 🎉 READY TO DEPLOY!
+## READY TO DEPLOY!
 
 **Bạn đã sẵn sàng để:**
-1. ✅ Xóa ECR images cũ (nếu muốn clean start)
-2. ✅ Commit & push code
-3. ✅ Jenkins tự động build & deploy
-4. ✅ Monitor và verify kết quả
+1. Xóa ECR images cũ (nếu muốn clean start)
+2. Commit & push code
+3. Jenkins tự động build & deploy
+4. Monitor và verify kết quả
 
 **Command Summary:**
 ```bash

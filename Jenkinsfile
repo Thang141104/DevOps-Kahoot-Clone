@@ -170,7 +170,7 @@ pipeline {
                                         export PATH=$JAVA_HOME/bin:$PATH
                                         
                                         # Verify Java version
-                                        echo "📌 Java version:"
+                                        echo " Java version:"
                                         java -version
                                         
                                         # Download and use SonarScanner CLI (supports Java 17+)
@@ -178,7 +178,7 @@ pipeline {
                                         SCANNER_DIR="${HOME}/sonar-scanner-${SCANNER_VERSION}"
                                         
                                         if [ ! -d "${SCANNER_DIR}" ]; then
-                                            echo "📥 Downloading SonarScanner ${SCANNER_VERSION}..."
+                                            echo " Downloading SonarScanner ${SCANNER_VERSION}..."
                                             cd /tmp
                                             wget -q https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SCANNER_VERSION}-linux.zip
                                             unzip -q sonar-scanner-cli-${SCANNER_VERSION}-linux.zip
@@ -186,15 +186,15 @@ pipeline {
                                             chmod +x ${SCANNER_DIR}/bin/sonar-scanner
                                             rm -f sonar-scanner-cli-${SCANNER_VERSION}-linux.zip
                                             cd ${WORKSPACE}
-                                            echo "✅ SonarScanner installed to ${SCANNER_DIR}"
+                                            echo " SonarScanner installed to ${SCANNER_DIR}"
                                         else
-                                            echo "✅ SonarScanner already exists at ${SCANNER_DIR}"
+                                            echo " SonarScanner already exists at ${SCANNER_DIR}"
                                         fi
                                         
                                         # Add to PATH
                                         export PATH=${SCANNER_DIR}/bin:$PATH
                                         
-                                        echo "🔍 Running SonarQube scan from workspace..."
+                                        echo " Running SonarQube scan from workspace..."
                                         sonar-scanner \
                                           -Dsonar.projectKey=kahoot-clone \
                                           -Dsonar.projectName="Kahoot Clone" \
@@ -205,11 +205,11 @@ pipeline {
                                           -Dsonar.sourceEncoding=UTF-8 \
                                           -Dsonar.qualitygate.wait=false || true
                                         
-                                        echo "✅ SonarQube analysis complete"
+                                        echo " SonarQube analysis complete"
                                     '''
                                 }
                             } catch (Exception e) {
-                                echo "⚠️ SonarQube analysis skipped: ${e.message}"
+                                echo " SonarQube analysis skipped: ${e.message}"
                                 echo "To enable: Configure 'sonarqube-token' credential in Jenkins"
                             }
                         }
