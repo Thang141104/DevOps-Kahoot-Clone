@@ -544,8 +544,8 @@ pipeline {
                                     echo "🔄 Updating repository..."
                                     cd ~/kahoot-repo
                                     git fetch origin
-                                    git checkout main
-                                    git pull origin main
+                                    git checkout fix/auth-routing-issues
+                                    git pull origin fix/auth-routing-issues
                                 fi
                                 
                                 cd ~/kahoot-repo
