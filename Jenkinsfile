@@ -112,22 +112,40 @@ pipeline {
                 script {
                     echo " Detecting affected services with Nx..."
                     
-                    // Get affected projects
+                    // Get affected projects using new Nx 19+ command
                     def affectedApps = sh(
-                        script: 'npx nx affected:apps --base=HEAD~1 --head=HEAD --plain 2>/dev/null || echo ""',
+                        script: '''
+                            npx nx show projects --affected --base=HEAD~1 --head=HEAD 2>/dev/null || echo ""
+                        ''',
                         returnStdout: true
                     ).trim()
                     
-                    if (affectedApps.isEmpty() || affectedApps == "") {
+                    // Validate output (check if it's error message or valid projects)
+                    if (affectedApps.isEmpty() || affectedApps == "" || affectedApps.contains("Cannot find") || affectedApps.contains("NX")) {
                         env.AFFECTED_SERVICES = ""
                         env.SKIP_BUILD = "true"
                         echo " No affected services detected"
                         echo " Only non-service files changed (docs, terraform, configs, etc.)"
                         echo " Pipeline will skip build/deploy stages"
                     } else {
-                        env.AFFECTED_SERVICES = affectedApps.replace("\n", ",")
-                        env.SKIP_BUILD = "false"
-                        echo " Affected services: ${env.AFFECTED_SERVICES}"
+                        // Clean and validate project names
+                        def validProjects = []
+                        affectedApps.split('\n').each { project ->
+                            project = project.trim()
+                            if (project && !project.isEmpty() && !project.startsWith("NX")) {
+                                validProjects.add(project)
+                            }
+                        }
+                        
+                        if (validProjects.isEmpty()) {
+                            env.AFFECTED_SERVICES = ""
+                            env.SKIP_BUILD = "true"
+                            echo " No valid affected services found"
+                        } else {
+                            env.AFFECTED_SERVICES = validProjects.join(',')
+                            env.SKIP_BUILD = "false"
+                            echo " Affected services: ${env.AFFECTED_SERVICES}"
+                        }
                     }
                     
                     // Display affected summary
