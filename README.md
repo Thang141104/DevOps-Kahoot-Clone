@@ -5,6 +5,7 @@
 > - **Region**: AWS us-east-1
 > - **Deploy**: `.\infrastructure\deploy.ps1 -Action all`
 > - **Status**: Jenkins Pipeline Active with GitHub Webhook Integration
+> - **🧪 TEST**: Nx Smart Builds - Non-service file change detection
 
 [![Production Ready](https://img.shields.io/badge/Production-Ready-green.svg)](https://github.com/yourusername/kahoot-clone)
 [![K8s](https://img.shields.io/badge/K8s-3%20Nodes-blue.svg)](https://kubernetes.io/)
@@ -144,9 +145,7 @@ Frontend (React) → API Gateway → [ Auth | User | Quiz | Game | Analytics ]
 │ ├── analytics-service (1 replica)
 │ └── gateway (1 replica)
 │
-├── monitoring namespace:
-│ ├── prometheus (1 replica)
-│ └── grafana (1 replica)
+├── Sonarqube namespace: 
 └── sonarqube (NodePort 30900) - Quality Gate
 
 # Worker Node 2 (44.198.175.214)
