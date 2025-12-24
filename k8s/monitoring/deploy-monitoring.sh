@@ -14,6 +14,9 @@ kubectl wait --for=condition=available --timeout=120s deployment/prometheus -n m
 # Deploy Grafana dashboards
 echo "📊 Deploying Grafana dashboards..."
 kubectl apply -f k8s/monitoring/grafana-dashboard-kahoot.yaml
+kubectl apply -f k8s/monitoring/grafana-dashboard-infrastructure.yaml
+kubectl apply -f k8s/monitoring/grafana-dashboard-business.yaml
+kubectl apply -f k8s/monitoring/grafana-dashboard-containers.yaml
 kubectl apply -f k8s/monitoring/grafana-deployment.yaml
 
 # Wait for Grafana to be ready

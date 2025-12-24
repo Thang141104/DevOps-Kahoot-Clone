@@ -121,6 +121,12 @@ spec:
           mountPath: /var/lib/grafana/dashboards/k8s
         - name: grafana-dashboard-kahoot
           mountPath: /var/lib/grafana/dashboards/kahoot
+        - name: grafana-dashboard-infrastructure
+          mountPath: /var/lib/grafana/dashboards/infrastructure
+        - name: grafana-dashboard-business
+          mountPath: /var/lib/grafana/dashboards/business
+        - name: grafana-dashboard-containers
+          mountPath: /var/lib/grafana/dashboards/containers
         resources:
           requests:
             memory: "256Mi"
@@ -155,6 +161,15 @@ spec:
       - name: grafana-dashboard-kahoot
         configMap:
           name: grafana-dashboard-kahoot
+      - name: grafana-dashboard-infrastructure
+        configMap:
+          name: grafana-dashboard-infrastructure
+      - name: grafana-dashboard-business
+        configMap:
+          name: grafana-dashboard-business
+      - name: grafana-dashboard-containers
+        configMap:
+          name: grafana-dashboard-containers
 ---
 apiVersion: v1
 kind: Service
