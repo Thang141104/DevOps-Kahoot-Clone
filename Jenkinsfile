@@ -114,15 +114,19 @@ pipeline {
                     
                     // Get affected projects
                     def affectedApps = sh(
-                        script: 'npx nx affected:apps --base=HEAD~1 --head=HEAD --plain || echo "all"',
+                        script: 'npx nx affected:apps --base=HEAD~1 --head=HEAD --plain 2>/dev/null || echo ""',
                         returnStdout: true
                     ).trim()
                     
-                    if (affectedApps == "all" || affectedApps.isEmpty()) {
-                        env.AFFECTED_SERVICES = "gateway,auth-service,user-service,quiz-service,game-service,analytics-service,frontend"
-                        echo " Building all services (no git history or first build)"
+                    if (affectedApps.isEmpty() || affectedApps == "") {
+                        env.AFFECTED_SERVICES = ""
+                        env.SKIP_BUILD = "true"
+                        echo " No affected services detected"
+                        echo " Only non-service files changed (docs, terraform, configs, etc.)"
+                        echo " Pipeline will skip build/deploy stages"
                     } else {
                         env.AFFECTED_SERVICES = affectedApps.replace("\n", ",")
+                        env.SKIP_BUILD = "false"
                         echo " Affected services: ${env.AFFECTED_SERVICES}"
                     }
                     
@@ -130,8 +134,12 @@ pipeline {
                     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                     echo " AFFECTED SERVICES (Nx Detection)"
                     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                    env.AFFECTED_SERVICES.split(',').each { service ->
-                        echo "   ${service}"
+                    if (env.AFFECTED_SERVICES == "") {
+                        echo "   (none - only infrastructure/docs changed)"
+                    } else {
+                        env.AFFECTED_SERVICES.split(',').each { service ->
+                            echo "   ${service}"
+                        }
                     }
                     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                 }
@@ -219,6 +227,9 @@ pipeline {
         }
         
         stage(' ECR Login') {
+            when {
+                expression { env.SKIP_BUILD != 'true' }
+            }
             steps {
                 script {
                     echo " Logging into AWS ECR..."
@@ -232,66 +243,92 @@ pipeline {
         }
         
         stage(' Install Dependencies & Static Analysis') {
+            when {
+                expression { env.SKIP_BUILD != 'true' }
+            }
             steps {
                 script {
-                    echo " Installing dependencies (Batch 1: Gateway, Auth)..."
-                    // Batch 1: Core dependencies
-                    parallel(
-                        'Gateway': {
+                    def affectedList = env.AFFECTED_SERVICES.split(',')
+                    def installSteps = [:]
+                    
+                    echo " Installing dependencies for affected services..."
+                    
+                    if (affectedList.contains('gateway')) {
+                        installSteps['Gateway'] = {
                             dir('gateway') {
                                 sh "npm ci --prefer-offline --no-audit --maxsockets=2 --loglevel=error"
                             }
-                        },
-                        'Auth Service': {
+                        }
+                    }
+                    
+                    if (affectedList.contains('auth-service')) {
+                        installSteps['Auth Service'] = {
                             dir('services/auth-service') {
                                 sh "npm ci --prefer-offline --no-audit --maxsockets=2 --loglevel=error"
                             }
                         }
-                    )
+                    }
                     
-                    echo " Installing dependencies (Batch 2: User, Quiz, Game)..."
-                    // Batch 2: Service dependencies
-                    parallel(
-                        'User Service': {
+                    if (affectedList.contains('user-service')) {
+                        installSteps['User Service'] = {
                             dir('services/user-service') {
                                 sh "npm ci --prefer-offline --no-audit --maxsockets=2 --loglevel=error"
                             }
-                        },
-                        'Quiz Service': {
+                        }
+                    }
+                    
+                    if (affectedList.contains('quiz-service')) {
+                        installSteps['Quiz Service'] = {
                             dir('services/quiz-service') {
                                 sh "npm ci --prefer-offline --no-audit --maxsockets=2 --loglevel=error"
                             }
-                        },
-                        'Game Service': {
+                        }
+                    }
+                    
+                    if (affectedList.contains('game-service')) {
+                        installSteps['Game Service'] = {
                             dir('services/game-service') {
                                 sh "npm ci --prefer-offline --no-audit --maxsockets=2 --loglevel=error"
                             }
                         }
-                    )
+                    }
                     
-                    echo " Installing dependencies (Batch 3: Analytics, Frontend)..."
-                    // Batch 3: Frontend & Analytics
-                    parallel(
-                        'Analytics Service': {
+                    if (affectedList.contains('analytics-service')) {
+                        installSteps['Analytics Service'] = {
                             dir('services/analytics-service') {
                                 sh "npm ci --prefer-offline --no-audit --maxsockets=2 --loglevel=error"
                             }
-                        },
-                        'Frontend': {
+                        }
+                    }
+                    
+                    if (affectedList.contains('frontend')) {
+                        installSteps['Frontend'] = {
                             dir('frontend') {
                                 sh "npm ci --prefer-offline --no-audit --maxsockets=2 --loglevel=error"
                             }
                         }
-                    )
+                    }
+                    
+                    if (installSteps.size() > 0) {
+                        parallel installSteps
+                    } else {
+                        echo " No affected services to install dependencies"
+                    }
                 }
             }
         }
         
         stage(' Build & Push Images - Batch 1') {
-            parallel {
-                stage('Gateway') {
-                    steps {
-                        script {
+            when {
+                expression { env.SKIP_BUILD != 'true' }
+            }
+            steps {
+                script {
+                    def affectedList = env.AFFECTED_SERVICES.split(',')
+                    def buildSteps = [:]
+                    
+                    if (affectedList.contains('gateway')) {
+                        buildSteps['Gateway'] = {
                             echo " Building Gateway with cache..."
                             sh """
                                 docker buildx build \
@@ -305,10 +342,9 @@ pipeline {
                             """
                         }
                     }
-                }
-                stage('Auth Service') {
-                    steps {
-                        script {
+                    
+                    if (affectedList.contains('auth-service')) {
+                        buildSteps['Auth Service'] = {
                             echo " Building Auth Service with cache..."
                             sh """
                                 docker buildx build \
@@ -322,10 +358,9 @@ pipeline {
                             """
                         }
                     }
-                }
-                stage('User Service') {
-                    steps {
-                        script {
+                    
+                    if (affectedList.contains('user-service')) {
+                        buildSteps['User Service'] = {
                             echo " Building User Service with cache..."
                             sh """
                                 docker buildx build \
@@ -339,10 +374,9 @@ pipeline {
                             """
                         }
                     }
-                }
-                stage('Quiz Service') {
-                    steps {
-                        script {
+                    
+                    if (affectedList.contains('quiz-service')) {
+                        buildSteps['Quiz Service'] = {
                             echo " Building Quiz Service with cache..."
                             sh """
                                 docker buildx build \
@@ -356,15 +390,27 @@ pipeline {
                             """
                         }
                     }
+                    
+                    if (buildSteps.size() > 0) {
+                        parallel buildSteps
+                    } else {
+                        echo " No affected services in Batch 1 to build"
+                    }
                 }
             }
         }
         
         stage(' Build & Push Images - Batch 2') {
-            parallel {
-                stage('Game Service') {
-                    steps {
-                        script {
+            when {
+                expression { env.SKIP_BUILD != 'true' }
+            }
+            steps {
+                script {
+                    def affectedList = env.AFFECTED_SERVICES.split(',')
+                    def buildSteps = [:]
+                    
+                    if (affectedList.contains('game-service')) {
+                        buildSteps['Game Service'] = {
                             echo " Building Game Service with cache..."
                             sh """
                                 docker buildx build \
@@ -378,10 +424,9 @@ pipeline {
                             """
                         }
                     }
-                }
-                stage('Analytics Service') {
-                    steps {
-                        script {
+                    
+                    if (affectedList.contains('analytics-service')) {
+                        buildSteps['Analytics Service'] = {
                             echo " Building Analytics Service with cache..."
                             sh """
                                 docker buildx build \
@@ -395,10 +440,9 @@ pipeline {
                             """
                         }
                     }
-                }
-                stage('Frontend') {
-                    steps {
-                        script {
+                    
+                    if (affectedList.contains('frontend')) {
+                        buildSteps['Frontend'] = {
                             echo " Building Frontend with cache..."
                             sh """
                                 docker buildx build \
@@ -412,15 +456,27 @@ pipeline {
                             """
                         }
                     }
+                    
+                    if (buildSteps.size() > 0) {
+                        parallel buildSteps
+                    } else {
+                        echo " No affected services in Batch 2 to build"
+                    }
                 }
             }
         }
         
         stage(' Security Scan - Images') {
-            parallel {
-                stage('Trivy - Gateway') {
-                    steps {
-                        script {
+            when {
+                expression { env.SKIP_BUILD != 'true' }
+            }
+            steps {
+                script {
+                    def affectedList = env.AFFECTED_SERVICES.split(',')
+                    def scanSteps = [:]
+                    
+                    if (affectedList.contains('gateway')) {
+                        scanSteps['Trivy - Gateway'] = {
                             sh """
                                 trivy image --severity ${TRIVY_SEVERITY} \
                                   --exit-code ${TRIVY_EXIT_CODE} \
@@ -429,10 +485,9 @@ pipeline {
                             """
                         }
                     }
-                }
-                stage('Trivy - Auth') {
-                    steps {
-                        script {
+                    
+                    if (affectedList.contains('auth-service')) {
+                        scanSteps['Trivy - Auth'] = {
                             sh """
                                 trivy image --severity ${TRIVY_SEVERITY} \
                                   --exit-code ${TRIVY_EXIT_CODE} \
@@ -441,10 +496,9 @@ pipeline {
                             """
                         }
                     }
-                }
-                stage('Trivy - User') {
-                    steps {
-                        script {
+                    
+                    if (affectedList.contains('user-service')) {
+                        scanSteps['Trivy - User'] = {
                             sh """
                                 trivy image --severity ${TRIVY_SEVERITY} \
                                   --exit-code ${TRIVY_EXIT_CODE} \
@@ -453,10 +507,9 @@ pipeline {
                             """
                         }
                     }
-                }
-                stage('Trivy - Quiz') {
-                    steps {
-                        script {
+                    
+                    if (affectedList.contains('quiz-service')) {
+                        scanSteps['Trivy - Quiz'] = {
                             sh """
                                 trivy image --severity ${TRIVY_SEVERITY} \
                                   --exit-code ${TRIVY_EXIT_CODE} \
@@ -465,10 +518,9 @@ pipeline {
                             """
                         }
                     }
-                }
-                stage('Trivy - Game') {
-                    steps {
-                        script {
+                    
+                    if (affectedList.contains('game-service')) {
+                        scanSteps['Trivy - Game'] = {
                             sh """
                                 trivy image --severity ${TRIVY_SEVERITY} \
                                   --exit-code ${TRIVY_EXIT_CODE} \
@@ -477,10 +529,9 @@ pipeline {
                             """
                         }
                     }
-                }
-                stage('Trivy - Analytics') {
-                    steps {
-                        script {
+                    
+                    if (affectedList.contains('analytics-service')) {
+                        scanSteps['Trivy - Analytics'] = {
                             sh """
                                 trivy image --severity ${TRIVY_SEVERITY} \
                                   --exit-code ${TRIVY_EXIT_CODE} \
@@ -489,10 +540,9 @@ pipeline {
                             """
                         }
                     }
-                }
-                stage('Trivy - Frontend') {
-                    steps {
-                        script {
+                    
+                    if (affectedList.contains('frontend')) {
+                        scanSteps['Trivy - Frontend'] = {
                             sh """
                                 trivy image --severity ${TRIVY_SEVERITY} \
                                   --exit-code ${TRIVY_EXIT_CODE} \
@@ -501,11 +551,20 @@ pipeline {
                             """
                         }
                     }
+                    
+                    if (scanSteps.size() > 0) {
+                        parallel scanSteps
+                    } else {
+                        echo " No affected services to scan"
+                    }
                 }
             }
         }
         
         stage(' Pre-Deployment Validation') {
+            when {
+                expression { env.SKIP_BUILD != 'true' }
+            }
             parallel {
                 stage('Generate Security Report') {
                     steps {
@@ -529,6 +588,9 @@ pipeline {
         }
         
         stage(' Deploy to Kubernetes') {
+            when {
+                expression { env.SKIP_BUILD != 'true' }
+            }
             steps {
                 script {
                     echo " Deploying to Kubernetes via SSH..."
@@ -629,53 +691,83 @@ pipeline {
                                 echo "\n Current deployments:"
                                 kubectl get deployments -n kahoot-clone
                                 
-                                echo "\n Updating image tags to build ${BUILD_VERSION}..."
-                                # Update image tags in K8s deployments
-                                # Format: deployment-name/container-name=image
+                                echo "\n Updating image tags for affected services to build ${BUILD_VERSION}..."
+                                # Update image tags only for affected services
+                                AFFECTED_SERVICES="${AFFECTED_SERVICES}"
                                 
-                                echo "Updating gateway..."
-                                kubectl set image deployment/gateway \
-                                  gateway=${ECR_REGISTRY}/${PROJECT_NAME}-gateway:${BUILD_VERSION} \
-                                  -n kahoot-clone || echo "  Warning: Failed to update gateway"
+                                if [[ "\$AFFECTED_SERVICES" == *"gateway"* ]]; then
+                                    echo "Updating gateway..."
+                                    kubectl set image deployment/gateway \
+                                      gateway=${ECR_REGISTRY}/${PROJECT_NAME}-gateway:${BUILD_VERSION} \
+                                      -n kahoot-clone || echo "  Warning: Failed to update gateway"
+                                fi
                                 
-                                echo "Updating auth-service..."
-                                kubectl set image deployment/auth-service \
-                                  auth-service=${ECR_REGISTRY}/${PROJECT_NAME}-auth:${BUILD_VERSION} \
-                                  -n kahoot-clone || echo "  Warning: Failed to update auth-service"
+                                if [[ "\$AFFECTED_SERVICES" == *"auth-service"* ]]; then
+                                    echo "Updating auth-service..."
+                                    kubectl set image deployment/auth-service \
+                                      auth-service=${ECR_REGISTRY}/${PROJECT_NAME}-auth:${BUILD_VERSION} \
+                                      -n kahoot-clone || echo "  Warning: Failed to update auth-service"
+                                fi
                                 
-                                echo "Updating user-service..."
-                                kubectl set image deployment/user-service \
-                                  user-service=${ECR_REGISTRY}/${PROJECT_NAME}-user:${BUILD_VERSION} \
-                                  -n kahoot-clone || echo "  Warning: Failed to update user-service"
+                                if [[ "\$AFFECTED_SERVICES" == *"user-service"* ]]; then
+                                    echo "Updating user-service..."
+                                    kubectl set image deployment/user-service \
+                                      user-service=${ECR_REGISTRY}/${PROJECT_NAME}-user:${BUILD_VERSION} \
+                                      -n kahoot-clone || echo "  Warning: Failed to update user-service"
+                                fi
                                 
-                                echo "Updating quiz-service..."
-                                kubectl set image deployment/quiz-service \
-                                  quiz-service=${ECR_REGISTRY}/${PROJECT_NAME}-quiz:${BUILD_VERSION} \
-                                  -n kahoot-clone || echo "  Warning: Failed to update quiz-service"
+                                if [[ "\$AFFECTED_SERVICES" == *"quiz-service"* ]]; then
+                                    echo "Updating quiz-service..."
+                                    kubectl set image deployment/quiz-service \
+                                      quiz-service=${ECR_REGISTRY}/${PROJECT_NAME}-quiz:${BUILD_VERSION} \
+                                      -n kahoot-clone || echo "  Warning: Failed to update quiz-service"
+                                fi
                                 
-                                echo "Updating game-service..."
-                                kubectl set image deployment/game-service \
-                                  game-service=${ECR_REGISTRY}/${PROJECT_NAME}-game:${BUILD_VERSION} \
-                                  -n kahoot-clone || echo "  Warning: Failed to update game-service"
+                                if [[ "\$AFFECTED_SERVICES" == *"game-service"* ]]; then
+                                    echo "Updating game-service..."
+                                    kubectl set image deployment/game-service \
+                                      game-service=${ECR_REGISTRY}/${PROJECT_NAME}-game:${BUILD_VERSION} \
+                                      -n kahoot-clone || echo "  Warning: Failed to update game-service"
+                                fi
                                 
-                                echo "Updating analytics-service..."
-                                kubectl set image deployment/analytics-service \
-                                  analytics-service=${ECR_REGISTRY}/${PROJECT_NAME}-analytics:${BUILD_VERSION} \
-                                  -n kahoot-clone || echo "  Warning: Failed to update analytics-service"
+                                if [[ "\$AFFECTED_SERVICES" == *"analytics-service"* ]]; then
+                                    echo "Updating analytics-service..."
+                                    kubectl set image deployment/analytics-service \
+                                      analytics-service=${ECR_REGISTRY}/${PROJECT_NAME}-analytics:${BUILD_VERSION} \
+                                      -n kahoot-clone || echo "  Warning: Failed to update analytics-service"
+                                fi
                                 
-                                echo "Updating frontend..."
-                                kubectl set image deployment/frontend \
-                                  frontend=${ECR_REGISTRY}/${PROJECT_NAME}-frontend:${BUILD_VERSION} \
-                                  -n kahoot-clone || echo "  Warning: Failed to update frontend"
+                                if [[ "\$AFFECTED_SERVICES" == *"frontend"* ]]; then
+                                    echo "Updating frontend..."
+                                    kubectl set image deployment/frontend \
+                                      frontend=${ECR_REGISTRY}/${PROJECT_NAME}-frontend:${BUILD_VERSION} \
+                                      -n kahoot-clone || echo "  Warning: Failed to update frontend"
+                                fi
                                 
                                 echo "\n Cleaning up failed/old pods..."
                                 # Delete pods with ImagePullBackOff or ErrImagePull
                                 kubectl get pods -n kahoot-clone --field-selector=status.phase!=Running,status.phase!=Pending | grep -E 'ImagePullBackOff|ErrImagePull|Error|Terminating' | awk '{print \$1}' | xargs -r kubectl delete pod -n kahoot-clone || true
                                 
-                                # Alternative: Force rollout restart to recreate all pods
-                                echo "\n Forcing rollout restart..."
-                                for deployment in gateway auth-service user-service quiz-service game-service analytics-service frontend; do
-                                    kubectl rollout restart deployment/\${deployment} -n kahoot-clone
+                                # Force rollout restart only for affected services
+                                echo "\n Forcing rollout restart for affected services..."
+                                IFS=',' read -ra SERVICES <<< "\$AFFECTED_SERVICES"
+                                for service in "\${SERVICES[@]}"; do
+                                    # Map service names to deployment names
+                                    case "\$service" in
+                                        "gateway") deployment="gateway" ;;
+                                        "auth-service") deployment="auth-service" ;;
+                                        "user-service") deployment="user-service" ;;
+                                        "quiz-service") deployment="quiz-service" ;;
+                                        "game-service") deployment="game-service" ;;
+                                        "analytics-service") deployment="analytics-service" ;;
+                                        "frontend") deployment="frontend" ;;
+                                        *) deployment="" ;;
+                                    esac
+                                    
+                                    if [ -n "\$deployment" ]; then
+                                        echo "Restarting \$deployment..."
+                                        kubectl rollout restart deployment/\${deployment} -n kahoot-clone || true
+                                    fi
                                 done
                                 
                                 echo "\n Waiting for rollout to complete (60s)..."
