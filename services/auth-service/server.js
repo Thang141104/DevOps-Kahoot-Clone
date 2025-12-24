@@ -14,6 +14,7 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const { metricsMiddleware, register } = require('./utils/metrics');
 
 // Initialize Express
 const app = express();
@@ -24,9 +25,18 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Enable Prometheus metrics collection
+app.use(metricsMiddleware);
+
 // Simple health check
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', service: 'auth-service' });
+});
+
+// Prometheus metrics endpoint
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', register.contentType);
+  res.end(await register.metrics());
 });
 
 // Import routes
