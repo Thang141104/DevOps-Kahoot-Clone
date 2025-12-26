@@ -1,6 +1,5 @@
 /**
  * Simple Auth Service
- * 🧪 TEST CASE 2: Single service change - Only auth-service should rebuild
  */
 
 process.on('uncaughtException', err => {
