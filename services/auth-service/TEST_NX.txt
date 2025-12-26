@@ -1,3 +1,0 @@
-Test Nx affected detection - Auth Service
-Updated: 2025-12-24
-This file is used to test if Nx correctly detects changes in auth-service.
