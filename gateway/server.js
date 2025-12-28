@@ -1,3 +1,4 @@
+// 🧪 PIPELINE TEST: Full build all services
 const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const cors = require('cors');

@@ -1,4 +1,5 @@
 require('dotenv').config();
+// 🧪 PIPELINE TEST: Full build all services
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');

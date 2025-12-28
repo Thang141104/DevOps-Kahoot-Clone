@@ -1,5 +1,6 @@
 /**
  * Simple Auth Service
+ * 🧪 PIPELINE TEST: Full build all services
  */
 
 process.on('uncaughtException', err => {
